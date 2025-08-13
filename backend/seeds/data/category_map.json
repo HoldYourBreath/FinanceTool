@@ -1,0 +1,32 @@
+{
+    "Housing": [
+        "hyra", "rent", "loan", "bolån", "huslån", "bottenlån", "topplån"
+    ],
+    "Transportation": [
+        "circle k", "tanka", "bensin", "diesel", "bilprovningen", "bilservice", 
+        "bilbesiktning", "bilreparation", "buss", "skånetrafiken", "öresund", 
+        "brobizz", "danske finans"
+    ],
+    "Food": [
+        "ica", "coop", "willys", "city gross", "lidl", "netto", "mathem", 
+        "hemköp", "maxi", "pressbyrån", "espresso house"
+    ],
+    "Childcare and Family": [
+        "förskola", "dagis", "skola", "svenska kunsk", "apoteket", 
+        "babyshop", "polarn o pyret", "lindex barn", "lekia"
+    ],
+    "Phones": [
+        "telia", "telenor", "tele2", "comviq", "halebop"
+    ],
+    "Subscriptions": [
+        "spotify", "netflix", "viaplay", "hbo max", "disney+", "storytel"
+    ],
+    "Union and Insurance": [
+        "folksam", "if skadeförsäkring", "länsförsäkringar", "trygg hansa", 
+        "spp pension", "unionen", "a-kassa", "vision", "akademikernas"
+    ],
+    "Entertainment and Leisure": [
+        "sf bio", "filmstaden", "bio", "bok", "adlibris", "bokus"
+    ],
+    "Other": []
+}

@@ -1,0 +1,47 @@
+# Data Seeds
+/data/seed_house_land.json
+/data/seed_investments.json
+/data/seed_months.json
+/data/seed_planned_purchases.json
+/data/seed_acc_infojson
+/data/seed_car_evaluation.json
+/data/seed_financing.json
+
+
+# Node / Vite
+node_modules/
+frontend/Devnodejsnpm-cache/
+financial-tool/Devnodejsnpm-cache/
+Devnodejsnpm-cache/
+dist/
+.vite/
+*.log
+
+# Python / Flask
+venv/
+.env
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+instance/
+.venv/
+*.sqlite3
+*.db
+build/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Other
+sql.txt
+uploads/
+ngrok.exe
