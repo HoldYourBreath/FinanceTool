@@ -1,7 +1,9 @@
 import os
-from flask import Blueprint, request, jsonify
+
 import pandas as pd
-from models.models import db, AccInfo, Month
+from flask import Blueprint, jsonify, request
+
+from models.models import AccInfo, Month, db
 
 file_upload_bp = Blueprint('file_upload', __name__, url_prefix='/upload')
 

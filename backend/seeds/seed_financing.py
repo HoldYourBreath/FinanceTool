@@ -1,14 +1,14 @@
 # seeders/seed_financing.py
 
-import sys
-import os
 import json
+import os
+import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from app import create_app
 from models.models import Financing, db
 
-app = create_app() 
+app = create_app()
 SEED_FILE = os.getenv('SEED_FILE_FINANCING', 'data/seed_financing.json')
 
 def seed():
@@ -18,7 +18,7 @@ def seed():
         print(f"❌ File {SEED_FILE} not found.")
         return
 
-    with open(SEED_FILE, 'r', encoding='utf-8') as f:
+    with open(SEED_FILE, encoding='utf-8') as f:
         data = json.load(f)
         financing_items = data.get("financing", [])
 

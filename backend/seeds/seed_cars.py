@@ -1,8 +1,11 @@
-import os, json, sys
+import json
+import os
+import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app import create_app
-from models.models import db, Car
+from models.models import Car, db
 
 SEED_FILE = os.getenv('SEED_FILE_CARS', 'data/seed_car_evaluation.json')
 app = create_app()
@@ -10,9 +13,10 @@ app = create_app()
 def seed():
     print(f"📂 Loading cars from: {SEED_FILE}")
     if not os.path.exists(SEED_FILE):
-        print("❌ JSON not found."); return
+        print("❌ JSON not found.")
+        return
 
-    with open(SEED_FILE, 'r', encoding='utf-8') as f:
+    with open(SEED_FILE, encoding='utf-8') as f:
         data = json.load(f)
     cars = data.get('cars', [])
 
@@ -38,7 +42,7 @@ def seed():
                 battery_aviloo_score=c.get('battery_aviloo_score', 0),
                 trunk_size_litre=c.get('trunk_size_litre', 0),
                 full_insurance_year=c.get('full_insurance_year', 0),
-                half_insurance_year=c.get('half_insurance_year', 0),     
+                half_insurance_year=c.get('half_insurance_year', 0),
                 car_tax_year=c.get('car_tax_year', 0),
                 repairs_year=c.get('repairs_year', 0),
             ))

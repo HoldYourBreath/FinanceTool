@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
-from models.models import db, HouseCost, LandCost
+
+from models.models import HouseCost, LandCost, db
 
 house_bp = Blueprint('house', __name__)
 

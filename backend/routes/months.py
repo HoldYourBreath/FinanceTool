@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
-from models.models import db, Month, Financing
+
+from models.models import Financing, Month, db
 
 months_bp = Blueprint('months', __name__)
 
@@ -56,8 +57,8 @@ def build_months_data(months, financing_data, is_past=False):
             "incomes": [{"name": i.source, "amount": float(i.amount)} for i in month.incomes],
             "expenses": [{"description": e.description, "amount": float(e.amount)} for e in month.expenses],
             "loanAdjustments": [
-                {"name": l.name, "type": l.type, "amount": float(l.amount), "note": l.note}
-                for l in month.loan_adjustments
+                {"name": adj.name, "type": adj.type, "amount": float(adj.amount), "note": adj.note}
+                for adj in month.loan_adjustments
             ],
         })
 

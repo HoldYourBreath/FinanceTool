@@ -1,4 +1,5 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
+
 from models.models import AccInfo, db
 
 acc_info_bp = Blueprint('acc_info', __name__)

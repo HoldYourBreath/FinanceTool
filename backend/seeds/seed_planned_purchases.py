@@ -1,6 +1,6 @@
-import sys
-import os
 import json
+import os
+import sys
 from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -19,7 +19,7 @@ def seed():
         print(f"❌ Seed file {SEED_FILE} does not exist!")
         return
 
-    with open(SEED_FILE, 'r', encoding='utf-8') as f:
+    with open(SEED_FILE, encoding='utf-8') as f:
         file_content = f.read()
         if not file_content.strip():
             print(f"❌ Seed file {SEED_FILE} is empty!")

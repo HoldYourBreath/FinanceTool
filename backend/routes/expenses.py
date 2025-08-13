@@ -1,4 +1,5 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
+
 from models.models import Expense, db
 
 expenses_bp = Blueprint('expenses', __name__)
@@ -13,7 +14,7 @@ def expenses_list_create():
             'description': e.description,
             'amount': str(e.amount)
         } for e in Expense.query.order_by(Expense.id).all()])
-    
+
     data = request.json
     e = Expense(month_id=data['month_id'], category=data['category'], description=data['description'], amount=data['amount'])
     db.session.add(e)

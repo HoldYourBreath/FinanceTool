@@ -1,8 +1,10 @@
 # routes/settings.py
-import os
 import json
-from flask import Blueprint, request, jsonify
-from models.models import db, AccInfo, Month, PriceSettings
+import os
+
+from flask import Blueprint, jsonify, request
+
+from models.models import AccInfo, Month, PriceSettings, db
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/api/settings')
 

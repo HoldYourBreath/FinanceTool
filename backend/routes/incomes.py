@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
-from models.models import db, Income
+
+from models.models import Income, db
 
 incomes_bp = Blueprint('incomes', __name__)
 

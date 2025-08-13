@@ -1,11 +1,13 @@
 #app.py
 
 import os
+
+from dotenv import load_dotenv
 from flask import Flask, render_template
+from flask_cors import CORS
+
 from models.models import db
 from routes import register_routes
-from flask_cors import CORS
-from dotenv import load_dotenv
 
 load_dotenv()  # Load .env before accessing variables
 

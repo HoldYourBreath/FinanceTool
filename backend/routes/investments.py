@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+
 from models.models import Investment
 
 investments_bp = Blueprint('investments', __name__)

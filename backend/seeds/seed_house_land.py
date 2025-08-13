@@ -1,11 +1,12 @@
-import sys
-import os
 import json
+import os
+import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from app import create_app
 from models.models import HouseCost, LandCost, db
-app = create_app() 
+
+app = create_app()
 
 
 # 👉 Load filename from environment variable or fallback to example file
@@ -13,7 +14,7 @@ SEED_FILE = os.getenv('SEED_FILE', 'data/seed_house_land.json')
 
 def seed():
     # Load data from JSON file
-    with open(SEED_FILE, 'r', encoding='utf-8') as f:
+    with open(SEED_FILE, encoding='utf-8') as f:
         seed_data = json.load(f)
 
     landCosts = seed_data.get("landCosts", [])

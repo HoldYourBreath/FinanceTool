@@ -1,8 +1,9 @@
 from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Enum
+from sqlalchemy import Enum, Numeric
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.sql import func
-from sqlalchemy import Enum as SAEnum, Numeric
 
 db = SQLAlchemy()
 
@@ -33,7 +34,7 @@ class Month(db.Model):
             'loanRemaining': float(self.loan_remaining or 0),
             'incomes': [i.to_dict() for i in self.incomes],
             'expenses': [e.to_dict() for e in self.expenses],
-            'loanAdjustments': [l.to_dict() for l in self.loan_adjustments],
+            'loanAdjustments': [adj.to_dict() for adj in self.loan_adjustments],
         }
 
 
