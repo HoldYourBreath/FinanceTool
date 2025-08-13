@@ -1,12 +1,12 @@
 import axios from "axios";
 
 export async function fetchPlannedPurchases() {
-  const response = await axios.get('api/planned_purchases');
+  const response = await axios.get("api/planned_purchases");
   return response.data;
 }
 
 export const createPlannedPurchase = async (purchase) => {
-  const response = await axios.post('api/planned_purchases', purchase);
+  const response = await axios.post("api/planned_purchases", purchase);
   return response.data;
 };
 

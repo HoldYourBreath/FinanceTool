@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+
+import api from "../api/axios";
 
 export default function EditAccInfo() {
   const { state } = useLocation();
@@ -15,20 +16,20 @@ export default function EditAccInfo() {
 
   const handleSave = async () => {
     try {
-      await api.post('/acc_info/bulk', entries);
-      navigate('/');  // Redirect back to main page
+      await api.post("/acc_info/bulk", entries);
+      navigate("/"); // Redirect back to main page
     } catch (error) {
-      console.error('❌ Failed to save:', error);
+      console.error("❌ Failed to save:", error);
     }
   };
 
   return (
     <div className="space-y-4 p-4">
       <h1 className="text-2xl font-bold">Edit Account Information</h1>
-      
+
       {entries.map((entry, idx) => (
         <div key={idx} className="flex gap-2">
-          {['person', 'bank', 'acc_number', 'country', 'value'].map(field => (
+          {["person", "bank", "acc_number", "country", "value"].map((field) => (
             <input
               key={field}
               value={entry[field]}
@@ -41,8 +42,18 @@ export default function EditAccInfo() {
       ))}
 
       <div className="space-x-2">
-        <button onClick={handleSave} className="bg-green-500 text-white px-3 py-1 rounded">Save</button>
-        <button onClick={() => navigate('/')} className="bg-gray-500 text-white px-3 py-1 rounded">Cancel</button>
+        <button
+          onClick={handleSave}
+          className="bg-green-500 text-white px-3 py-1 rounded"
+        >
+          Save
+        </button>
+        <button
+          onClick={() => navigate("/")}
+          className="bg-gray-500 text-white px-3 py-1 rounded"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
