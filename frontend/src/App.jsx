@@ -13,6 +13,7 @@ import SpendingPlanner from "./components/SpendingPlanner";
 import HouseCostsTab from "./components/HouseCostsTab";
 import Settings from "./components/Settings";
 import CarEvaluation from "./components/CarEvaluation";
+import EditAccInfo from "./components/EditAccInfo";
 
 export default function App() {
   return (
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/house-costs" element={<HouseCostsTab />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/car-evaluation" element={<CarEvaluation />} />
+          <Route path="/edit-acc-info" element={<EditAccInfo />} />
         </Routes>
       </div>
     </Router>

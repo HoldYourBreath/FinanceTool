@@ -1,60 +1,52 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Papa from "papaparse";
-
 import api from "../api/axios";
 
-export default function CsvUpload() {
+export default function CsvUpload({ onUpdateacc_info }) {
   const [file, setFile] = useState(null);
-  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
+  const onSubmit = async (e) => {
+    e.preventDefault(); // ✅ stay on the same page
+    if (!file) return setMsg("Pick a CSV first");
 
-  const handleUpload = () => {
-    if (!file) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      await api.post("/upload/csv", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (result) => {
-        try {
-          const parsedData = result.data;
-
-          // Check existing records to avoid duplicates
-          const res = await api.get("/acc_info");
-          const existing = res.data;
-
-          const newEntries = parsedData.filter(
-            (entry) =>
-              !existing.some(
-                (e) =>
-                  e.person === entry.person &&
-                  e.bank === entry.bank &&
-                  e.acc_number === entry.acc_number &&
-                  e.country === entry.country,
-              ),
-          );
-
-          // Navigate to edit page with newEntries as state
-          navigate("/edit-acc-info", { state: { entries: newEntries } });
-        } catch (error) {
-          console.error("❌ Error checking existing records:", error);
-        }
-      },
-    });
+      setMsg("✅ Uploaded and updated balance.");
+      // ✅ tell parent to re-fetch acc_info from the server
+      if (typeof onUpdateacc_info === "function") {
+        await onUpdateacc_info();
+      }
+    } catch (err) {
+      const errMsg = err?.response?.data?.error || "Upload failed";
+      setMsg("❌ " + errMsg);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="space-y-2">
-      <input type="file" accept=".csv" onChange={handleFileChange} />
+    <form onSubmit={onSubmit} className="flex items-center gap-2">
+      <input
+        type="file"
+        accept=".csv"
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
+      />
       <button
-        onClick={handleUpload}
-        className="bg-blue-500 text-white px-3 py-1 rounded"
+        type="submit"
+        disabled={busy}
+        className="bg-blue-600 text-white px-3 py-1 rounded"
       >
-        Upload and Edit
+        {busy ? "Uploading…" : "Upload"}
       </button>
-    </div>
+      {msg && <span className="text-sm">{msg}</span>}
+    </form>
   );
 }

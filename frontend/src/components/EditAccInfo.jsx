@@ -1,60 +1,50 @@
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-
+// src/components/EditAccInfo.jsx
+import { useEffect, useState } from "react";
 import api from "../api/axios";
 
 export default function EditAccInfo() {
-  const { state } = useLocation();
-  const navigate = useNavigate();
-  const [entries, setEntries] = useState(state?.entries || []);
+  const [rows, setRows] = useState([]);
+  const [saving, setSaving] = useState(false);
 
-  const handleChange = (index, field, value) => {
-    const updated = [...entries];
-    updated[index][field] = value;
-    setEntries(updated);
-  };
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await api.get("/acc_info");
+        setRows(r.data || []);
+      } catch (e) {
+        console.error("Failed to load acc_info:", e);
+      }
+    })();
+  }, []);
 
-  const handleSave = async () => {
+  const onChange = (i, k, v) =>
+    setRows((prev) => prev.map((row, idx) => (idx === i ? { ...row, [k]: v } : row)));
+
+  const save = async () => {
+    setSaving(true);
     try {
-      await api.post("/acc_info/bulk", entries);
-      navigate("/"); // Redirect back to main page
-    } catch (error) {
-      console.error("❌ Failed to save:", error);
+      await api.post("/settings/accounts", rows);
+    } catch (e) {
+      console.error("Failed to save accounts:", e);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-2xl font-bold">Edit Account Information</h1>
-
-      {entries.map((entry, idx) => (
-        <div key={idx} className="flex gap-2">
-          {["person", "bank", "acc_number", "country", "value"].map((field) => (
-            <input
-              key={field}
-              value={entry[field]}
-              onChange={(e) => handleChange(idx, field, e.target.value)}
-              placeholder={field}
-              className="border p-1 rounded"
-            />
-          ))}
+    <div className="p-4 space-y-3">
+      <h1 className="text-2xl font-bold">Edit Account Info</h1>
+      {rows.map((row, i) => (
+        <div key={row.id ?? i} className="flex flex-wrap gap-2">
+          <input className="border p-1" value={row.person || ""} onChange={(e) => onChange(i, "person", e.target.value)} />
+          <input className="border p-1" value={row.bank || ""} onChange={(e) => onChange(i, "bank", e.target.value)} />
+          <input className="border p-1" value={row.acc_number || ""} onChange={(e) => onChange(i, "acc_number", e.target.value)} />
+          <input className="border p-1" value={row.country || ""} onChange={(e) => onChange(i, "country", e.target.value)} />
         </div>
       ))}
-
-      <div className="space-x-2">
-        <button
-          onClick={handleSave}
-          className="bg-green-500 text-white px-3 py-1 rounded"
-        >
-          Save
-        </button>
-        <button
-          onClick={() => navigate("/")}
-          className="bg-gray-500 text-white px-3 py-1 rounded"
-        >
-          Cancel
-        </button>
-      </div>
+      <button onClick={save} disabled={saving} className="bg-blue-600 text-white px-3 py-1 rounded">
+        {saving ? "Saving…" : "Save"}
+      </button>
     </div>
   );
 }
