@@ -36,15 +36,11 @@ jobs:
         run: |
           python -m pip install -U pip
           pip install -r requirements.txt
-          # optional: ruff/pytest if you use them
           pip install ruff pytest || true
 
       - name: Ruff (lint)
         run: ruff check .
-        continue-on-error: true  # flip to false once clean
-
-      # - name: Run unit tests
-      #   run: pytest -q
+        continue-on-error: true  # set to false once clean
 
   frontend:
     runs-on: ubuntu-latest
@@ -56,19 +52,25 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          node-version: 20
+          check-latest: true
+          # intentionally no npm cache to avoid optional-deps bug
 
-      - name: Install deps
-        run: npm ci
+      - name: Clean install
+        run: |
+          rm -rf node_modules package-lock.json
+          npm ci
 
       - name: Lint
         run: npm run lint --if-present
 
       - name: Build
-        working-directory: frontend
         env:
-          ROLLUP_USE_NODE_JS: true
+          ROLLUP_USE_NODE_JS: "true"  # force JS Rollup
         run: npm run build
 
+      - name: Upload build artifact (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
