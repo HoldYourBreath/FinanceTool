@@ -1,5 +1,5 @@
 // src/components/CarEvaluation.jsx
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 import api from "../api/axios";
 import { toFixed1, toNum, fmt0 } from "../utils/format";
@@ -96,8 +96,11 @@ export default function CarEvaluation() {
 
   const recalcAll = useCallback((list) => list.map(recalcRow), [recalcRow]);
 
-  useEffect(() => {
-    (async () => {
+const didFetch = useRef(false);
+ useEffect(() => {
+   if (didFetch.current) return;     // guard StrictMode double-run
+   didFetch.current = true;
+   (async () => {
       try {
         const pricesRes = await api.get("/settings/prices");
         const p = pricesRes.data || {};
@@ -130,13 +133,14 @@ export default function CarEvaluation() {
           tco_5_years: toNum(c.tco_5_years),
           tco_8_years: toNum(c.tco_8_years),
         }));
-        setCars(recalcAll(normalized));
+        // set raw; the prices effect below will recalc
+        setCars(normalized);
       } catch (e) {
         console.error("Failed to fetch car data:", e);
         setError("Failed to load cars.");
       }
     })();
-  }, [recalcAll]);
+ }, []);
 
   useEffect(() => {
     setCars((prev) => recalcAll(prev));
