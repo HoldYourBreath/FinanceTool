@@ -21,7 +21,8 @@
     "format": "prettier . --write",
     "lint": "eslint .",
     "preview": "vite preview",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "test:e2e": "playwright test"
   },
   "keywords": [],
   "dependencies": {
