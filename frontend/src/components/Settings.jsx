@@ -1,5 +1,5 @@
 // src/components/Settings.jsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import api from "../api/axios";
 
@@ -130,65 +130,60 @@ export default function Settings() {
         <h2 className="text-xl font-semibold">Energy & Fuel Prices</h2>
 
         <div className="flex items-center gap-2">
-          <label className="w-56">Electricity Price (öre / kWh)</label>
+          <label htmlFor="el_price_ore_kwh" className="w-56">
+            Electricity Price (öre / kWh)
+          </label>
           <input
+            id="el_price_ore_kwh"
             type="number"
             className="border p-1 rounded w-40 text-right"
             value={prices.el_price_ore_kwh}
-            onChange={(e) =>
-              setPrices((p) => ({ ...p, el_price_ore_kwh: e.target.value }))
-            }
+            onChange={(e) => setPrices((p) => ({ ...p, el_price_ore_kwh: e.target.value }))}
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="w-56">Bensin Price (SEK / litre)</label>
+          <label htmlFor="bensin_price_sek_litre" className="w-56">
+            Bensin Price (SEK / litre)
+          </label>
           <input
+            id="bensin_price_sek_litre"
             type="number"
             step="0.01"
             className="border p-1 rounded w-40 text-right"
             value={prices.bensin_price_sek_litre}
-            onChange={(e) =>
-              setPrices((p) => ({
-                ...p,
-                bensin_price_sek_litre: e.target.value,
-              }))
-            }
+            onChange={(e) => setPrices((p) => ({ ...p, bensin_price_sek_litre: e.target.value }))}
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="w-56">Diesel Price (SEK / litre)</label>
+          <label htmlFor="diesel_price_sek_litre" className="w-56">
+            Diesel Price (SEK / litre)
+          </label>
           <input
+            id="diesel_price_sek_litre"
             type="number"
             step="0.01"
             className="border p-1 rounded w-40 text-right"
             value={prices.diesel_price_sek_litre}
-            onChange={(e) =>
-              setPrices((p) => ({
-                ...p,
-                diesel_price_sek_litre: e.target.value,
-              }))
-            }
+            onChange={(e) => setPrices((p) => ({ ...p, diesel_price_sek_litre: e.target.value }))}
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="w-56">Yearly Driving (km)</label>
+          <label htmlFor="yearly_km" className="w-56">
+            Yearly Driving (km)
+          </label>
           <input
+            id="yearly_km"
             type="number"
             className="border p-1 rounded w-40 text-right"
             value={prices.yearly_km}
-            onChange={(e) =>
-              setPrices((p) => ({ ...p, yearly_km: e.target.value }))
-            }
+            onChange={(e) => setPrices((p) => ({ ...p, yearly_km: e.target.value }))}
           />
         </div>
 
-        <button
-          onClick={savePrices}
-          className="bg-green-600 text-white px-3 py-1 rounded"
-        >
+        <button onClick={savePrices} className="bg-green-600 text-white px-3 py-1 rounded">
           Save Prices
         </button>
       </div>

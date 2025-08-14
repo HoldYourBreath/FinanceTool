@@ -1,5 +1,5 @@
 // src/components/CarEvaluation.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import api from "../api/axios";
 import { toFixed1, toNum, fmt0 } from "../utils/format";
