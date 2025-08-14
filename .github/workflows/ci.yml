@@ -67,4 +67,8 @@ jobs:
         run: npm run lint --if-present
 
       - name: Build
+        working-directory: frontend
+        env:
+          ROLLUP_USE_NODE_JS: true
         run: npm run build
+
