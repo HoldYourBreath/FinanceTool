@@ -1,8 +1,0 @@
-{
-    "financing": [
-        { "name": "loan_promise", "value": 5100000 },
-        { "name": "loan_target", "value": 4200000 },    
-        { "name": "loans_taken", "value": 3146385 },
-        { "name": "janne_nordea_kredit", "value": 0 }
-    ]
-}
