@@ -41,27 +41,36 @@ A personal finance dashboard built with **Flask** (Python backend) and **React**
 git clone https://github.com/your-username/FinanceTool.git
 cd FinanceTool
 
+### 2. Configure Environment Variables
+Create .env in the backend directory:
 
-### 2. Set Up Environment Variables
-# Backend
+# Flask settings
 FLASK_ENV=development
 FLASK_DEBUG=True
 CORS_ORIGIN=http://localhost:5173
+
+# Database connection
 DATABASE_URL=postgresql://postgres:admin@localhost:5432/financial_tracker
 
+# Backend
+cd backend
+python -m venv venv
+.\venv\Scripts\activate
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements.txt
+
+# Start backend server
+python app.py
+
 # Frontend
-VITE_API_BASE_URL=http://localhost:5000
+cd ../frontend
+
+vite.config.js
+target: "http://localhost:5000",
 
 ### 3. Create Python Virtual Environment
 python -m venv venv
 source venv/bin/activate   # or .\venv\Scripts\activate on Windows
-
-
-### 4. Install Python Dependencies
-pip install -r requirements.txt
-
-### 5. Start Backend Server
-python app.py
 
 ### 6. Install Node.js dependencies
 cd frontend
@@ -69,6 +78,12 @@ npm install
 
 ### 7. Start Frontend Dev Server
 npm run dev
+
+### Automatic Setup
+.\setup_install.ps1
+
+### Automatic Execution
+.\run_dev.ps1
 
 ## 📄 License
 
