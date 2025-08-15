@@ -1,11 +1,11 @@
 # Data Seeds
-/data/seed_house_land.json
-/data/seed_investments.json
-/data/seed_months.json
-/data/seed_planned_purchases.json
-/data/seed_acc_infojson
-/data/seed_car_evaluation.json
-/data/seed_financing.json
+backend/seeds/data/seed_house_land.json
+backend/seeds/data/seed_investments.json
+backend/seeds/data/seed_months.json
+backend/seeds/data/seed_planned_purchases.json
+backend/seeds/data/seed_acc_infojson
+backend/seeds/data/seed_car_evaluation.json
+backend/seeds/data/seed_financing.json
 
 
 # Node / Vite
