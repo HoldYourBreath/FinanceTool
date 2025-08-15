@@ -4,9 +4,7 @@ backend/seeds/data/seed_investments.json
 backend/seeds/data/seed_months.json
 backend/seeds/data/seed_planned_purchases.json
 backend/seeds/data/seed_acc_infojson
-backend/seeds/data/seed_car_evaluation.json
 backend/seeds/data/seed_financing.json
-
 
 # Node / Vite
 node_modules/
