@@ -60,6 +60,7 @@ export function monthlyConsumptionCost(car, kmPerMonth, settings) {
   const isDiesel = type.includes("diesel") || type === "d";
   const isBensin =
     type.includes("bensin") ||
+    type.includes("PHEV") ||
     type.includes("petrol") ||
     type.includes("gasoline") ||
     type === "b";

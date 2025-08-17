@@ -3,11 +3,13 @@
   - Installs backend (Python) and frontend (Node) dependencies
   - Creates backend .env with defaults if missing
   - Does NOT start servers
-  - Adds Node to PATH for this session; can auto-install Node LTS if missing (use -AutoInstallNode)
+  - Optionally installs Node LTS with -AutoInstallNode (uses winget)
 #>
 
 param(
-  [switch]$AutoInstallNode
+  [switch]$AutoInstallNode,
+  [ValidateSet('3.12','3.11','3')]
+  [string]$PythonVersion = '3.11'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,23 +19,108 @@ function Ok($m){   Write-Host "[OK]    $m" -ForegroundColor Green }
 function Warn($m){ Write-Host "[WARN]  $m" -ForegroundColor Yellow }
 function Fail($m){ Write-Host "[FAIL]  $m" -ForegroundColor Red }
 
-# Remember repo root & jump there
-$repoRoot = (Split-Path -Parent $MyInvocation.MyCommand.Path)
+# Resolve repo root (this script's folder)
+$repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -Path $repoRoot
 
-# -------------------- Backend --------------------
+#------------- helpers -------------
+function Get-PythonCmd {
+  param([string]$Requested = '3.11')
+
+  # Try 'py' launcher with specific version, then -3, then plain
+  $hasPy = Get-Command py -ErrorAction SilentlyContinue
+  if ($hasPy) {
+    try { & py "-$Requested" -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py', "-$Requested") } } catch {}
+    try { & py -3 -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py', '-3') } } catch {}
+    try { & py -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py') } } catch {}
+  }
+
+  # Fallback to python on PATH
+  $hasPython = Get-Command python -ErrorAction SilentlyContinue
+  if ($hasPython) { return @('python') }
+
+  return @()
+}
+
+
+function Invoke-ArrayCommand {
+  param(
+    [Parameter(Mandatory=$true)] [string[]]$Cmd,
+    [string[]]$Args = @()
+  )
+  $exe  = $Cmd[0]
+  $rest = @()
+  if ($Cmd.Count -gt 1) { $rest = $Cmd[1..($Cmd.Count-1)] }
+  & $exe @rest @Args
+}
+
+function Ensure-Node-On-Path {
+  # If node exists, ensure its directory is in PATH for this session
+  $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+  if ($nodeCmd) {
+    $nodeDir = Split-Path $nodeCmd.Source
+    if ($env:PATH -notmatch [regex]::Escape($nodeDir)) {
+      Info "Adding $nodeDir to PATH for this session..."
+      $env:PATH = "$nodeDir;$env:PATH"
+    }
+    return $true
+  }
+  # Try common install locations
+  $candidates = @(
+    "C:\Program Files\nodejs\node.exe",
+    "$env:LOCALAPPDATA\Programs\nodejs\node.exe"
+  )
+  foreach ($c in $candidates) {
+    if (Test-Path $c) {
+      $dir = Split-Path $c
+      Info "Adding $dir to PATH for this session..."
+      $env:PATH = "$dir;$env:PATH"
+      return $true
+    }
+  }
+  return $false
+}
+
+function Install-NodeLTS {
+  if (-not $AutoInstallNode) { return $false }
+  $winget = Get-Command winget -ErrorAction SilentlyContinue
+  if (-not $winget) {
+    Warn "winget not found; cannot auto-install Node. Install Node.js LTS manually and re-run."
+    return $false
+  }
+  Info "Installing Node.js LTS via winget..."
+  try {
+    winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements --silent
+  } catch {
+    Warn "winget installation failed: $($_.Exception.Message)"
+    return $false
+  }
+  return (Ensure-Node-On-Path)
+}
+
+function Run-Npm {
+  param([string]$ArgsLine)
+  $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+  if (-not $npm) { $npm = Get-Command npm -ErrorAction SilentlyContinue }
+  if (-not $npm) { throw "npm not found on PATH." }
+  $proc = Start-Process -FilePath $npm.Source -ArgumentList $ArgsLine -NoNewWindow -Wait -PassThru
+  return $proc.ExitCode
+}
+
+#------------- Backend -------------
 if (-not (Test-Path '.\backend')) { Fail 'backend folder not found'; exit 1 }
 Info 'Setting up backend...'
 Set-Location '.\backend'
 
-# Pick python launcher
-$pythonCmd = 'python'
-if (Get-Command py -ErrorAction SilentlyContinue) { $pythonCmd = 'py -3.12' }
+$pyCmd = Get-PythonCmd -Requested $PythonVersion
+if (-not $pyCmd) {
+  Fail "Python not found. Install Python $PythonVersion (with the 'py' launcher) or add python.exe to PATH."
+  exit 1
+}
 
-# Create venv
 if (-not (Test-Path '.\.venv')) {
-  Info 'Creating virtual environment (.venv)...'
-  & $pythonCmd -m venv .venv
+  Info "Creating virtual environment (.venv) with Python $PythonVersion..."
+  Invoke-ArrayCommand -Cmd $pyCmd -Args @('-m','venv','.venv')
   Ok 'Created .venv'
 } else {
   Info 'Virtual environment already exists (.venv)'
@@ -60,109 +147,73 @@ if (Test-Path '.\requirements.txt') {
 # Ensure backend .env
 $envPath = '.\.env'
 if (-not (Test-Path $envPath)) {
-  Info 'Creating backend .env with defaults (SQLite)...'
-  @"
-# Flask
+@"
+# --- Backend .env (generated) ---
 FLASK_DEBUG=1
 CORS_ORIGIN=http://localhost:5173
 
-# Database (dev default = SQLite)
+# Database (Dev defaults to SQLite)
 SQLALCHEMY_DATABASE_URI=sqlite:///dev.db
-"@ | Out-File -Encoding ASCII $envPath
+
+# PostgreSQL example:
+# SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:password@localhost:5432/financial_tracker
+"@ | Out-File -Encoding UTF8 $envPath
   Ok 'Created backend .env'
 } else {
   Info 'backend .env already exists — leaving it unchanged'
 }
 
-# -------------------- Frontend --------------------
+#------------- Frontend -------------
 Set-Location '..\frontend'
 Info 'Setting up frontend...'
 
-function Add-NodeToPath {
-  $candidates = @(
-    "C:\Program Files\nodejs\node.exe",
-    "$env:LOCALAPPDATA\Programs\nodejs\node.exe"
-  )
-  $nodeExe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-  if ($nodeExe) {
-    $nodeDir = Split-Path $nodeExe
-    if ($env:PATH -notmatch [regex]::Escape($nodeDir)) {
-      Info "Adding $nodeDir to PATH for this session..."
-      $env:PATH = "$nodeDir;$env:PATH"
-    }
-    return $true
-  }
-  return $false
-}
-
-# Ensure Node is available on PATH for this session
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    if (-not (Add-NodeToPath)) {
-        Warn 'Node.js not found on PATH. Install Node.js LTS and rerun this script.'
-        Set-Location $repoRoot
-        exit 1
-    }
-}
-
-# *** Force PATH to include the directory that contains node.exe ***
-$nodeCmd = Get-Command node -ErrorAction Stop
-$nodeDir = Split-Path $nodeCmd.Source
-if ($env:PATH -notmatch [regex]::Escape($nodeDir)) {
-    Info "Adding $nodeDir to PATH for this session..."
-    $env:PATH = "$nodeDir;$env:PATH"
-}
-
-# Prefer npm.cmd (avoid PS shim)
-$npmCmd = "C:\Program Files\nodejs\npm.cmd"
-if (-not (Test-Path $npmCmd)) { $npmCmd = "npm.cmd" }
-
-# Prefer npm.cmd
-$npmCmd = "C:\Program Files\nodejs\npm.cmd"
-if (-not (Test-Path $npmCmd)) { $npmCmd = "npm.cmd" }
-
-function Run-Npm {
-  param([string]$argsLine)
-  $p = Start-Process -FilePath $npmCmd -ArgumentList $argsLine -NoNewWindow -Wait -PassThru
-  return $p.ExitCode
-}
-
-function Do-NpmInstall {
-  if (Test-Path '.\package-lock.json') {
-    Info 'Installing with npm ci (lockfile present)...'
-    return (Run-Npm 'ci')
-  } else {
-    Info 'Installing with npm install (no lockfile found)...'
-    return (Run-Npm 'install')
+if (-not (Ensure-Node-On-Path)) {
+  if (-not (Install-NodeLTS)) {
+    Fail 'Node.js not available. Install Node LTS and re-run.'
+    Set-Location $repoRoot
+    exit 1
   }
 }
 
-$code = Do-NpmInstall
+# Show versions
+try {
+  $nodeV = node -v
+  $npmV  = npm -v
+  Info "Node: $nodeV  |  npm: $npmV"
+} catch { Warn "Could not query node/npm versions: $($_.Exception.Message)" }
 
-if ($code -ne 0) {
-  Warn "npm install failed (exit $code). Attempting cleanup and retry..."
+# Prefer npm ci if lock exists
+$exit = 0
+if (Test-Path '.\package-lock.json') {
+  Info 'Installing frontend deps with npm ci...'
+  $exit = Run-Npm 'ci'
+} else {
+  Info 'Installing frontend deps with npm install...'
+  $exit = Run-Npm 'install'
+}
 
-  # Kill possible locks (quiet)
-  try { taskkill /IM esbuild.exe /F 2>$null | Out-Null } catch {}
-  try { taskkill /IM node.exe    /F 2>$null | Out-Null } catch {}
-
-  # Clear attributes and remove dirs (quiet)
-  & attrib.exe -R -S -H "node_modules\@esbuild\win32-x64\esbuild.exe" 2>$null
-  cmd /c rmdir /s /q node_modules
-  Remove-Item '.\package-lock.json' -Force -ErrorAction SilentlyContinue
-
-  # Cache verify and reinstall
+if ($exit -ne 0) {
+  Warn "npm install failed (exit $exit). Attempting cleanup and retry..."
+  # Kill possible locks
+  foreach ($name in @('esbuild','rollup','node')) {
+    try { taskkill /IM "$name.exe" /F 2>$null | Out-Null } catch {}
+  }
+  # Remove node_modules + lockfile
+  try { attrib -R -S -H -A node_modules\* -Recurse 2>$null | Out-Null } catch {}
+  if (Test-Path '.\node_modules') { cmd /c rmdir /s /q node_modules }
+  if (Test-Path '.\package-lock.json') { Remove-Item '.\package-lock.json' -Force -ErrorAction SilentlyContinue }
   Run-Npm 'cache verify' | Out-Null
-  $code = Run-Npm 'install'
+  $exit = Run-Npm 'install'
 }
 
-if ($code -eq 0) {
+if ($exit -eq 0) {
   Ok 'Frontend dependencies installed'
 } else {
-  Fail "Frontend install failed (exit $code). See npm log in $env:LOCALAPPDATA\npm-cache\_logs"
-  exit $code
+  Fail "Frontend install failed (exit $exit). See npm log in $env:LOCALAPPDATA\npm-cache\_logs"
+  Set-Location $repoRoot
+  exit $exit
 }
 
-
-# Back to repo root
+#------------- Done -------------
 Set-Location $repoRoot
 Ok 'Setup complete. Next run: .\run_dev.ps1 to start servers.'

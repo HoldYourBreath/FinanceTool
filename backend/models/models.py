@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 
 db = SQLAlchemy()
 
-vehicle_type_enum = SAEnum("EV", "Bensin", "Diesel",
+vehicle_type_enum = SAEnum("EV", "Bensin", "Diesel",  'PHEV',
                            name="vehicle_type",
                            native_enum=True)
 

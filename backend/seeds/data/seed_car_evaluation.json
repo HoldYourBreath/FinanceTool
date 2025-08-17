@@ -338,6 +338,46 @@
     }
     ,
     {
+      "model": "Toyota RAV4 Laddhybrid",
+      "year": 2021,
+      "estimated_purchase_price": 339900,
+      "summer_tires_price": 10000,
+      "winter_tires_price": 12000,
+      "type_of_vehicle": "PHEV",
+      "consumption_kwh_per_100km": 5.9,
+      "battery_capacity_kwh": 0,
+      "range_km": 1100,
+      "acceleration_0_100": 5.6,
+      "driven_km": 113500,
+      "battery_aviloo_score": 0,
+      "trunk_size_litre": 520,
+      "full_insurance_year": 15768,
+      "half_insurance_year": 6535,
+      "car_tax_year": 360,
+      "repairs_year": 6000
+    }
+        ,
+    {
+      "model": "Kia Seed Sportswagon Plug-in Hybrid SW ADVANCE",
+      "year": 2021,
+      "estimated_purchase_price": 189900,
+      "summer_tires_price": 10000,
+      "winter_tires_price": 12000,
+      "type_of_vehicle": "PHEV",
+      "consumption_kwh_per_100km": 1.5,
+      "battery_capacity_kwh": 0,
+      "range_km": 1100,
+      "acceleration_0_100": 10.5,
+      "driven_km": 102040,
+      "battery_aviloo_score": 0,
+      "trunk_size_litre": 437,
+      "full_insurance_year": 8808,
+      "half_insurance_year": 3874,
+      "car_tax_year": 360,
+      "repairs_year": 6000
+    }
+    ,
+    {
       "model": "Cupra Born",
       "year": 2022,
       "estimated_purchase_price": 239000,
