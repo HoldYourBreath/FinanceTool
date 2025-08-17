@@ -54,20 +54,54 @@ jobs:
           node-version: "20"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
       - name: Install (npm ci)
         run: npm ci
-      - name: Lint
-        run: npm run lint --if-present
-      - name: Build
-        run: npm run build --if-present
+
+      - name: Show npm scripts (debug)
+        run: jq -r '.scripts' package.json || cat package.json
+
+      - name: Build (fail if missing)
+        run: |
+          # Ensure "build" exists; fail loudly if not
+          if ! jq -re '.scripts.build' package.json > /dev/null; then
+            echo '❌ No "build" script found in package.json. Add one or remove --if-present.' >&2
+            exit 1
+          fi
+          npm run build
+
+      - name: List output (debug)
+        run: |
+          echo "Root:"
+          ls -la
+          echo "./frontend:"
+          ls -la .
+          echo "dist/ (if any):"
+          ls -la dist || true
+          echo "build/ (if any):"
+          ls -la build || true
+
+      - name: Determine build dir
+        id: outdir
+        run: |
+          if [ -d dist ]; then
+            echo "dir=dist" >> "$GITHUB_OUTPUT"
+          elif [ -d build ]; then
+            echo "dir=build" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ No dist/ or build/ directory found after build." >&2
+            exit 1
+          fi
+          echo "Using $([[ -d dist ]] && echo dist || echo build) as build output"
+
       - name: Upload dist
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: dist/**
+          path: ${{ steps.outdir.outputs.dir }}/**
           if-no-files-found: error
           retention-days: 7
+
 
   e2e:
     name: E2E (Playwright)
