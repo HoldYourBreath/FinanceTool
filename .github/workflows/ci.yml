@@ -60,11 +60,18 @@ jobs:
         run: npm run lint --if-present
       - name: Build
         run: npm run build --if-present
-
+      - name: Upload dist
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/**
+          if-no-files-found: error
+          retention-days: 7
 
   e2e:
     name: E2E (Playwright)
-    needs: [backend, frontend]   # <-- waits for both to finish successfully
+    needs: [backend, frontend]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,14 +80,12 @@ jobs:
         with:
           node-version: '20.x'
 
-      # Get the built frontend from the 'frontend' job
       - name: Download dist
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist
 
-      # Install frontend dev deps (Playwright lives here)
       - name: Install frontend dev deps
         working-directory: frontend
         run: npm ci
@@ -89,29 +94,24 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps
 
-      # Serve the built app and wait for it
       - name: Start preview server
         working-directory: frontend
         run: |
           npm run preview -- --port 5173 --strictPort &
           npx --yes wait-on http://127.0.0.1:5173
 
-      # (Optional) start backend if your tests hit the API.
-      # Uncomment and adapt FLASK_APP if needed.
+      # Uncomment if your tests call the API
       # - name: Start backend
       #   env:
-      #     FLASK_APP: backend.app  # or your actual entry point
+      #     FLASK_APP: backend.app
       #     FLASK_ENV: production
       #   run: |
       #     python -m flask run --host=127.0.0.1 --port=5000 &
       #     npx --yes wait-on http://127.0.0.1:5000
 
-      # Run tests using Playwright installed in frontend/
-      # We call the binary from frontend but point it to the root config and tests
       - name: Run Playwright tests
         working-directory: frontend
-        run: |
-          npx playwright test ../tests/**/*.spec.ts --config ../playwright.config.ts
+        run: npx playwright test ../tests/**/*.spec.ts --config ../playwright.config.ts
 
       - name: Upload Playwright report
         if: always()
