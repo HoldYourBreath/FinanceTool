@@ -167,9 +167,15 @@ jobs:
 
       # ---------- Playwright ----------
       # Install the CLI locally so the config's `import '@playwright/test'` resolves
-      - name: Install Playwright test runner (root)
-        run: npm i -D --no-save @playwright/test@1.48.2
-        
+      # Node just for tests (isolated from root)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright CLI (tests/)
+        working-directory: tests
+        run: npm i --no-audit --no-fund
+
       - name: Install Playwright (CLI+Chromium)
         run: npx -y @playwright/test@1.48.2 install --with-deps chromium
 
