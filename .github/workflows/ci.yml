@@ -167,14 +167,14 @@ jobs:
 
       # ---------- Playwright ----------
       - name: Install Playwright (CLI+Chromium)
-        run: npx -y playwright@1.48.2 install --with-deps chromium
+        run: npx -y @playwright/test@1.48.2 install --with-deps chromium
 
       - name: Run Playwright tests
         env:
           CI: true
           API_URL: http://127.0.0.1:5000
           WEB_URL: http://127.0.0.1:5173
-        run: npx -y playwright@1.48.2 test --project=chromium --config=./tests/playwright.config.ts
+        run: npx -y @playwright/test@1.48.2 test --project=chromium --config=./tests/playwright.config.ts
 
       - name: Upload Playwright report on failure
         if: failure()
