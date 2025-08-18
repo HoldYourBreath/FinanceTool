@@ -82,25 +82,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Install Playwright deps from the repo root
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json
 
-      - name: Install root devDeps (Playwright)
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm i
-          fi
+      # Install Playwright browsers for Linux, w/o using a lockfile
+      - name: Install Playwright (Chromium)
+        run: npx -y @playwright/test@1.48.2 install --with-deps chromium
 
-      - name: Install Playwright browsers (Chromium)
-        run: npx playwright install --with-deps chromium
-
-      # Start backend (Flask on :5001)
+      # Start backend (adjust health URL if needed)
       - name: Start backend
         working-directory: backend
         run: |
@@ -110,7 +100,7 @@ jobs:
             sleep 1
           done
 
-      # Start frontend preview on :5173
+      # Start frontend preview
       - name: Start frontend preview
         working-directory: frontend
         run: |
@@ -120,13 +110,12 @@ jobs:
             sleep 1
           done
 
-      # (Optional) show what Playwright sees
       - name: List tests (debug)
         continue-on-error: true
-        run: npx playwright test --list --config=playwright.config.ts
+        run: npx -y @playwright/test@1.48.2 test --list --config=playwright.config.ts
 
       - name: Run tests (chromium)
-        run: npx playwright test --project=chromium --config=playwright.config.ts
+        run: npx -y @playwright/test@1.48.2 test --project=chromium --config=playwright.config.ts
 
       - name: Upload Playwright HTML report (always)
         if: always()
@@ -145,3 +134,4 @@ jobs:
             frontend-preview.log
             flask.log
           if-no-files-found: ignore
+
