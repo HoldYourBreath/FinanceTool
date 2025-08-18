@@ -90,9 +90,9 @@ jobs:
           FLASK_APP: app
           SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: |
-          nohup python -m flask run --host 127.0.0.1 --port 5001 > ../flask.log 2>&1 &
+          nohup python -m flask run --host 127.0.0.1 --port 5000 > ../flask.log 2>&1 &
           for i in {1..60}; do
-            curl -fsS http://127.0.0.1:5001/health >/dev/null 2>&1 && break
+            curl -fsS http://127.0.0.1:5000/health >/dev/null 2>&1 && break
             sleep 1
           done
 
