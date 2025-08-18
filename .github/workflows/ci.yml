@@ -81,17 +81,16 @@ jobs:
         with:
           node-version: 20
 
-      # Install the Playwright test runner locally (no lockfile, no package.json changes)
-      - name: Install Playwright runner (no-save)
-        run: npm i -D @playwright/test@1.48.2 --no-save --fund=false --audit=false
-
-      # Install browsers for Linux
+      # Install only Playwright browsers; no repo install at root
       - name: Install Playwright browsers (Chromium)
-        run: npx playwright install --with-deps chromium
+        run: npx -y playwright@1.48.2 install --with-deps chromium
 
       # Start backend
       - name: Start backend
         working-directory: backend
+        env:
+          FLASK_APP: app
+          SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: |
           nohup python -m flask run --host 127.0.0.1 --port 5001 > ../flask.log 2>&1 &
           for i in {1..60}; do
@@ -99,7 +98,7 @@ jobs:
             sleep 1
           done
 
-      # Start frontend
+      # Start frontend preview (uses dependencies already built in your frontend job)
       - name: Start frontend preview
         working-directory: frontend
         run: |
@@ -110,12 +109,12 @@ jobs:
           done
 
       - name: List tests
-        run: npx playwright test --list --config=playwright.config.ts
+        run: npx -y @playwright/test@1.48.2 test --list --config=playwright.config.ts
 
       - name: Run Playwright tests (chromium)
-        run: npx playwright test --project=chromium --config=playwright.config.ts
+        run: npx -y @playwright/test@1.48.2 test --project=chromium --config=playwright.config.ts
 
-      - name: Upload Playwright HTML report (always)
+      - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -132,5 +131,4 @@ jobs:
             frontend-preview.log
             flask.log
           if-no-files-found: ignore
-
-
+    

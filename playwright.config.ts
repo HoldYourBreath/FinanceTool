@@ -1,7 +1,6 @@
 // frontend/playwright.config.ts
-import { defineConfig, devices } from '@playwright/test';
 
-export default defineConfig({
+export default {
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -13,12 +12,6 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    // add these if you want:
-    // { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    // { name: 'webkit',  use: { ...devices['Desktop Safari'] } },
+    { name: 'chromium', use: { browserName: 'chromium' } },
   ],
-});
+};
