@@ -72,13 +72,8 @@ jobs:
         run: npm run build
 
   e2e:
-    name: Playwright E2E (root)
     needs: [backend, frontend]
     runs-on: ubuntu-latest
-    env:
-      CI: true
-      SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
-      FLASK_APP: app
     steps:
       - uses: actions/checkout@v4
 
@@ -86,11 +81,15 @@ jobs:
         with:
           node-version: 20
 
-      # Install Playwright browsers for Linux, w/o using a lockfile
-      - name: Install Playwright (Chromium)
-        run: npx -y @playwright/test@1.48.2 install --with-deps chromium
+      # Install the Playwright test runner locally (no lockfile, no package.json changes)
+      - name: Install Playwright runner (no-save)
+        run: npm i -D @playwright/test@1.48.2 --no-save --fund=false --audit=false
 
-      # Start backend (adjust health URL if needed)
+      # Install browsers for Linux
+      - name: Install Playwright browsers (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      # Start backend
       - name: Start backend
         working-directory: backend
         run: |
@@ -100,7 +99,7 @@ jobs:
             sleep 1
           done
 
-      # Start frontend preview
+      # Start frontend
       - name: Start frontend preview
         working-directory: frontend
         run: |
@@ -110,12 +109,11 @@ jobs:
             sleep 1
           done
 
-      - name: List tests (debug)
-        continue-on-error: true
-        run: npx -y @playwright/test@1.48.2 test --list --config=playwright.config.ts
+      - name: List tests
+        run: npx playwright test --list --config=playwright.config.ts
 
-      - name: Run tests (chromium)
-        run: npx -y @playwright/test@1.48.2 test --project=chromium --config=playwright.config.ts
+      - name: Run Playwright tests (chromium)
+        run: npx playwright test --project=chromium --config=playwright.config.ts
 
       - name: Upload Playwright HTML report (always)
         if: always()
@@ -134,4 +132,5 @@ jobs:
             frontend-preview.log
             flask.log
           if-no-files-found: ignore
+
 
