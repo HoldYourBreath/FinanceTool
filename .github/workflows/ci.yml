@@ -166,6 +166,10 @@ jobs:
           curl -fsS http://127.0.0.1:5173/ > /dev/null || { echo "---- vite.log ----"; tail -n +1 ../vite.log || true; exit 1; }
 
       # ---------- Playwright ----------
+      # Install the CLI locally so the config's `import '@playwright/test'` resolves
+      - name: Install Playwright test runner (root)
+        run: npm i -D --no-save @playwright/test@1.48.2
+        
       - name: Install Playwright (CLI+Chromium)
         run: npx -y @playwright/test@1.48.2 install --with-deps chromium
 
