@@ -14,7 +14,7 @@
   "include": [
     "src",
     "./tests",
-    "./playwright.config.ts",
+    "tests/playwright.config.ts",
     "e2e"
   ]
 }
