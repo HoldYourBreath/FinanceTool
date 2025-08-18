@@ -91,7 +91,6 @@ jobs:
           python -m pip install -U pip
           pip install -r requirements.txt
 
-      # Ensure the app can import and the DB is ready BEFORE we try to run the server
       - name: Initialize DB (create_all)
         working-directory: backend
         env:
@@ -99,12 +98,17 @@ jobs:
           SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: |
           python - <<'PY'
+          import os
+          # Fallback to sqlite if the runner env is missing
+          os.environ.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///ci.db")
+
           from app import create_app
           from models.models import db
-          app = create_app()
+
+          app = create_app()  # make sure create_app reads env or sets defaults
           with app.app_context():
               db.create_all()
-          print("DB ready")
+              print("✅ DB ready")
           PY
 
       - name: Start backend (Flask on 127.0.0.1:5000) and wait
