@@ -95,7 +95,10 @@ jobs:
         working-directory: backend
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
+          FLASK_APP: app:create_app
+          FLASK_DEBUG: "0"
           SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
+          DATABASE_URL: sqlite:///ci.db
         run: |
           python - <<'PY'
           import os
