@@ -88,6 +88,16 @@ function Install-NodeLTS {
   return (Ensure-Node-On-Path)
 }
 
+function Run-Npx {
+  param([string]$ArgsLine)
+  $npx = Get-Command npx.cmd -ErrorAction SilentlyContinue
+  if (-not $npx) { $npx = Get-Command npx -ErrorAction SilentlyContinue }
+  if (-not $npx) { throw "npx not found on PATH." }
+  $proc = Start-Process -FilePath $npx.Source -ArgumentList $ArgsLine -NoNewWindow -Wait -PassThru
+  return $proc.ExitCode
+}
+
+
 function Run-Npm {
   param([string]$ArgsLine)
   $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
@@ -191,6 +201,29 @@ if ($exit -eq 0) {
   Set-Location $repoRoot
   exit $exit
 }
+
+# --- Ensure Playwright test runner is present ---
+try {
+  $pkgJson = Get-Content '.\package.json' -Raw
+} catch {
+  Fail 'Could not read frontend/package.json'; exit 1
+}
+
+if ($pkgJson -notmatch '"@playwright/test"\s*:') {
+  Info 'Installing @playwright/test...'
+  $code = Run-Npm 'install -D @playwright/test'
+  if ($code -ne 0) { Fail 'Failed to install @playwright/test'; exit $code }
+  Ok '@playwright/test installed'
+} else {
+  Info '@playwright/test already present'
+}
+
+# --- Install Playwright browsers ---
+Info 'Installing Playwright browsers...'
+$code = Run-Npx 'playwright install'
+if ($code -ne 0) { Fail 'playwright install failed'; exit $code }
+Ok 'Playwright browsers installed'
+
 
 # -------- seeding --------
 function Run-Seed {

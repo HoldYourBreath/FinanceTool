@@ -9,6 +9,7 @@ backend/seeds/data/seed_financing.json
 # Node / Vite
 node_modules/
 frontend/Devnodejsnpm-cache/
+frontend/playwright-report/
 financial-tool/Devnodejsnpm-cache/
 Devnodejsnpm-cache/
 dist/
