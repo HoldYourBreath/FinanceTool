@@ -85,6 +85,9 @@ npm run dev
 ### Automatic Execution
 .\run_dev.ps1
 
+### Execute playwright tests
+npx playwright test 
+
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).

@@ -187,7 +187,8 @@
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "e2e:chrome": "playwright test --project=chromium"
   },
   "keywords": [],
   "author": "",
