@@ -1,4 +1,5 @@
-import {test} from '@playwright/test'
+// tests/urls.spec.ts
+import { test, expect } from '@playwright/test';
 
 test('URLs', async ({page}) => {
     await page.goto('http://localhost:5173/')
@@ -10,24 +11,12 @@ test('URLs', async ({page}) => {
     await page.goto('http://localhost:5173/car-evaluation')
 })
 
-test('APIs', async ({page}) => {
-    await page.goto('http://localhost:5000/api/acc_info')
-    await page.goto('http://localhost:5000/api/assets')
-    await page.goto('http://localhost:5000/api/months')
-    await page.goto('http://localhost:5000/api/investments')
-    await page.goto('http://localhost:5000/api/planned_purchases')
-    await page.goto('http://localhost:5000/api/financing')
-    await page.goto('http://localhost:5000/api/cars')
-    await page.goto('http://localhost:5000/api/expenses')
-    await page.goto('http://localhost:5000/api/house_costs')
-    await page.goto('http://localhost:5000/api/house_meta')
-    await page.goto('http://localhost:5000/api/incomes')
-    await page.goto('http://localhost:5000/api/investment')
-    await page.goto('http://localhost:5000/api/land_costs')
-    await page.goto('http://localhost:5000/api/loan_adjustments')
-    await page.goto('http://localhost:5000/api/price_settings')
-})
+const API = process.env.API_URL || 'http://127.0.0.1:5000';
 
-
-
+test('APIs', async ({ request }) => {
+  for (const p of ['/api/acc_info', '/api/assets', '/api/months', '/api/investments', '/api/planned_purchases', '/api/financing', '/api/cars', '/api/expenses', '/api/house_costs', '/api/house_meta', '/api/incomes', '/api/investment', '/api/land_costs', '/api/loan_adjustments', '/api/price_settings']) {
+    const res = await request.get(`${API}${p}`);
+    expect(res.ok(), `${p} should respond 2xx`).toBeTruthy();
+  }
+});
 
