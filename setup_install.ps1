@@ -2,12 +2,13 @@
   setup_install.ps1
   - Installs backend (Python) and frontend (Node) dependencies
   - Creates backend .env with defaults if missing
-  - Does NOT start servers
-  - Optionally installs Node LTS with -AutoInstallNode (uses winget)
+  - Seeds the database at the end (skip with -SkipSeed)
+  - Optionally installs Node LTS with -AutoInstallNode (winget)
 #>
 
 param(
   [switch]$AutoInstallNode,
+  [switch]$SkipSeed,
   [ValidateSet('3.12','3.11','3')]
   [string]$PythonVersion = '3.11'
 )
@@ -19,35 +20,26 @@ function Ok($m){   Write-Host "[OK]    $m" -ForegroundColor Green }
 function Warn($m){ Write-Host "[WARN]  $m" -ForegroundColor Yellow }
 function Fail($m){ Write-Host "[FAIL]  $m" -ForegroundColor Red }
 
-# Resolve repo root (this script's folder)
+# repo root (this script's folder)
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -Path $repoRoot
 
-#------------- helpers -------------
+# -------- helpers --------
 function Get-PythonCmd {
   param([string]$Requested = '3.11')
-
-  # Try 'py' launcher with specific version, then -3, then plain
   $hasPy = Get-Command py -ErrorAction SilentlyContinue
   if ($hasPy) {
     try { & py "-$Requested" -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py', "-$Requested") } } catch {}
     try { & py -3 -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py', '-3') } } catch {}
     try { & py -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py') } } catch {}
   }
-
-  # Fallback to python on PATH
   $hasPython = Get-Command python -ErrorAction SilentlyContinue
   if ($hasPython) { return @('python') }
-
   return @()
 }
 
-
 function Invoke-ArrayCommand {
-  param(
-    [Parameter(Mandatory=$true)] [string[]]$Cmd,
-    [string[]]$Args = @()
-  )
+  param([Parameter(Mandatory=$true)][string[]]$Cmd,[string[]]$Args=@())
   $exe  = $Cmd[0]
   $rest = @()
   if ($Cmd.Count -gt 1) { $rest = $Cmd[1..($Cmd.Count-1)] }
@@ -55,7 +47,6 @@ function Invoke-ArrayCommand {
 }
 
 function Ensure-Node-On-Path {
-  # If node exists, ensure its directory is in PATH for this session
   $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
   if ($nodeCmd) {
     $nodeDir = Split-Path $nodeCmd.Source
@@ -65,7 +56,6 @@ function Ensure-Node-On-Path {
     }
     return $true
   }
-  # Try common install locations
   $candidates = @(
     "C:\Program Files\nodejs\node.exe",
     "$env:LOCALAPPDATA\Programs\nodejs\node.exe"
@@ -92,7 +82,7 @@ function Install-NodeLTS {
   try {
     winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements --silent
   } catch {
-    Warn "winget installation failed: $($_.Exception.Message)"
+    Warn ("winget install failed: " + $_.Exception.Message)
     return $false
   }
   return (Ensure-Node-On-Path)
@@ -107,16 +97,13 @@ function Run-Npm {
   return $proc.ExitCode
 }
 
-#------------- Backend -------------
+# -------- backend --------
 if (-not (Test-Path '.\backend')) { Fail 'backend folder not found'; exit 1 }
 Info 'Setting up backend...'
 Set-Location '.\backend'
 
 $pyCmd = Get-PythonCmd -Requested $PythonVersion
-if (-not $pyCmd) {
-  Fail "Python not found. Install Python $PythonVersion (with the 'py' launcher) or add python.exe to PATH."
-  exit 1
-}
+if (-not $pyCmd) { Fail "Python $PythonVersion not found (py launcher or python.exe)"; exit 1 }
 
 if (-not (Test-Path '.\.venv')) {
   Info "Creating virtual environment (.venv) with Python $PythonVersion..."
@@ -126,16 +113,14 @@ if (-not (Test-Path '.\.venv')) {
   Info 'Virtual environment already exists (.venv)'
 }
 
-# Activate venv
+# activate
 $venvActivate = '.\.venv\Scripts\Activate.ps1'
 if (-not (Test-Path $venvActivate)) { Fail "Could not find $venvActivate"; exit 1 }
 . $venvActivate
 
-# Upgrade pip toolchain
 Info 'Upgrading pip/setuptools/wheel...'
 python -m pip install --upgrade pip setuptools wheel
 
-# Install backend deps
 if (Test-Path '.\requirements.txt') {
   Info 'Installing backend requirements...'
   pip install -r requirements.txt --prefer-binary
@@ -144,17 +129,14 @@ if (Test-Path '.\requirements.txt') {
   Warn 'requirements.txt not found — skipping backend install'
 }
 
-# Ensure backend .env
+# .env (NOTE: the @" and "@ lines must start at column 1)
 $envPath = '.\.env'
 if (-not (Test-Path $envPath)) {
 @"
 # --- Backend .env (generated) ---
 FLASK_DEBUG=1
 CORS_ORIGIN=http://localhost:5173
-
-# Database (Dev defaults to SQLite)
 SQLALCHEMY_DATABASE_URI=sqlite:///dev.db
-
 # PostgreSQL example:
 # SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:password@localhost:5432/financial_tracker
 "@ | Out-File -Encoding UTF8 $envPath
@@ -163,7 +145,7 @@ SQLALCHEMY_DATABASE_URI=sqlite:///dev.db
   Info 'backend .env already exists — leaving it unchanged'
 }
 
-#------------- Frontend -------------
+# -------- frontend --------
 Set-Location '..\frontend'
 Info 'Setting up frontend...'
 
@@ -175,14 +157,14 @@ if (-not (Ensure-Node-On-Path)) {
   }
 }
 
-# Show versions
 try {
   $nodeV = node -v
   $npmV  = npm -v
   Info "Node: $nodeV  |  npm: $npmV"
-} catch { Warn "Could not query node/npm versions: $($_.Exception.Message)" }
+} catch {
+  Warn ("Could not query node/npm versions: " + $_.Exception.Message)
+}
 
-# Prefer npm ci if lock exists
 $exit = 0
 if (Test-Path '.\package-lock.json') {
   Info 'Installing frontend deps with npm ci...'
@@ -194,11 +176,7 @@ if (Test-Path '.\package-lock.json') {
 
 if ($exit -ne 0) {
   Warn "npm install failed (exit $exit). Attempting cleanup and retry..."
-  # Kill possible locks
-  foreach ($name in @('esbuild','rollup','node')) {
-    try { taskkill /IM "$name.exe" /F 2>$null | Out-Null } catch {}
-  }
-  # Remove node_modules + lockfile
+  foreach ($name in @('esbuild','rollup','node')) { try { taskkill /IM "$name.exe" /F 2>$null | Out-Null } catch {} }
   try { attrib -R -S -H -A node_modules\* -Recurse 2>$null | Out-Null } catch {}
   if (Test-Path '.\node_modules') { cmd /c rmdir /s /q node_modules }
   if (Test-Path '.\package-lock.json') { Remove-Item '.\package-lock.json' -Force -ErrorAction SilentlyContinue }
@@ -214,6 +192,46 @@ if ($exit -eq 0) {
   exit $exit
 }
 
-#------------- Done -------------
+# -------- seeding --------
+function Run-Seed {
+  param([string]$SeedsDir)
+
+  if (-not (Test-Path $SeedsDir)) {
+    Warn ("Seeds directory not found: " + $SeedsDir + " - skipping seeding.")
+    return
+  }
+
+  $venvPy = Join-Path $repoRoot 'backend\.venv\Scripts\python.exe'
+  if (-not (Test-Path $venvPy)) { $venvPy = 'python' }
+
+  Info 'Seeding database...'
+  Push-Location $SeedsDir
+  $code = 0
+  try {
+    & $venvPy 'seed_all.py'
+    $code = $LASTEXITCODE
+  } catch {
+    $code = 1
+    Warn ("Exception while running seed_all.py: " + $_.Exception.Message)
+  } finally {
+    Pop-Location
+  }
+
+  if ($code -ne 0) {
+    Fail ("Seeding failed (exit " + $code + ").")
+    exit $code
+  } else {
+    Ok 'Seeding completed.'
+  }
+}
+
 Set-Location $repoRoot
-Ok 'Setup complete. Next run: .\run_dev.ps1 to start servers.'
+if ($SkipSeed) {
+  Info 'Skipping seeding (flag set).'
+} else {
+  $seeds = Join-Path $repoRoot 'backend\seeds'
+  Run-Seed -SeedsDir $seeds
+}
+
+
+Ok 'Setup complete. Next: .\run_dev.ps1 to start servers.'
