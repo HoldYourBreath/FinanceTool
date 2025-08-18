@@ -71,82 +71,82 @@ jobs:
       - name: Build
         run: npm run build
 
-e2e:
-  needs: [backend, frontend]
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v4
+  e2e:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
-        cache-dependency-path: tests/package-lock.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: tests/package-lock.json
 
-    # Backend: spin up API
-    - name: Start backend
-      working-directory: backend
-      env:
-        FLASK_APP: app
-        SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
-      run: |
-        nohup python -m flask run --host 127.0.0.1 --port 5001 > ../flask.log 2>&1 &
-        for i in {1..60}; do
-          curl -fsS http://127.0.0.1:5001/health >/dev/null 2>&1 && break
-          sleep 1
-        done
+      # Backend: spin up API
+      - name: Start backend
+        working-directory: backend
+        env:
+          FLASK_APP: app
+          SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
+        run: |
+          nohup python -m flask run --host 127.0.0.1 --port 5001 > ../flask.log 2>&1 &
+          for i in {1..60}; do
+            curl -fsS http://127.0.0.1:5001/health >/dev/null 2>&1 && break
+            sleep 1
+          done
 
-    # Frontend: install, build, preview (serves dist on 5173)
-    - name: Frontend install
-      working-directory: frontend
-      run: npm ci
+      # Frontend: install, build, preview (serves dist on 5173)
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
 
-    - name: Frontend build
-      working-directory: frontend
-      run: npm run build
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build
 
-    - name: Start frontend preview
-      working-directory: frontend
-      run: |
-        nohup npm run preview -- --host 127.0.0.1 --port 5173 > ../frontend-preview.log 2>&1 &
-        for i in {1..60}; do
-          curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1 && break
-          sleep 1
-        done
+      - name: Start frontend preview
+        working-directory: frontend
+        run: |
+          nohup npm run preview -- --host 127.0.0.1 --port 5173 > ../frontend-preview.log 2>&1 &
+          for i in {1..60}; do
+            curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1 && break
+            sleep 1
+          done
 
-    # Tests: install ONLY in tests/ (isolated from root/frontend)
-    - name: Install Playwright runner (tests/)
-      working-directory: tests
-      run: npm ci
+      # Tests: install ONLY in tests/ (isolated from root/frontend)
+      - name: Install Playwright runner (tests/)
+        working-directory: tests
+        run: npm ci
 
-    - name: Install Playwright browsers (Chromium)
-      working-directory: tests
-      run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers (Chromium)
+        working-directory: tests
+        run: npx playwright install --with-deps chromium
 
-    - name: List tests
-      working-directory: tests
-      run: npx playwright test --list
+      - name: List tests
+        working-directory: tests
+        run: npx playwright test --list
 
-    - name: Run Playwright tests (chromium)
-      working-directory: tests
-      env:
-        CI: true
-      run: npx playwright test --project=chromium
+      - name: Run Playwright tests (chromium)
+        working-directory: tests
+        env:
+          CI: true
+        run: npx playwright test --project=chromium
 
-    - name: Upload Playwright report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: playwright-report
-        path: tests/playwright-report
-        if-no-files-found: ignore
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/playwright-report
+          if-no-files-found: ignore
 
-    - name: Upload server logs (on failure)
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: server-logs
-        path: |
-          frontend/frontend-preview.log
-          backend/flask.log
-        if-no-files-found: ignore
+      - name: Upload server logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: |
+            frontend/frontend-preview.log
+            backend/flask.log
+          if-no-files-found: ignore
