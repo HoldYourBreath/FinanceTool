@@ -172,6 +172,7 @@ class Car(db.Model):
     summer_tires_price        = db.Column(db.Integer, default=0)
     winter_tires_price        = db.Column(db.Integer, default=0)
     consumption_kwh_per_100km = db.Column(db.Numeric(6,2), default=0)
+    consumption_l_per_100km   = db.Column(db.Float, nullable=True, default=0.0)
     type_of_vehicle           = db.Column(vehicle_type_enum, nullable=False, server_default="EV")
     battery_capacity_kwh      = db.Column(db.Numeric(6,2), default=0)
     acceleration_0_100        = db.Column(db.Float)  # seconds 0–100 km/h

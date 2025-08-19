@@ -34,6 +34,7 @@ def seed():
                 summer_tires_price=c.get('summer_tires_price', 0),
                 winter_tires_price=c.get('winter_tires_price', 0),
                 consumption_kwh_per_100km=float(c.get('consumption_kwh_per_100km', 0)),
+                consumption_l_per_100km=float(c.get('consumption_l_per_100km', 0)),
                 type_of_vehicle=c.get('type_of_vehicle', 0),
                 battery_capacity_kwh=int(c.get('battery_capacity_kwh', 0)),
                 range_km=c.get('range_km', 0),
