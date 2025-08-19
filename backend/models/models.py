@@ -56,13 +56,6 @@ class Income(db.Model):
         }
 
 
-class HouseMeta(db.Model):
-    __tablename__ = 'house_meta'
-    id = db.Column(db.Integer, primary_key=True)
-    key = db.Column(db.String(50), unique=True, nullable=False)
-    value = db.Column(db.Float, nullable=False)
-
-
 class Expense(db.Model):
     __tablename__ = 'expenses'
     id = db.Column(db.Integer, primary_key=True)
@@ -203,7 +196,6 @@ class Car(db.Model):
     consumption_cost = db.Column(Numeric(12, 2), default=0)
 
 
-# models/models.py
 class PriceSettings(db.Model):
     __tablename__ = 'price_settings'
     id = db.Column(db.Integer, primary_key=True)  # singleton row (id=1)

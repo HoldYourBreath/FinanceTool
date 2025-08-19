@@ -14,7 +14,18 @@ test('URLs', async ({page}) => {
 const API = process.env.API_URL || 'http://127.0.0.1:5000';
 
 test('APIs', async ({ request }) => {
-  for (const p of ['/api/acc_info', '/api/assets', '/api/months', '/api/investments', '/api/planned_purchases', '/api/financing', '/api/cars', '/api/expenses', '/api/house_costs', '/api/house_meta', '/api/incomes', '/api/investment', '/api/land_costs', '/api/loan_adjustments', '/api/price_settings']) {
+  for (const p of ['/api/acc_info', 
+                   '/api/months', 
+                   '/api/investments',
+                   '/api/planned_purchases', 
+                   '/api/financing', 
+                   '/api/cars', 
+                   '/api/expenses', 
+                   '/api/house_costs', 
+                   '/api/incomes', 
+                   '/api/land_costs', 
+                   '/api/loan_adjustments', 
+                   '/api/settings/prices']) {
     const res = await request.get(`${API}${p}`);
     expect(res.ok(), `${p} should respond 2xx`).toBeTruthy();
   }
