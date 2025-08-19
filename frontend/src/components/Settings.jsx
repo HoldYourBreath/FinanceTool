@@ -11,7 +11,7 @@ export default function Settings() {
     bensin_price_sek_litre: '',
     diesel_price_sek_litre: '',
     yearly_km: '',
-    daily_commute_km: '', // NEW
+    daily_commute_km: '',
   });
   const [toast, setToast] = useState('');
 

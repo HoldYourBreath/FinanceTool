@@ -1,14 +1,19 @@
 // src/utils/carCost.js
-export const COLORS = {
+// (pure JS, safe to use in Vite)
+
+const COLORS = {
   good: "bg-green-50 text-green-700",
-  ok:   "bg-yellow-50 text-yellow-700",
-  bad:  "bg-red-50 text-red-700",
+  ok: "bg-yellow-50 text-yellow-700",
+  bad: "bg-red-50 text-red-700",
 };
 
-export function fieldColor(field, value) {
+export const fieldColor = (field, value) => {
   const v = Number(value) || 0;
   switch (field) {
     case "trunk_size_litre":
+      if (v > 500) return COLORS.good;
+      if (v < 400) return COLORS.bad;
+      return COLORS.ok;
     case "range":
       if (v > 500) return COLORS.good;
       if (v < 400) return COLORS.bad;
@@ -32,35 +37,35 @@ export function fieldColor(field, value) {
     default:
       return "";
   }
+};
+
+export function NA({ hint }) {
+  return (
+    <span
+      title={hint || "Not applicable"}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "2px 8px",
+        borderRadius: "9999px",
+        fontSize: 12,
+        background: "#f3f4f6",
+        color: "#6b7280",
+        border: "1px solid #e5e7eb",
+      }}
+    >
+      N/A
+    </span>
+  );
 }
 
-// Small "N/A" chip — REMOVE TS annotation, keep plain JS
-export const NA = ({ hint }) => (
-  <span
-    title={hint || "Not applicable"}
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "2px 8px",
-      borderRadius: "9999px",
-      fontSize: 12,
-      background: "#f3f4f6",
-      color: "#6b7280",
-      border: "1px solid #e5e7eb",
-    }}
-  >
-    N/A
-  </span>
-);
-
-// ------------------ Consumption cost ------------------
+// ------- cost calc --------
 
 const COMMUTE_DAYS_PER_MONTH = 22;
 
-function toNum(v, fallback = 0) {
-  const s = (v ?? "").toString().replace(/\s| /g, "").replace(",", ".");
-  const n = Number(s);
-  return Number.isFinite(n) ? n : fallback;
+function num(x, d = 0) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : d;
 }
 
 function normType(t) {
@@ -70,60 +75,78 @@ function normType(t) {
   if (s.startsWith("d")) return "diesel";
   if (s.startsWith("b") || s.includes("petrol") || s.includes("gasoline"))
     return "bensin";
-  return s;
+  return s || "ev";
 }
 
 /**
- * Compute monthly energy/fuel cost.
- * - EV: kWh/100 * el_price
- * - PHEV: split by commute — electric first (within EV range), remainder petrol
- * - Diesel/Bensin: L/100 * litre price
- *
+ * Monthly energy/fuel cost (SEK) given kmPerMonth and settings.
  * settings:
- *   - el_price_ore_kwh  (öre/kWh)
+ *   - el_price_ore_kwh (öre)
  *   - diesel_price_sek_litre
  *   - bensin_price_sek_litre
- *   - daily_commute_km
+ *   - daily_commute_km (for PHEV split)
  */
-export function monthlyConsumptionCost(car, kmPerMonth, settings = {}) {
-  const km = toNum(kmPerMonth, 0);
-  const type = normType(car?.type_of_vehicle);
+export function monthlyConsumptionCost(car, kmPerMonth, settings) {
+  // Fall back to settings.yearly_km / 12 if caller passes nothing/0
+  const fallbackKm = num(settings?.yearly_km, 0) / 12;
+  const km = num(kmPerMonth, fallbackKm);
+  if (!km) return 0;
 
-  const elPriceSEK = toNum(settings.el_price_ore_kwh, 0) / 100; // öre -> SEK
-  const dieselSEK  = toNum(settings.diesel_price_sek_litre, 0);
-  const bensinSEK  = toNum(settings.bensin_price_sek_litre, 0);
-  const dailyCommuteKm = toNum(settings.daily_commute_km, 30);
+  const type = normType(car.type_of_vehicle);
 
+  const orePerKwh = num(settings?.el_price_ore_kwh, 0);
+  const sekPerKwh = orePerKwh / 100; // öre -> SEK
+
+  const dieselSekL = num(settings?.diesel_price_sek_litre, 0);
+  const bensinSekL = num(settings?.bensin_price_sek_litre, 0);
+
+  // EV: kWh only
   if (type === "ev") {
-    const kwh100 = toNum(car?.consumption_kwh_per_100km, 0);
-    return km * (kwh100 / 100) * elPriceSEK;
+    const kwhPer100 = num(car.consumption_kwh_per_100km, 0);
+    if (!kwhPer100 || !sekPerKwh) return 0;
+    return (km / 100) * kwhPer100 * sekPerKwh;
   }
 
+  // PHEV: part electricity (commute within electric-only range), rest petrol
   if (type === "phev") {
-    const kwh100 = toNum(car?.consumption_kwh_per_100km, 0);
-    const batt   = toNum(car?.battery_capacity_kwh, 0);
-    const l100   = toNum(car?.consumption_l_per_100km, 0);
+    const commuteKm = Math.max(0, num(settings?.daily_commute_km, 30));
+    const consKwh100 = num(car.consumption_kwh_per_100km, 0);
+    const consL100 = num(car.consumption_l_per_100km, 0);
+    const battKwh = num(car.battery_capacity_kwh, 0);
 
-    // Estimate electric-only range for a full charge (fallback 40 km)
-    const fallbackEvRange = 40;
-    const evRangeKm =
-      kwh100 > 0 && batt > 0 ? (100 * batt) / kwh100 : fallbackEvRange;
+    // if no inputs exist we can't compute anything sensible
+    if ((!consKwh100 || !sekPerKwh) && (!consL100 || !bensinSekL)) return 0;
 
-    const evKmPerDay = Math.min(dailyCommuteKm, evRangeKm);
-    const evKmMonth  = Math.min(evKmPerDay * COMMUTE_DAYS_PER_MONTH, km);
+    // derive electric-only range from battery/consumption (fallback 40 km)
+    const assumedEvRange = 40;
+    const evRange =
+      consKwh100 > 0 && battKwh > 0 ? (100 * battKwh) / consKwh100 : assumedEvRange;
 
-    const kwhPerKm   = kwh100 / 100;
-    const elCost     = evKmMonth * kwhPerKm * elPriceSEK;
+    // how many km/month can we cover electrically
+    const evKmPerDay = Math.min(commuteKm, evRange);
+    const evKmMonth = Math.min(evKmPerDay * COMMUTE_DAYS_PER_MONTH, km);
 
-    const fuelKm     = Math.max(km - evKmMonth, 0);
-    const litres     = (l100 / 100) * fuelKm;
-    const fuelCost   = litres * bensinSEK;
+    let elCost = 0;
+    if (consKwh100 > 0 && sekPerKwh > 0) {
+      const kwhPerKm = consKwh100 / 100;
+      elCost = evKmMonth * kwhPerKm * sekPerKwh;
+    }
+
+    let fuelCost = 0;
+    const fuelKm = Math.max(km - evKmMonth, 0);
+    if (consL100 > 0 && bensinSekL > 0 && fuelKm > 0) {
+      fuelCost = (fuelKm / 100) * consL100 * bensinSekL; // treat PHEV as petrol
+    }
 
     return elCost + fuelCost;
   }
 
-  // ICE: Diesel/Bensin
-  const l100 = toNum(car?.consumption_l_per_100km, 0);
-  const litrePrice = type === "diesel" ? dieselSEK : bensinSEK;
-  return km * (l100 / 100) * litrePrice;
+  // Diesel / Bensin: litres only
+  const lPer100 = num(car.consumption_l_per_100km, 0);
+  if (!lPer100) return 0;
+
+  const sekPerLitre = type === "diesel" ? dieselSekL : bensinSekL || dieselSekL || 0;
+  if (!sekPerLitre) return 0;
+
+  return (km / 100) * lPer100 * sekPerLitre;
 }
