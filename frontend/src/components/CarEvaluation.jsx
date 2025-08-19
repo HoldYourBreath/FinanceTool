@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 
 import api from "../api/axios";
 import { toFixed1, toNum, fmt0 } from "../utils/format";
-import { fieldColor, monthlyConsumptionCost } from "../utils/carCost";
+import { fieldColor, monthlyConsumptionCost, NA } from "../utils/carCost";
 
 export default function CarEvaluation() {
   const [cars, setCars] = useState([]);
@@ -36,6 +36,7 @@ export default function CarEvaluation() {
     },
     [prices],
   );
+  
 
   const calcTCO = useCallback(
     (car, years) => {
@@ -352,30 +353,38 @@ const didFetch = useRef(false);
                     }
                   />
                 </td>
-                <td className="border px-2 py-1 text-right">
+                <td>
+                {/* kWh/100km: show for EV and PHEV, hide for Diesel/Bensin */}
+                {car.type_of_vehicle === 'Diesel' || car.type_of_vehicle === 'Bensin' ? (
+                  <NA hint="Not used for Diesel/Bensin" />
+                ) : (
                   <input
                     type="number"
                     step="0.1"
-                    min="0"
-                    className="w-20 border px-1 text-right"
-                    value={toFixed1(car.consumption_kwh_per_100km)}
-                    onChange={(e) =>
-                      onChange(idx, "consumption_kwh_per_100km", e.target.value)
-                    }
+                    value={car.consumption_kwh_per_100km ?? 0}
+                    onChange={e => onChange(car.id, 'consumption_kwh_per_100km', Number(e.target.value))}
+                    style={{ width: 100 }}
+                    title="Electric consumption (kWh/100km)"
                   />
-                </td>
-                 <td className="border px-2 py-1 text-right">
+                )}
+              </td>
+
+              <td>
+                {/* L/100km: show for Diesel/Bensin and PHEV, hide for EV */}
+                {car.type_of_vehicle === 'EV' ? (
+                  <NA hint="Not used for EV" />
+                ) : (
                   <input
                     type="number"
                     step="0.1"
-                    min="0"
-                    className="w-20 border px-1 text-right"
-                    value={toFixed1(car.consumption_l_per_100km)}
-                    onChange={(e) =>
-                      onChange(idx, "consumption_l_per_100km", e.target.value)
-                    }
+                    value={car.consumption_l_per_100km ?? 0}
+                    onChange={e => onChange(car.id, 'consumption_l_per_100km', Number(e.target.value))}
+                    style={{ width: 100 }}
+                    title="Fuel consumption (L/100km)"
                   />
-                </td>
+                )}
+              </td>
+
                 <td className="border px-2 py-1 text-right">
                   <input
                     type="number"
