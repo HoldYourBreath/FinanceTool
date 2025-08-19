@@ -157,34 +157,39 @@ jobs:
         run: |
           nohup npm run preview -- --host 127.0.0.1 --port 5173 > ../vite.log 2>&1 &
           for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then
+            if curl -fsS http://localhost:5173/ > /dev/null; then
               echo "Frontend is up!"
               break
             fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:5173/ > /dev/null || { echo "---- vite.log ----"; tail -n +1 ../vite.log || true; exit 1; }
+          curl -fsS http://localhost:5173/ > /dev/null || { echo "---- vite.log ----"; tail -n +1 ../vite.log || true; exit 1; }
 
       # ---------- Playwright ----------
-      # Install the CLI locally so the config's `import '@playwright/test'` resolves
-      # Node just for tests (isolated from root)
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Playwright CLI (tests/)
+      - name: Ensure tests dependencies
         working-directory: tests
-        run: npm i --no-audit --no-fund
-
-      - name: Install Playwright (CLI+Chromium)
-        run: npx -y @playwright/test@1.48.2 install --with-deps chromium
-
-      - name: Run Playwright tests
+        run: |
+          # If you commit tests/package-lock.json, prefer: npm ci
+          npm i --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npx playwright --version
+      
+      - name: Sanity check list tests
+        working-directory: tests
         env:
           CI: true
           API_URL: http://127.0.0.1:5000
-          WEB_URL: http://127.0.0.1:5173
-        run: npx -y @playwright/test@1.48.2 test --project=chromium --config=./tests/playwright.config.ts
+          WEB_URL: http://localhost:5173/
+        run: npx --no-install playwright test --list --config=playwright.config.ts
+
+      - name: Run Playwright tests
+        working-directory: tests
+        env:
+          CI: true
+          API_URL: http://127.0.0.1:5000
+          WEB_URL: http://localhost:5173/
+        run: npx --no-install playwright test --project=chromium --config=playwright.config.ts
+
 
       - name: Upload Playwright report on failure
         if: failure()
