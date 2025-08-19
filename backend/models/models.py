@@ -200,7 +200,8 @@ class PriceSettings(db.Model):
     __tablename__ = 'price_settings'
     id = db.Column(db.Integer, primary_key=True)  # singleton row (id=1)
     el_price_ore_kwh = db.Column(db.Integer, nullable=False, default=250)   # öre/kWh
-    diesel_price_sek_litre = db.Column(db.Float, nullable=False, default=17)
-    bensin_price_sek_litre = db.Column(db.Float, nullable=False, default=16)
+    diesel_price_sek_litre = db.Column(db.Float, nullable=False, default=15)
+    bensin_price_sek_litre = db.Column(db.Float, nullable=False, default=14)
     yearly_km = db.Column(db.Integer, nullable=False, default=18000)
+    daily_commute_km = db.Column(db.Integer, nullable=True, default=30)
 

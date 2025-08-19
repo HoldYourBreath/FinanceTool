@@ -23,35 +23,72 @@ def get_prices():
     """
     ps = PriceSettings.query.get(1)
     el_price_sek = ((ps.el_price_ore_kwh or 0) / 100.0) if ps and ps.el_price_ore_kwh is not None else 2.50
-    diesel_sek_l = float(ps.diesel_price_sek_litre) if ps and ps.diesel_price_sek_litre is not None else 17.00
-    bensin_sek_l = float(ps.bensin_price_sek_litre) if ps and ps.bensin_price_sek_litre is not None else 16.00
+    diesel_sek_l = float(ps.diesel_price_sek_litre) if ps and ps.diesel_price_sek_litre is not None else 15.00
+    bensin_sek_l = float(ps.bensin_price_sek_litre) if ps and ps.bensin_price_sek_litre is not None else 14.00
     yearly_km    = int(ps.yearly_km) if ps and ps.yearly_km else 18000
+    daily_commute_km = int(getattr(ps, 'daily_commute_km', 30) or 30) 
     return {
         "el_price_sek": el_price_sek,
         "diesel_price_sek_litre": diesel_sek_l,
         "bensin_price_sek_litre": bensin_sek_l,
         "yearly_km": yearly_km,
+        "daily_commute_km": daily_commute_km,
     }
 
+DEFAULT_COMMUTE_DAYS_PER_MONTH = 22  # assumption
+
 def energy_cost_per_month(car: Car):
-    """
-    Compute monthly energy/fuel cost based on vehicle type and consumption fields.
-    - EV uses consumption_kwh_per_100km * el price
-    - Diesel/Bensin use consumption_l_per_100km * respective litre price
-    """
     prices = get_prices()
     monthly_km = prices["yearly_km"] / 12.0
     vehicle_type = (car.type_of_vehicle or "EV").strip()
 
+    # --- EV: kWh only
     if vehicle_type == "EV":
         kwh_per_month = (to_num(car.consumption_kwh_per_100km) / 100.0) * monthly_km
         return kwh_per_month * prices["el_price_sek"]
 
-    # ICE: use litres/100km
+    # --- PHEV: part kWh (commute within electric range), rest bensin
+    if vehicle_type.upper() == "PHEV":
+        # derive electric range per full charge if possible
+        cons_kwh_100 = to_num(car.consumption_kwh_per_100km)
+        batt_kwh = to_num(car.battery_capacity_kwh)
+        # fallback electric range if data missing
+        assumed_ev_range_km = 40.0
+        ev_range_km = (100.0 * batt_kwh / cons_kwh_100) if cons_kwh_100 > 0 and batt_kwh > 0 else assumed_ev_range_km
+
+        daily_commute_km = float(prices["daily_commute_km"])
+        commute_days = DEFAULT_COMMUTE_DAYS_PER_MONTH
+
+        # km we can drive on electricity each commuting day
+        ev_km_per_day = min(daily_commute_km, ev_range_km)
+
+        # electric commuting km per month (cap by total monthly distance)
+        ev_km_month = min(ev_km_per_day * commute_days, monthly_km)
+
+        # Electricity used
+        kwh_per_km = cons_kwh_100 / 100.0  # kWh per km
+        kwh_month = ev_km_month * kwh_per_km
+        el_cost = kwh_month * prices["el_price_sek"]
+
+        # Remaining monthly km -> bensin
+        l_per_100 = to_num(getattr(car, 'consumption_l_per_100km', 0.0))
+        per_litre = prices["bensin_price_sek_litre"]  # treat PHEV as petrol
+        fuel_km = max(monthly_km - ev_km_month, 0.0)
+        litres = (l_per_100 / 100.0) * fuel_km
+        fuel_cost = litres * per_litre
+
+        return el_cost + fuel_cost
+
+    # --- ICE fallback: Diesel vs Bensin
     l_per_100 = to_num(getattr(car, 'consumption_l_per_100km', 0.0))
     litres_per_month = (l_per_100 / 100.0) * monthly_km
-    per_litre = prices["diesel_price_sek_litre"] if vehicle_type == "Diesel" else prices["bensin_price_sek_litre"]
+    if vehicle_type == "Diesel":
+        per_litre = prices["diesel_price_sek_litre"]
+    else:
+        per_litre = prices["bensin_price_sek_litre"]
     return litres_per_month * per_litre
+
+
 
 DEPRECIATION_RATES = {3: 0.15, 5: 0.25, 8: 0.40}
 

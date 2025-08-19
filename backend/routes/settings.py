@@ -84,6 +84,7 @@ def get_prices():
         'diesel_price_sek_litre': row.diesel_price_sek_litre,
         'bensin_price_sek_litre': row.bensin_price_sek_litre,
         'yearly_km': row.yearly_km,
+        "daily_commute_km": row.daily_commute_km or 30,
     })
 
 @settings_bp.route('/prices', methods=['POST'])
@@ -99,6 +100,8 @@ def save_prices():
             row.bensin_price_sek_litre = float(data['bensin_price_sek_litre'])
         if 'yearly_km' in data:
             row.yearly_km = int(data['yearly_km'])
+        if 'daily_commute_km' in data:
+            row.yearly_km = int(data['daily_commute_km'])
         db.session.commit()
         return jsonify({'message': 'Settings saved'}), 200
     except Exception as e:
