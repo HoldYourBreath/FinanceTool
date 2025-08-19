@@ -268,7 +268,7 @@ const didFetch = useRef(false);
                 label="Energy & Fuel Price (SEK) / year"
                 sortKey="energy_fuel_year"
               />
-              <Header label="WLTP Range (km)" sortKey="range" />
+              <Header label="WLTP (EV) Range (km)" sortKey="range" />
               <Header
                 label="Acceleration (0–100 km/h)"
                 sortKey="acceleration_0_100"
