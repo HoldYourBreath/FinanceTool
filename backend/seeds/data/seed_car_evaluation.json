@@ -3,6 +3,9 @@
     {
       "model": "VW ID4 GTX",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "C",
+      "suv_tier": "Compact",
       "estimated_purchase_price": 344900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -22,6 +25,9 @@
     {
       "model": "Tesla Model Y SE",
       "year": 2023,
+      "body_style": "SUV",
+      "eu_segment": "D",
+      "suv_tier": "Midsize",
       "estimated_purchase_price": 309900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -37,11 +43,13 @@
       "half_insurance_year": 9329,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Hyundai Ioniq 5 Essential",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "C",
+      "suv_tier": "Compact",
       "estimated_purchase_price": 319900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -57,11 +65,13 @@
       "half_insurance_year": 7280,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-        ,
+    },
     {
       "model": "Hyundai Kona Electric 64 kWh Advanced",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "B",
+      "suv_tier": "Subcompact",
       "estimated_purchase_price": 252900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -77,11 +87,13 @@
       "half_insurance_year": 4593,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Kia EV6",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "D",
+      "suv_tier": "Midsize",
       "estimated_purchase_price": 363900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -97,11 +109,13 @@
       "half_insurance_year": 5667,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Kia e-Niro 64 kWh Advance Plus",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "C",
+      "suv_tier": "Compact",
       "estimated_purchase_price": 227900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -117,11 +131,13 @@
       "half_insurance_year": 5608,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Ford Mustang Mach-E Standard Range AWD",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "D",
+      "suv_tier": "Midsize",
       "estimated_purchase_price": 363900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -137,11 +153,13 @@
       "half_insurance_year": 9000,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Nissan Leaf e+ N-Connecta",
       "year": 2021,
+      "body_style": "Hatchback",
+      "eu_segment": "C",
+      "suv_tier": null,
       "estimated_purchase_price": 198900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -157,11 +175,13 @@
       "half_insurance_year": 5991,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Tesla Model 3 Long Range AWD Facelift",
       "year": 2021,
+      "body_style": "Sedan",
+      "eu_segment": "D",
+      "suv_tier": null,
       "estimated_purchase_price": 198900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -177,11 +197,13 @@
       "half_insurance_year": 7520,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Polestar 2 Long Range Single Motor",
       "year": 2022,
+      "body_style": "Sedan",
+      "eu_segment": "D",
+      "suv_tier": null,
       "estimated_purchase_price": 189900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -197,11 +219,13 @@
       "half_insurance_year": 9688,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "MG ZS EV Luxury",
       "year": 2021,
+      "body_style": "SUV",
+      "eu_segment": "B",
+      "suv_tier": "Subcompact",
       "estimated_purchase_price": 189900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -217,11 +241,13 @@
       "half_insurance_year": 5585,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Skoda Enyaq iV 80",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "D",
+      "suv_tier": "Midsize",
       "estimated_purchase_price": 319900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -237,11 +263,13 @@
       "half_insurance_year": 5994,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Volvo XC40 P6 Recharge Plus",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "C",
+      "suv_tier": "Compact",
       "estimated_purchase_price": 303900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -257,11 +285,13 @@
       "half_insurance_year": 6093,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Citroen e-C4 Shine Electric",
       "year": 2022,
+      "body_style": "Hatchback",
+      "eu_segment": "C",
+      "suv_tier": null,
       "estimated_purchase_price": 201900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -281,6 +311,9 @@
     {
       "model": "Peugeot e-2008 50 kWh Active Pack",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "B",
+      "suv_tier": "Subcompact",
       "estimated_purchase_price": 173900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -300,6 +333,9 @@
     {
       "model": "MB C-Klass 200 CDI",
       "year": 2002,
+      "body_style": "Sedan",
+      "eu_segment": "D",
+      "suv_tier": null,
       "estimated_purchase_price": 0,
       "summer_tires_price": 0,
       "winter_tires_price": 0,
@@ -315,11 +351,13 @@
       "half_insurance_year": 3272,
       "car_tax_year": 6247,
       "repairs_year": 6000
-    }
-    ,
+    },
     {
       "model": "Toyota Corolla Touring Sports Hybrid 1.8 Active",
       "year": 2022,
+      "body_style": "Wagon",
+      "eu_segment": "C",
+      "suv_tier": null,
       "estimated_purchase_price": 249900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -335,11 +373,13 @@
       "half_insurance_year": 4563,
       "car_tax_year": 360,
       "repairs_year": 6000
-    }
-    ,
+    },
     {
       "model": "Toyota RAV4 Laddhybrid",
       "year": 2021,
+      "body_style": "SUV",
+      "eu_segment": "D",
+      "suv_tier": "Midsize",
       "estimated_purchase_price": 339900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -356,11 +396,13 @@
       "half_insurance_year": 6535,
       "car_tax_year": 360,
       "repairs_year": 6000
-    }
-        ,
+    },
     {
       "model": "Kia Seed Sportswagon Plug-in Hybrid SW ADVANCE",
       "year": 2021,
+      "body_style": "Wagon",
+      "eu_segment": "C",
+      "suv_tier": null,
       "estimated_purchase_price": 189900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -377,11 +419,13 @@
       "half_insurance_year": 3874,
       "car_tax_year": 360,
       "repairs_year": 6000
-    }
-    ,
+    },
     {
       "model": "Cupra Born",
       "year": 2022,
+      "body_style": "Hatchback",
+      "eu_segment": "C",
+      "suv_tier": null,
       "estimated_purchase_price": 239000,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -397,11 +441,13 @@
       "half_insurance_year": 5105,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "Audi Q4 40 e-tron Proline Advanced",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "C",
+      "suv_tier": "Compact",
       "estimated_purchase_price": 239000,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -417,11 +463,13 @@
       "half_insurance_year": 7857,
       "car_tax_year": 360,
       "repairs_year": 4000
-    }
-    ,
+    },
     {
       "model": "BYD Atto 3 Special Edition Extended Range 60.4 kWh",
       "year": 2022,
+      "body_style": "SUV",
+      "eu_segment": "C",
+      "suv_tier": "Compact",
       "estimated_purchase_price": 259900,
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
@@ -440,4 +488,3 @@
     }
   ]
 }
-

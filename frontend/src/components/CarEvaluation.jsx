@@ -4,14 +4,58 @@ import api from "../api/axios";
 import { toFixed1, toNum, fmt0 } from "../utils/format";
 import { fieldColor, monthlyConsumptionCost, NA } from "../utils/carCost";
 
+// --- helpers -------------------------------------------------------------
 function normType(t) {
   const s = (t || "").toString().trim().toLowerCase();
   if (s === "bev" || s === "electric" || s === "ev") return "ev";
   if (s === "phev" || s.includes("plug")) return "phev";
   if (s.startsWith("d")) return "diesel"; // diesel, d
-  if (s.startsWith("b") || s.includes("petrol") || s.includes("gasoline"))
-    return "bensin"; // bensin, petrol, gasoline, b
+  if (s.startsWith("b") || s.includes("petrol") || s.includes("gasoline")) return "bensin"; // bensin, petrol, gasoline, b
   return s || "ev";
+}
+
+const BODY_CHOICES_FALLBACK = [
+  "SUV",
+  "Crossover",
+  "Sedan",
+  "Wagon",
+  "Hatchback",
+  "Coupe",
+  "Convertible",
+  "MPV",
+  "Pickup",
+  "Van",
+];
+const SEG_CHOICES_FALLBACK = ["A", "B", "C", "D", "E", "F", "J", "M", "S"];
+const SUV_CHOICES_FALLBACK = ["Subcompact", "Compact", "Midsize", "Full-size"];
+const TYPE_CHOICES = ["EV", "PHEV", "Diesel", "Bensin"];
+
+function MultiToggle({ label, options, value, onChange }) {
+  return (
+    <div>
+      <div className="font-semibold mb-1">{label}</div>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => {
+          const checked = value.includes(opt);
+          const id = `${label}-${opt}`.replace(/\s+/g, "-").toLowerCase();
+          return (
+            <label key={opt} htmlFor={id} className={`flex items-center gap-1 border rounded px-2 py-1 cursor-pointer ${checked ? "bg-blue-50 border-blue-400" : ""}`}>
+              <input
+                id={id}
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => {
+                  if (e.target.checked) onChange([...value, opt]);
+                  else onChange(value.filter((v) => v !== opt));
+                }}
+              />
+              <span>{opt}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function CarEvaluation() {
@@ -23,6 +67,20 @@ export default function CarEvaluation() {
     yearly_km: 18000,
     daily_commute_km: 30,
   });
+  const [catChoices, setCatChoices] = useState({
+    body: BODY_CHOICES_FALLBACK,
+    seg: SEG_CHOICES_FALLBACK,
+    suv: SUV_CHOICES_FALLBACK,
+  });
+
+  const [filters, setFilters] = useState({
+    body_style: [],
+    eu_segment: [],
+    suv_tier: [],
+    type_of_vehicle: [],
+    q: "",
+  });
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -56,29 +114,20 @@ export default function CarEvaluation() {
       const months = years * 12;
 
       const energyFuelPerMonth = energyFuelCostYear(car) / 12;
-      const tiresTotal =
-        toNum(car.summer_tires_price) + toNum(car.winter_tires_price);
+      const tiresTotal = toNum(car.summer_tires_price) + toNum(car.winter_tires_price);
       const tiresPerMonth = months ? tiresTotal / months : 0;
 
       const insurancePerMonth = toNum(car.full_insurance_year) / 12;
       const repairsPerMonth = toNum(car.repairs_year) / 12;
       const taxPerMonth = toNum(car.car_tax_year) / 12;
 
-      const runningPerMonth =
-        energyFuelPerMonth +
-        tiresPerMonth +
-        insurancePerMonth +
-        repairsPerMonth +
-        taxPerMonth;
+      const runningPerMonth = energyFuelPerMonth + tiresPerMonth + insurancePerMonth + repairsPerMonth + taxPerMonth;
       const runningTotal = runningPerMonth * months;
 
       return {
         total: runningTotal + depreciation,
         perMonth: months ? (runningTotal + depreciation) / months : 0,
-        expectedValue: Math.max(
-          0,
-          base * (1 - (depreciationRates[years] || 0))
-        ),
+        expectedValue: Math.max(0, base * (1 - (depreciationRates[years] || 0))),
       };
     },
     [energyFuelCostYear]
@@ -108,13 +157,61 @@ export default function CarEvaluation() {
 
   const recalcAll = useCallback((list) => list.map(recalcRow), [recalcRow]);
 
-  // initial fetch (guard StrictMode double-run)
+  // --- data fetching ------------------------------------------------------
   const didFetch = useRef(false);
+
+  const buildQuery = () => {
+    const p = new URLSearchParams();
+    if (filters.body_style.length) p.set("body_style", filters.body_style.join(","));
+    if (filters.eu_segment.length) p.set("eu_segment", filters.eu_segment.join(","));
+    if (filters.suv_tier.length) p.set("suv_tier", filters.suv_tier.join(","));
+    if (filters.type_of_vehicle.length) p.set("type_of_vehicle", filters.type_of_vehicle.join(","));
+    if (filters.q) p.set("q", filters.q);
+    return p.toString();
+  };
+
+  const loadCars = useCallback(async () => {
+    try {
+      const qs = buildQuery();
+      const url = qs ? `/cars?${qs}` : "/cars";
+      const res = await api.get(url);
+      const normalized = (res.data || []).map((c) => ({
+        ...c,
+        type_of_vehicle: (c.type_of_vehicle || "").trim(),
+        body_style: c.body_style || "",
+        eu_segment: c.eu_segment || "",
+        suv_tier: c.suv_tier || "",
+        year: toNum(c.year),
+        estimated_purchase_price: toNum(c.estimated_purchase_price),
+        summer_tires_price: toNum(c.summer_tires_price),
+        winter_tires_price: toNum(c.winter_tires_price),
+        consumption_kwh_per_100km: toNum(c.consumption_kwh_per_100km),
+        consumption_l_per_100km: toNum(c.consumption_l_per_100km ?? c.consumption_l_100km),
+        battery_capacity_kwh: toNum(c.battery_capacity_kwh),
+        range: toNum(c.range),
+        trunk_size_litre: toNum(c.trunk_size_litre),
+        acceleration_0_100: toNum(c.acceleration_0_100),
+        full_insurance_year: toNum(c.full_insurance_year),
+        half_insurance_year: toNum(c.half_insurance_year),
+        car_tax_year: toNum(c.car_tax_year),
+        repairs_year: toNum(c.repairs_year),
+        tco_3_years: toNum(c.tco_3_years),
+        tco_5_years: toNum(c.tco_5_years),
+        tco_8_years: toNum(c.tco_8_years),
+      }));
+      setCars(recalcAll(normalized));
+    } catch (e) {
+      console.error("Failed to fetch car data:", e);
+      setError("Failed to load cars.");
+    }
+  }, [filters, recalcAll]);
+
   useEffect(() => {
     if (didFetch.current) return;
     didFetch.current = true;
     (async () => {
       try {
+        // load settings/prices
         const pricesRes = await api.get("/settings/prices");
         const p = pricesRes.data || {};
         setPrices({
@@ -125,52 +222,49 @@ export default function CarEvaluation() {
           daily_commute_km: Number(p.daily_commute_km) || 30,
         });
 
-        const res = await api.get("/cars");
-        const normalized = (res.data || []).map((c) => ({
-          ...c,
-          type_of_vehicle: (c.type_of_vehicle || "").trim(),
-          year: toNum(c.year),
-          estimated_purchase_price: toNum(c.estimated_purchase_price),
-          summer_tires_price: toNum(c.summer_tires_price),
-          winter_tires_price: toNum(c.winter_tires_price),
+        // load category choices (with fallbacks)
+        try {
+          const cats = await api.get("/cars/categories");
+          const data = cats.data || {};
+          setCatChoices({
+            body: Array.isArray(data.body_styles) && data.body_styles.length ? data.body_styles : BODY_CHOICES_FALLBACK,
+            seg: Array.isArray(data.eu_segments) && data.eu_segments.length ? data.eu_segments : SEG_CHOICES_FALLBACK,
+            suv: Array.isArray(data.suv_tiers) && data.suv_tiers.length ? data.suv_tiers : SUV_CHOICES_FALLBACK,
+          });
+        } catch (e) {
+          console.warn("/cars/categories not available, using fallbacks", e);
+          setCatChoices({ body: BODY_CHOICES_FALLBACK, seg: SEG_CHOICES_FALLBACK, suv: SUV_CHOICES_FALLBACK });
+        }
 
-          // Both consumption fields (may be 0 depending on type)
-          consumption_kwh_per_100km: toNum(c.consumption_kwh_per_100km),
-          consumption_l_per_100km: toNum(
-            c.consumption_l_per_100km ?? c.consumption_l_100km
-          ),
-
-          battery_capacity_kwh: toNum(c.battery_capacity_kwh),
-          range: toNum(c.range),
-          trunk_size_litre: toNum(c.trunk_size_litre),
-          acceleration_0_100: toNum(c.acceleration_0_100),
-
-          full_insurance_year: toNum(c.full_insurance_year),
-          half_insurance_year: toNum(c.half_insurance_year),
-          car_tax_year: toNum(c.car_tax_year),
-          repairs_year: toNum(c.repairs_year),
-
-          tco_3_years: toNum(c.tco_3_years),
-          tco_5_years: toNum(c.tco_5_years),
-          tco_8_years: toNum(c.tco_8_years),
-        }));
-        setCars(normalized);
+        // initial car load
+        await loadCars();
       } catch (e) {
-        console.error("Failed to fetch car data:", e);
-        setError("Failed to load cars.");
+        console.error("Initial load failed:", e);
+        setError("Failed initial load.");
       }
     })();
-  }, []);
+  }, [loadCars]);
 
-  // whenever prices change, recompute derived fields for all cars
+  // re-calc on price changes
   useEffect(() => {
     setCars((prev) => recalcAll(prev));
   }, [prices, recalcAll]);
 
+  // re-fetch when filters change
+  useEffect(() => {
+    if (!didFetch.current) return; // wait until initial
+    loadCars();
+  }, [filters, loadCars]);
+
   const onChange = (idx, field, value) => {
     setCars((prev) => {
       const next = [...prev];
-      const v = field === "model" ? value : toNum(value);
+      let v = value;
+      if (["model", "type_of_vehicle"].includes(field)) {
+        // keep strings
+      } else {
+        v = toNum(value);
+      }
       next[idx] = recalcRow({ ...next[idx], [field]: v });
       return next;
     });
@@ -185,13 +279,16 @@ export default function CarEvaluation() {
         id: c.id,
         model: c.model,
         year: Number(c.year) || 0,
+        // keep categories in payload (read-only here)
+        body_style: c.body_style || null,
+        eu_segment: c.eu_segment || null,
+        suv_tier: c.suv_tier || null,
+        // specs
         estimated_purchase_price: Number(c.estimated_purchase_price) || 0,
         summer_tires_price: Number(c.summer_tires_price) || 0,
         winter_tires_price: Number(c.winter_tires_price) || 0,
-        consumption_kwh_per_100km:
-          Number(c.consumption_kwh_per_100km) || 0,
-        consumption_l_per_100km:
-          Number(c.consumption_l_per_100km) || 0,
+        consumption_kwh_per_100km: Number(c.consumption_kwh_per_100km) || 0,
+        consumption_l_per_100km: Number(c.consumption_l_per_100km) || 0,
         battery_capacity_kwh: Number(c.battery_capacity_kwh) || 0,
         range: Number(c.range) || 0,
         trunk_size_litre: Number(c.trunk_size_litre) || 0,
@@ -200,7 +297,6 @@ export default function CarEvaluation() {
         half_insurance_year: Number(c.half_insurance_year) || 0,
         car_tax_year: Number(c.car_tax_year) || 0,
         repairs_year: Number(c.repairs_year) || 0,
-        // (include type_of_vehicle if your API allows updating it)
         type_of_vehicle: c.type_of_vehicle,
       }));
 
@@ -239,7 +335,6 @@ export default function CarEvaluation() {
   const getVal = (car, key) => {
     const v = car[key];
     return Number.isFinite(v) ? v : typeof v === "string" ? v.toLowerCase() : 0;
-    // (fallback numbers for undefined)
   };
 
   const sortedCars = [...cars].sort((a, b) => {
@@ -254,22 +349,48 @@ export default function CarEvaluation() {
   });
 
   const Header = ({ label, sortKey, align = "text-right" }) => (
-    <th
-      className={`border px-2 py-1 ${align} cursor-pointer select-none`}
-      onClick={() => sortToggle(sortKey)}
-      title="Click to sort"
-    >
+    <th className={`border px-2 py-1 ${align} cursor-pointer select-none`} onClick={() => sortToggle(sortKey)} title="Click to sort">
       {label}
-      <span className="ml-1 text-gray-500">
-        {sortBy === sortKey ? (sortDir === "asc" ? "▲" : "▼") : ""}
-      </span>
+      <span className="ml-1 text-gray-500">{sortBy === sortKey ? (sortDir === "asc" ? "▲" : "▼") : ""}</span>
     </th>
   );
 
+  // --- UI -----------------------------------------------------------------
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-2xl font-bold">Car Evaluation</h2>
       {error && <div className="text-red-600">{error}</div>}
+
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-3 bg-gray-50 rounded border">
+        <div className="col-span-1">
+          <MultiToggle label="Body style" options={catChoices.body} value={filters.body_style} onChange={(v) => setFilters((f) => ({ ...f, body_style: v }))} />
+        </div>
+        <div className="col-span-1">
+          <MultiToggle label="EU segment" options={catChoices.seg} value={filters.eu_segment} onChange={(v) => setFilters((f) => ({ ...f, eu_segment: v }))} />
+        </div>
+        <div className="col-span-1">
+          <MultiToggle label="SUV tier" options={catChoices.suv} value={filters.suv_tier} onChange={(v) => setFilters((f) => ({ ...f, suv_tier: v }))} />
+        </div>
+        <div className="col-span-1">
+          <MultiToggle label="Type" options={TYPE_CHOICES} value={filters.type_of_vehicle} onChange={(v) => setFilters((f) => ({ ...f, type_of_vehicle: v }))} />
+        </div>
+        <div className="col-span-1 md:col-span-2 lg:col-span-4 flex items-end gap-2">
+          <div className="flex-1">
+            <label htmlFor="filter-q" className="block text-sm font-semibold mb-1">Search model</label>
+            <input
+              id="filter-q"
+              className="w-full border rounded px-2 py-1"
+              placeholder="e.g., Model Y, Ioniq 5"
+              value={filters.q}
+              onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+            />
+          </div>
+          <button className="border px-3 py-2 rounded" onClick={() => setFilters({ body_style: [], eu_segment: [], suv_tier: [], type_of_vehicle: [], q: "" })}>
+            Clear filters
+          </button>
+        </div>
+      </div>
 
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-300">
@@ -277,53 +398,24 @@ export default function CarEvaluation() {
             <tr>
               <Header label="Car Model" sortKey="model" align="text-left" />
               <Header label="Year" sortKey="year" />
-              <Header
-                label="Estimated Purchase Price"
-                sortKey="estimated_purchase_price"
-              />
+              <Header label="Type" sortKey="type_of_vehicle" align="text-left" />
+              <Header label="Estimated Purchase Price" sortKey="estimated_purchase_price" />
               <Header label="Summer Tires Price" sortKey="summer_tires_price" />
               <Header label="Winter Tires Price" sortKey="winter_tires_price" />
-              <Header
-                label="Consumption (kWh/100km)"
-                sortKey="consumption_kwh_per_100km"
-              />
-              <Header
-                label="Consumption (l/100km)"
-                sortKey="consumption_l_per_100km"
-              />
+              <Header label="Consumption (kWh/100km)" sortKey="consumption_kwh_per_100km" />
+              <Header label="Consumption (l/100km)" sortKey="consumption_l_per_100km" />
               <Header label="Battery (kWh)" sortKey="battery_capacity_kwh" />
-              <Header
-                label="Energy & Fuel Price (SEK) / year"
-                sortKey="energy_fuel_year"
-              />
+              <Header label="Energy & Fuel Price (SEK) / year" sortKey="energy_fuel_year" />
               <Header label="WLTP (EV) Range (km)" sortKey="range" />
-              <Header
-                label="Acceleration (0–100 km/h)"
-                sortKey="acceleration_0_100"
-              />
+              <Header label="Acceleration (0–100 km/h)" sortKey="acceleration_0_100" />
               <Header label="Trunk Size (l)" sortKey="trunk_size_litre" />
-              <Header
-                label="Full Insurance / Year"
-                sortKey="full_insurance_year"
-              />
-              <Header
-                label="Half Insurance / Year"
-                sortKey="half_insurance_year"
-              />
+              <Header label="Full Insurance / Year" sortKey="full_insurance_year" />
+              <Header label="Half Insurance / Year" sortKey="half_insurance_year" />
               <Header label="Car Tax / Year" sortKey="car_tax_year" />
               <Header label="Repairs / Year" sortKey="repairs_year" />
-              <Header
-                label="Expected Value (3y)"
-                sortKey="expected_value_after_3y"
-              />
-              <Header
-                label="Expected Value (5y)"
-                sortKey="expected_value_after_5y"
-              />
-              <Header
-                label="Expected Value (8y)"
-                sortKey="expected_value_after_8y"
-              />
+              <Header label="Expected Value (3y)" sortKey="expected_value_after_3y" />
+              <Header label="Expected Value (5y)" sortKey="expected_value_after_5y" />
+              <Header label="Expected Value (8y)" sortKey="expected_value_after_8y" />
               <Header label="TCO Total (3y)" sortKey="tco_total_3y" />
               <Header label="TCO Total (5y)" sortKey="tco_total_5y" />
               <Header label="TCO Total (8y)" sortKey="tco_total_8y" />
@@ -340,72 +432,35 @@ export default function CarEvaluation() {
               return (
                 <tr key={car.id}>
                   <td className="border px-2 py-1">
-                    <input
-                      className="w-64 border px-1"
-                      value={car.model}
-                      onChange={(e) => onChange(idx, "model", e.target.value)}
-                    />
+                    <input className="w-64 border px-1" value={car.model} onChange={(e) => onChange(idx, "model", e.target.value)} />
                   </td>
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className="w-24 border px-1 text-right"
-                      value={car.year}
-                      onChange={(e) => onChange(idx, "year", e.target.value)}
-                    />
+                    <input type="number" className="w-24 border px-1 text-right" value={car.year} onChange={(e) => onChange(idx, "year", e.target.value)} />
+                  </td>
+
+                  {/* Type */}
+                  <td className="border px-2 py-1">
+                    <select className="border px-1 w-28" value={car.type_of_vehicle || "EV"} onChange={(e) => onChange(idx, "type_of_vehicle", e.target.value)}>
+                      {TYPE_CHOICES.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </td>
+
+                  <td className="border px-2 py-1 text-right">
+                    <input type="number" className="w-28 border px-1 text-right" value={car.estimated_purchase_price} onChange={(e) => onChange(idx, "estimated_purchase_price", e.target.value)} />
                   </td>
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className="w-28 border px-1 text-right"
-                      value={car.estimated_purchase_price}
-                      onChange={(e) =>
-                        onChange(
-                          idx,
-                          "estimated_purchase_price",
-                          e.target.value
-                        )
-                      }
-                    />
+                    <input type="number" className="w-24 border px-1 text-right" value={car.summer_tires_price} onChange={(e) => onChange(idx, "summer_tires_price", e.target.value)} />
                   </td>
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className="w-24 border px-1 text-right"
-                      value={car.summer_tires_price}
-                      onChange={(e) =>
-                        onChange(idx, "summer_tires_price", e.target.value)
-                      }
-                    />
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className="w-24 border px-1 text-right"
-                      value={car.winter_tires_price}
-                      onChange={(e) =>
-                        onChange(idx, "winter_tires_price", e.target.value)
-                      }
-                    />
+                    <input type="number" className="w-24 border px-1 text-right" value={car.winter_tires_price} onChange={(e) => onChange(idx, "winter_tires_price", e.target.value)} />
                   </td>
 
                   {/* kWh/100km */}
                   <td className="border px-2 py-1 text-right">
                     {showKwh ? (
-                      <input
-                        type="number"
-                        step="0.1"
-                        className="w-24 border px-1 text-right"
-                        value={car.consumption_kwh_per_100km ?? 0}
-                        onChange={(e) =>
-                          onChange(
-                            idx,
-                            "consumption_kwh_per_100km",
-                            e.target.value
-                          )
-                        }
-                        title="Electric consumption (kWh/100km)"
-                      />
+                      <input type="number" step="0.1" className="w-24 border px-1 text-right" value={car.consumption_kwh_per_100km ?? 0} onChange={(e) => onChange(idx, "consumption_kwh_per_100km", e.target.value)} title="Electric consumption (kWh/100km)" />
                     ) : (
                       <NA hint="Not used for Diesel/Bensin" />
                     )}
@@ -414,166 +469,57 @@ export default function CarEvaluation() {
                   {/* L/100km */}
                   <td className="border px-2 py-1 text-right">
                     {showLitres ? (
-                      <input
-                        type="number"
-                        step="0.1"
-                        className="w-24 border px-1 text-right"
-                        value={car.consumption_l_per_100km ?? 0}
-                        onChange={(e) =>
-                          onChange(
-                            idx,
-                            "consumption_l_per_100km",
-                            e.target.value
-                          )
-                        }
-                        title="Fuel consumption (L/100km)"
-                      />
+                      <input type="number" step="0.1" className="w-24 border px-1 text-right" value={car.consumption_l_per_100km ?? 0} onChange={(e) => onChange(idx, "consumption_l_per_100km", e.target.value)} title="Fuel consumption (L/100km)" />
                     ) : (
                       <NA hint="Not used for EV" />
                     )}
                   </td>
 
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      className="w-24 border px-1 text-right"
-                      value={toFixed1(car.battery_capacity_kwh)}
-                      onChange={(e) =>
-                        onChange(idx, "battery_capacity_kwh", e.target.value)
-                      }
-                    />
+                    <input type="number" step="0.1" min="0" className="w-24 border px-1 text-right" value={toFixed1(car.battery_capacity_kwh)} onChange={(e) => onChange(idx, "battery_capacity_kwh", e.target.value)} />
+                  </td>
+
+                  <td className="border px-2 py-1 text-right">{fmt0(energyFuelCostYear(car))}</td>
+
+                  <td className="border px-2 py-1 text-right">
+                    <input type="number" className={`w-24 border px-1 text-right ${fieldColor("range", car.range)}`} value={car.range} onChange={(e) => onChange(idx, "range", e.target.value)} />
                   </td>
 
                   <td className="border px-2 py-1 text-right">
-                    {fmt0(energyFuelCostYear(car))}
+                    <input type="number" className={`w-24 border px-1 text-right ${fieldColor("acceleration_0_100", car.acceleration_0_100)}`} value={car.acceleration_0_100} onChange={(e) => onChange(idx, "acceleration_0_100", e.target.value)} />
                   </td>
 
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className={`w-24 border px-1 text-right ${fieldColor(
-                        "range",
-                        car.range
-                      )}`}
-                      value={car.range}
-                      onChange={(e) => onChange(idx, "range", e.target.value)}
-                    />
+                    <input type="number" className={`w-24 border px-1 text-right ${fieldColor("trunk_size_litre", car.trunk_size_litre)}`} value={car.trunk_size_litre} onChange={(e) => onChange(idx, "trunk_size_litre", e.target.value)} />
                   </td>
 
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className={`w-24 border px-1 text-right ${fieldColor(
-                        "acceleration_0_100",
-                        car.acceleration_0_100
-                      )}`}
-                      value={car.acceleration_0_100}
-                      onChange={(e) =>
-                        onChange(idx, "acceleration_0_100", e.target.value)
-                      }
-                    />
+                    <input type="number" className={`w-24 border px-1 text-right ${fieldColor("full_insurance_year", car.full_insurance_year)}`} value={car.full_insurance_year} onChange={(e) => onChange(idx, "full_insurance_year", e.target.value)} />
                   </td>
 
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className={`w-24 border px-1 text-right ${fieldColor(
-                        "trunk_size_litre",
-                        car.trunk_size_litre
-                      )}`}
-                      value={car.trunk_size_litre}
-                      onChange={(e) =>
-                        onChange(idx, "trunk_size_litre", e.target.value)
-                      }
-                    />
+                    <input type="number" className={`w-24 border px-1 text-right ${fieldColor("half_insurance_year", car.half_insurance_year)}`} value={car.half_insurance_year} onChange={(e) => onChange(idx, "half_insurance_year", e.target.value)} />
                   </td>
 
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className={`w-24 border px-1 text-right ${fieldColor(
-                        "full_insurance_year",
-                        car.full_insurance_year
-                      )}`}
-                      value={car.full_insurance_year}
-                      onChange={(e) =>
-                        onChange(idx, "full_insurance_year", e.target.value)
-                      }
-                    />
+                    <input type="number" className={`w-24 border px-1 text-right ${fieldColor("car_tax_year", car.car_tax_year)}`} value={car.car_tax_year} onChange={(e) => onChange(idx, "car_tax_year", e.target.value)} />
                   </td>
 
                   <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className={`w-24 border px-1 text-right ${fieldColor(
-                        "half_insurance_year",
-                        car.half_insurance_year
-                      )}`}
-                      value={car.half_insurance_year}
-                      onChange={(e) =>
-                        onChange(idx, "half_insurance_year", e.target.value)
-                      }
-                    />
+                    <input type="number" className="w-24 border px-1 text-right" value={car.repairs_year} onChange={(e) => onChange(idx, "repairs_year", e.target.value)} min="0" step="1" />
                   </td>
 
-                  <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className={`w-24 border px-1 text-right ${fieldColor(
-                        "car_tax_year",
-                        car.car_tax_year
-                      )}`}
-                      value={car.car_tax_year}
-                      onChange={(e) =>
-                        onChange(idx, "car_tax_year", e.target.value)
-                      }
-                    />
-                  </td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.expected_value_after_3y)}</td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.expected_value_after_5y)}</td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.expected_value_after_8y)}</td>
 
-                  <td className="border px-2 py-1 text-right">
-                    <input
-                      type="number"
-                      className="w-24 border px-1 text-right"
-                      value={car.repairs_year}
-                      onChange={(e) =>
-                        onChange(idx, "repairs_year", e.target.value)
-                      }
-                      min="0"
-                      step="1"
-                    />
-                  </td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.tco_total_3y)}</td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.tco_total_5y)}</td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.tco_total_8y)}</td>
 
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.expected_value_after_3y)}
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.expected_value_after_5y)}
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.expected_value_after_8y)}
-                  </td>
-
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.tco_total_3y)}
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.tco_total_5y)}
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.tco_total_8y)}
-                  </td>
-
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.tco_per_month_3y)}
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.tco_per_month_5y)}
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    {fmt0(car.tco_per_month_8y)}
-                  </td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.tco_per_month_3y)}</td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.tco_per_month_5y)}</td>
+                  <td className="border px-2 py-1 text-right">{fmt0(car.tco_per_month_8y)}</td>
                 </tr>
               );
             })}
@@ -581,19 +527,11 @@ export default function CarEvaluation() {
         </table>
       </div>
 
-      <button
-        disabled={saving}
-        onClick={saveAll}
-        className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-60"
-      >
+      <button disabled={saving} onClick={saveAll} className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-60">
         {saving ? "Saving…" : "Save Changes"}
       </button>
 
-      {notice && (
-        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow">
-          {notice}
-        </div>
-      )}
+      {notice && <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow">{notice}</div>}
     </div>
   );
 }

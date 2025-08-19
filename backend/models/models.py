@@ -166,8 +166,6 @@ class Car(db.Model):
 
     model = db.Column(db.String(255), nullable=False)
     year = db.Column(db.Integer, nullable=False)
-
-    # NEW FIELDS
     estimated_purchase_price  = db.Column(db.Integer, default=0)
     summer_tires_price        = db.Column(db.Integer, default=0)
     winter_tires_price        = db.Column(db.Integer, default=0)
@@ -184,6 +182,9 @@ class Car(db.Model):
     half_insurance_year       = db.Column(db.Integer, default=0)
     car_tax_year              = db.Column(db.Integer, default=0)
     repairs_year              = db.Column(db.Integer, default=0)
+    body_style                = db.Column(db.String(20), index=True) # e.g., 'SUV', 'Sedan'
+    eu_segment                = db.Column(db.String(2), index=True) # e.g., 'B', 'C', 'D'
+    suv_tier                  = db.Column(db.String(12), index=True)
 
     # DERIVED (you can keep these or recompute on the fly)
     tco_3_years = db.Column(Numeric(12, 2), default=0)
