@@ -364,7 +364,7 @@
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
       "type_of_vehicle": "PHEV",
-      "consumption_l_per_100km": 1.5,
+      "consumption_l_per_100km": 5,
       "battery_capacity_kwh": 0,
       "range_km": 1100,
       "acceleration_0_100": 10.5,

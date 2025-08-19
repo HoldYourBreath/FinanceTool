@@ -168,6 +168,7 @@ const didFetch = useRef(false);
         summer_tires_price: Number(c.summer_tires_price) || 0,
         winter_tires_price: Number(c.winter_tires_price) || 0,
         consumption_kwh_per_100km: Number(c.consumption_kwh_per_100km) || 0,
+        consumption_l_per_100km: Number(c.consumption_l_per_100km) || 0,
         range: Number(c.range) || 0,
         trunk_size_litre: Number(c.trunk_size_litre) || 0,
         full_insurance_year: Number(c.full_insurance_year) || 0,
@@ -255,8 +256,12 @@ const didFetch = useRef(false);
               <Header label="Summer Tires Price" sortKey="summer_tires_price" />
               <Header label="Winter Tires Price" sortKey="winter_tires_price" />
               <Header
-                label="Consumption (kWh/100km) or (l/100km)"
+                label="Consumption (kWh/100km)"
                 sortKey="consumption_kwh_per_100km"
+              />
+              <Header
+                label="Consumption (l/100km)"
+                sortKey="consumption_l_per_100km"
               />
               <Header label="Battery (kWh)" sortKey="battery_capacity_kwh" />
               <Header
@@ -356,6 +361,18 @@ const didFetch = useRef(false);
                     value={toFixed1(car.consumption_kwh_per_100km)}
                     onChange={(e) =>
                       onChange(idx, "consumption_kwh_per_100km", e.target.value)
+                    }
+                  />
+                </td>
+                 <td className="border px-2 py-1 text-right">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    className="w-20 border px-1 text-right"
+                    value={toFixed1(car.consumption_l_per_100km)}
+                    onChange={(e) =>
+                      onChange(idx, "consumption_l_per_100km", e.target.value)
                     }
                   />
                 </td>
