@@ -22,6 +22,9 @@ subprocess.run([sys.executable, "seed_planned_purchases.py"], check=True)
 print("🌱 Seeding meta values...")
 subprocess.run([sys.executable, "seed_acc_info.py"], check=True)
 
+print("🌱 Seeding price settings...")
+subprocess.run([sys.executable, "seed_price_settings.py"], check=True)
+
 print("🌱 Seeding cars...")
 subprocess.run([sys.executable, "seed_cars.py"], check=True)
 
