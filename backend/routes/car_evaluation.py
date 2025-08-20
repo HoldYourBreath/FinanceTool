@@ -7,6 +7,18 @@ cars_bp = Blueprint("cars", __name__, url_prefix="/api")
 
 # ---- helpers -------------------------------------------------
 
+def estimate_dc_10_80_minutes(batt_kwh, dc_peak_kw):
+    if batt_kwh and dc_peak_kw:
+        return round(((0.70 * batt_kwh) / (0.60 * dc_peak_kw)) * 60.0, 2)
+    return 0.0
+
+def estimate_ac_0_100_hours(batt_kwh, ac_kw):
+    if batt_kwh and ac_kw:
+        return round(batt_kwh / ac_kw, 2)
+    if batt_kwh:
+        return round(batt_kwh / 11.0, 2)
+    return 0.0
+
 def to_num(v, default=0.0):
     try:
         if v is None:
@@ -191,19 +203,27 @@ def get_cars():
             "suv_tier": c.suv_tier,
 
             # pricing/specs
-            "estimated_purchase_price": to_num(c.estimated_purchase_price),
-            "summer_tires_price": to_num(c.summer_tires_price),
-            "winter_tires_price": to_num(c.winter_tires_price),
-            "consumption_kwh_per_100km": to_num(c.consumption_kwh_per_100km),
-            "consumption_l_per_100km": to_num(getattr(c, "consumption_l_per_100km", 0.0)),
-            "range": to_num(c.range_km),  # keep frontend key as 'range'
-            "acceleration_0_100": to_num(c.acceleration_0_100),
-            "battery_capacity_kwh": to_num(c.battery_capacity_kwh),
-            "trunk_size_litre": to_num(c.trunk_size_litre),
-            "full_insurance_year": to_num(c.full_insurance_year),
-            "half_insurance_year": to_num(c.half_insurance_year),
-            "car_tax_year": to_num(c.car_tax_year),
-            "repairs_year": to_num(c.repairs_year),
+            "estimated_purchase_price":     to_num(c.estimated_purchase_price),
+            "summer_tires_price":           to_num(c.summer_tires_price),
+            "winter_tires_price":           to_num(c.winter_tires_price),
+            "consumption_kwh_per_100km":    to_num(c.consumption_kwh_per_100km),
+            "consumption_l_per_100km":      to_num(getattr(c, "consumption_l_per_100km", 0.0)),
+            "range":                        to_num(c.range_km),  # keep frontend key as 'range'
+            "acceleration_0_100":           to_num(c.acceleration_0_100),
+            "battery_capacity_kwh":         to_num(c.battery_capacity_kwh),
+            "trunk_size_litre":             to_num(c.trunk_size_litre),
+            "full_insurance_year":          to_num(c.full_insurance_year),
+            "half_insurance_year":          to_num(c.half_insurance_year),
+            "car_tax_year":                 to_num(c.car_tax_year),
+            "repairs_year":                 to_num(c.repairs_year),
+            'dc_peak_kw':                   to_num(getattr(c, 'dc_peak_kw', 0)),
+            'dc_time_min_10_80':            to_num(getattr(c, 'dc_time_min_10_80', 0)),
+            'dc_time_min_10_80_est':        to_num(getattr(c, 'dc_time_min_10_80_est', 0)),
+            'dc_time_source':               getattr(c, 'dc_time_source', '') or '',
+            'ac_onboard_kw':                to_num(getattr(c, 'ac_onboard_kw', 0)),
+            'ac_time_h_0_100':              to_num(getattr(c, 'ac_time_h_0_100', 0)),
+            'ac_time_h_0_100_est':          to_num(getattr(c, 'ac_time_h_0_100_est', 0)),
+            'ac_time_source':               getattr(c, 'ac_time_source', '') or '',
 
             # persisted TCO totals if present
             "tco_3_years": to_num(c.tco_3_years),
@@ -212,6 +232,11 @@ def get_cars():
         }
         # computed-on-the-fly additions
         d.update(compute_derived(c))
+        if (d['dc_time_min_10_80'] or 0) <= 0:
+            d['dc_time_min_10_80_est'] = estimate_dc_10_80_minutes(d['battery_capacity_kwh'], d['dc_peak_kw']) or d['dc_time_min_10_80_est']
+        if (d['ac_time_h_0_100'] or 0) <= 0:
+            d['ac_time_h_0_100_est']   = estimate_ac_0_100_hours(d['battery_capacity_kwh'], d['ac_onboard_kw']) or d['ac_time_h_0_100_est']
+
         resp.append(d)
 
     return jsonify(resp)
@@ -276,6 +301,23 @@ def update_cars():
             car.half_insurance_year = to_num(p.get("half_insurance_year"), car.half_insurance_year or 0)
             car.car_tax_year = to_num(p.get("car_tax_year"), car.car_tax_year or 0)
             car.repairs_year = to_num(p.get("repairs_year"), car.repairs_year or 0)
+            car.dc_peak_kw            = to_num(p.get('dc_peak_kw'), car.dc_peak_kw or 0)
+            car.dc_time_min_10_80     = to_num(p.get('dc_time_min_10_80'), car.dc_time_min_10_80 or 0)
+            car.dc_time_source        = p.get('dc_time_source', car.dc_time_source or '')
+
+            car.ac_onboard_kw         = to_num(p.get('ac_onboard_kw'), car.ac_onboard_kw or 0)
+            car.ac_time_h_0_100       = to_num(p.get('ac_time_h_0_100'), car.ac_time_h_0_100 or 0)
+            car.ac_time_source        = p.get('ac_time_source', car.ac_time_source or '')
+
+            # refresh estimates (optional)
+            from math import isfinite
+            try:
+                car.dc_time_min_10_80_est = estimate_dc_10_80_minutes(
+                    to_num(car.battery_capacity_kwh), to_num(car.dc_peak_kw))
+                car.ac_time_h_0_100_est   = estimate_ac_0_100_hours(
+                    to_num(car.battery_capacity_kwh), to_num(car.ac_onboard_kw))
+            except Exception:
+                pass
 
             # Persist derived totals if you keep them denormalized
             d = compute_derived(car)

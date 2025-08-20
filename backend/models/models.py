@@ -185,6 +185,14 @@ class Car(db.Model):
     body_style                = db.Column(db.String(20), index=True) # e.g., 'SUV', 'Sedan'
     eu_segment                = db.Column(db.String(2), index=True) # e.g., 'B', 'C', 'D'
     suv_tier                  = db.Column(db.String(12), index=True)
+    dc_peak_kw                = db.Column(db.Float)
+    dc_time_min_10_80         = db.Column(db.Float)
+    dc_time_min_10_80_est     = db.Column(db.Float)
+    dc_time_source            = db.Column(db.Text)
+    ac_onboard_kw             = db.Column(db.Float)
+    ac_time_h_0_100           = db.Column(db.Float)
+    ac_time_h_0_100_est       = db.Column(db.Float)
+    ac_time_source            = db.Column(db.Text)
 
     # DERIVED (you can keep these or recompute on the fly)
     tco_3_years = db.Column(Numeric(12, 2), default=0)

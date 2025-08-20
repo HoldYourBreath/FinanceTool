@@ -11,7 +11,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 17.3,
-      "battery_capacity_kwh": 82,
+      "battery_capacity_kwh": 82.0,
       "range_km": 476,
       "acceleration_0_100": 6.2,
       "driven_km": 87160,
@@ -20,7 +20,15 @@
       "full_insurance_year": 12000,
       "half_insurance_year": 8000,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 125.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 45.92,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 7.45,
+      "ac_time_source": ""
     },
     {
       "model": "Tesla Model Y SE",
@@ -33,7 +41,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 15.7,
-      "battery_capacity_kwh": 77,
+      "battery_capacity_kwh": 77.0,
       "range_km": 455,
       "acceleration_0_100": 4.8,
       "driven_km": 110370,
@@ -42,7 +50,15 @@
       "full_insurance_year": 17341,
       "half_insurance_year": 9329,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 250.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 21.56,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 7.0,
+      "ac_time_source": ""
     },
     {
       "model": "Hyundai Ioniq 5 Essential",
@@ -64,7 +80,15 @@
       "full_insurance_year": 10978,
       "half_insurance_year": 7280,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 220.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 23.1,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 6.6,
+      "ac_time_source": ""
     },
     {
       "model": "Hyundai Kona Electric 64 kWh Advanced",
@@ -77,7 +101,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 14.7,
-      "battery_capacity_kwh": 64,
+      "battery_capacity_kwh": 64.0,
       "range_km": 484,
       "acceleration_0_100": 7.9,
       "driven_km": 52640,
@@ -86,7 +110,15 @@
       "full_insurance_year": 12043,
       "half_insurance_year": 4593,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 77.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 58.18,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 5.82,
+      "ac_time_source": ""
     },
     {
       "model": "Kia EV6",
@@ -108,7 +140,15 @@
       "full_insurance_year": 10186,
       "half_insurance_year": 5667,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 230.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 23.58,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 7.04,
+      "ac_time_source": ""
     },
     {
       "model": "Kia e-Niro 64 kWh Advance Plus",
@@ -121,7 +161,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 15.9,
-      "battery_capacity_kwh": 64,
+      "battery_capacity_kwh": 64.0,
       "range_km": 455,
       "acceleration_0_100": 7.8,
       "driven_km": 98310,
@@ -130,7 +170,15 @@
       "full_insurance_year": 12702,
       "half_insurance_year": 5608,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 77.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 58.18,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 5.82,
+      "ac_time_source": ""
     },
     {
       "model": "Ford Mustang Mach-E Standard Range AWD",
@@ -152,7 +200,15 @@
       "full_insurance_year": 14000,
       "half_insurance_year": 9000,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 150.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 35.29,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 6.88,
+      "ac_time_source": ""
     },
     {
       "model": "Nissan Leaf e+ N-Connecta",
@@ -165,7 +221,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 18.5,
-      "battery_capacity_kwh": 62,
+      "battery_capacity_kwh": 62.0,
       "range_km": 385,
       "acceleration_0_100": 6.9,
       "driven_km": 41990,
@@ -174,7 +230,15 @@
       "full_insurance_year": 13439,
       "half_insurance_year": 5991,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 100.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 43.4,
+      "dc_time_source": "",
+      "ac_onboard_kw": 6.6,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 9.39,
+      "ac_time_source": ""
     },
     {
       "model": "Tesla Model 3 Long Range AWD Facelift",
@@ -187,7 +251,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 14.7,
-      "battery_capacity_kwh": 75,
+      "battery_capacity_kwh": 75.0,
       "range_km": 614,
       "acceleration_0_100": 4.4,
       "driven_km": 74800,
@@ -196,7 +260,15 @@
       "full_insurance_year": 18093,
       "half_insurance_year": 7520,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 250.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 21.0,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 6.82,
+      "ac_time_source": ""
     },
     {
       "model": "Polestar 2 Long Range Single Motor",
@@ -208,7 +280,7 @@
       "summer_tires_price": 10000,
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
-      "consumption_kwh_per_100km": 17,
+      "consumption_kwh_per_100km": 17.0,
       "battery_capacity_kwh": 44.5,
       "range_km": 545,
       "acceleration_0_100": 7.4,
@@ -218,7 +290,15 @@
       "full_insurance_year": 19199,
       "half_insurance_year": 9688,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 150.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 20.77,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 4.05,
+      "ac_time_source": ""
     },
     {
       "model": "MG ZS EV Luxury",
@@ -240,7 +320,15 @@
       "full_insurance_year": 14004,
       "half_insurance_year": 5585,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 76.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 40.99,
+      "dc_time_source": "",
+      "ac_onboard_kw": 6.6,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 6.74,
+      "ac_time_source": ""
     },
     {
       "model": "Skoda Enyaq iV 80",
@@ -253,7 +341,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 18.6,
-      "battery_capacity_kwh": 82,
+      "battery_capacity_kwh": 82.0,
       "range_km": 521,
       "acceleration_0_100": 6.9,
       "driven_km": 101270,
@@ -262,7 +350,15 @@
       "full_insurance_year": 12944,
       "half_insurance_year": 5994,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 125.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 45.92,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 7.45,
+      "ac_time_source": ""
     },
     {
       "model": "Volvo XC40 P6 Recharge Plus",
@@ -275,7 +371,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 18.9,
-      "battery_capacity_kwh": 69,
+      "battery_capacity_kwh": 69.0,
       "range_km": 417,
       "acceleration_0_100": 7.4,
       "driven_km": 95970,
@@ -284,7 +380,15 @@
       "full_insurance_year": 14321,
       "half_insurance_year": 6093,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 150.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 32.2,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 6.27,
+      "ac_time_source": ""
     },
     {
       "model": "Citroen e-C4 Shine Electric",
@@ -297,7 +401,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 15.3,
-      "battery_capacity_kwh": 50,
+      "battery_capacity_kwh": 50.0,
       "range_km": 353,
       "acceleration_0_100": 9.7,
       "driven_km": 33250,
@@ -306,7 +410,15 @@
       "full_insurance_year": 10702,
       "half_insurance_year": 5389,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 100.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 35.0,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 4.55,
+      "ac_time_source": ""
     },
     {
       "model": "Peugeot e-2008 50 kWh Active Pack",
@@ -319,16 +431,24 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 15.8,
-      "battery_capacity_kwh": 50,
+      "battery_capacity_kwh": 50.0,
       "range_km": 336,
-      "acceleration_0_100": 9,
+      "acceleration_0_100": 9.0,
       "driven_km": 38370,
       "battery_aviloo_score": 95,
       "trunk_size_litre": 434,
       "full_insurance_year": 11252,
       "half_insurance_year": 5620,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 100.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 35.0,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 4.55,
+      "ac_time_source": ""
     },
     {
       "model": "MB C-Klass 200 CDI",
@@ -341,7 +461,7 @@
       "winter_tires_price": 0,
       "type_of_vehicle": "Diesel",
       "consumption_l_per_100km": 5.5,
-      "battery_capacity_kwh": 0,
+      "battery_capacity_kwh": 0.0,
       "range_km": 0,
       "acceleration_0_100": 12.1,
       "driven_km": 242000,
@@ -363,7 +483,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "Bensin",
       "consumption_l_per_100km": 4.5,
-      "battery_capacity_kwh": 0,
+      "battery_capacity_kwh": 0.0,
       "range_km": 1100,
       "acceleration_0_100": 11.1,
       "driven_km": 53000,
@@ -395,7 +515,15 @@
       "full_insurance_year": 15768,
       "half_insurance_year": 6535,
       "car_tax_year": 360,
-      "repairs_year": 6000
+      "repairs_year": 6000,
+      "dc_peak_kw": 18.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 70.39,
+      "dc_time_source": "",
+      "ac_onboard_kw": 6.6,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 2.74,
+      "ac_time_source": ""
     },
     {
       "model": "Kia Seed Sportswagon Plug-in Hybrid SW ADVANCE",
@@ -418,7 +546,15 @@
       "full_insurance_year": 8808,
       "half_insurance_year": 3874,
       "car_tax_year": 360,
-      "repairs_year": 6000
+      "repairs_year": 6000,
+      "dc_peak_kw": 0.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": null,
+      "dc_time_source": "",
+      "ac_onboard_kw": 3.3,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 2.7,
+      "ac_time_source": ""
     },
     {
       "model": "Cupra Born",
@@ -431,7 +567,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 16,
-      "battery_capacity_kwh": 58,
+      "battery_capacity_kwh": 58.0,
       "range_km": 422,
       "acceleration_0_100": 7.1,
       "driven_km": 69520,
@@ -440,7 +576,15 @@
       "full_insurance_year": 12052,
       "half_insurance_year": 5105,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 120.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 33.83,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 5.27,
+      "ac_time_source": ""
     },
     {
       "model": "Audi Q4 40 e-tron Proline Advanced",
@@ -453,7 +597,7 @@
       "winter_tires_price": 12000,
       "type_of_vehicle": "EV",
       "consumption_kwh_per_100km": 17.8,
-      "battery_capacity_kwh": 82,
+      "battery_capacity_kwh": 82.0,
       "range_km": 447,
       "acceleration_0_100": 8.5,
       "driven_km": 57290,
@@ -462,7 +606,15 @@
       "full_insurance_year": 18587,
       "half_insurance_year": 7857,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 125.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 45.92,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 7.45,
+      "ac_time_source": ""
     },
     {
       "model": "BYD Atto 3 Special Edition Extended Range 60.4 kWh",
@@ -484,7 +636,15 @@
       "full_insurance_year": 19192,
       "half_insurance_year": 6730,
       "car_tax_year": 360,
-      "repairs_year": 4000
+      "repairs_year": 4000,
+      "dc_peak_kw": 88.0,
+      "dc_time_min_10_80": null,
+      "dc_time_min_10_80_est": 48.05,
+      "dc_time_source": "",
+      "ac_onboard_kw": 11.0,
+      "ac_time_h_0_100": null,
+      "ac_time_h_0_100_est": 5.49,
+      "ac_time_source": ""
     }
   ]
 }
