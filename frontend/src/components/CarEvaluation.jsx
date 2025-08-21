@@ -26,7 +26,7 @@ const SEG_CHOICES_FALLBACK  = ["A","B","C","D","E","F","J","M","S"];
 const SUV_CHOICES_FALLBACK  = ["Subcompact","Compact","Midsize","Full-size"];
 const TYPE_CHOICES          = ["EV", "PHEV", "Diesel", "Bensin"];
 
-// Reusable header cell: every TH sticks to the top; extra lets us add left-stick for first col
+// Reusable header cell
 const Header = ({ label, sortKey, align = "text-right", extra = "" , onSort, sortBy, sortDir }) => (
   <th
     className={`border px-2 py-1 ${align} cursor-pointer select-none sticky top-0 z-40 bg-gray-100 ${extra}`}
@@ -43,9 +43,9 @@ const Header = ({ label, sortKey, align = "text-right", extra = "" , onSort, sor
 export default function CarEvaluation() {
   const [cars, setCars] = useState([]);
   const [prices, setPrices] = useState({
-    el_price_ore_kwh: 0,
-    diesel_price_sek_litre: 0,
-    bensin_price_sek_litre: 0,
+    el_price_ore_kwh: 250,
+    diesel_price_sek_litre: 15,
+    bensin_price_sek_litre: 14,
     yearly_km: 18000,
     daily_commute_km: 30,
   });
@@ -64,6 +64,7 @@ export default function CarEvaluation() {
   });
 
   const [saving, setSaving] = useState(false);
+  const [savingPrices, setSavingPrices] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -155,9 +156,9 @@ export default function CarEvaluation() {
 
   const buildQuery = () => {
     const p = new URLSearchParams();
-    if (filters.body_style.length)     p.set("body_style", filters.body_style.join(","));
-    if (filters.eu_segment.length)     p.set("eu_segment", filters.eu_segment.join(","));
-    if (filters.suv_tier.length)       p.set("suv_tier", filters.suv_tier.join(","));
+    if (filters.body_style.length)      p.set("body_style", filters.body_style.join(","));
+    if (filters.eu_segment.length)      p.set("eu_segment", filters.eu_segment.join(","));
+    if (filters.suv_tier.length)        p.set("suv_tier", filters.suv_tier.join(","));
     if (filters.type_of_vehicle.length) p.set("type_of_vehicle", filters.type_of_vehicle.join(","));
     if (filters.q) p.set("q", filters.q);
     return p.toString();
@@ -225,9 +226,9 @@ export default function CarEvaluation() {
         const pricesRes = await api.get("/settings/prices");
         const p = pricesRes.data || {};
         setPrices({
-          el_price_ore_kwh: Number(p.el_price_ore_kwh) || 0,
-          diesel_price_sek_litre: Number(p.diesel_price_sek_litre) || 0,
-          bensin_price_sek_litre: Number(p.bensin_price_sek_litre) || 0,
+          el_price_ore_kwh: Number(p.el_price_ore_kwh) || 250,
+          diesel_price_sek_litre: Number(p.diesel_price_sek_litre) || 15,
+          bensin_price_sek_litre: Number(p.bensin_price_sek_litre) || 14,
           yearly_km: Number(p.yearly_km) || 18000,
           daily_commute_km: Number(p.daily_commute_km) || 30,
         });
@@ -259,6 +260,30 @@ export default function CarEvaluation() {
   // re-fetch on filters change
   useEffect(() => { if (didFetch.current) loadCars(); }, [filters, loadCars]);
 
+  // --- Energy/Fuel UI + debounced autosave -------------------------------
+  const priceSaveTimer = useRef(null);
+  const DEBOUNCE_MS = 600;
+
+  const commitPrices = useCallback(async (payload) => {
+    setSavingPrices(true);
+    try {
+      await api.post("/settings/prices", payload, { headers: { "Content-Type": "application/json" } });
+    } catch (e) {
+      console.error("Saving /settings/prices failed:", e);
+      setError("Failed to save Energy & Fuel settings.");
+    } finally {
+      setSavingPrices(false);
+    }
+  }, []);
+
+  const updatePrice = (patch) => {
+    const next = { ...prices, ...patch };
+    setPrices(next);
+    if (priceSaveTimer.current) clearTimeout(priceSaveTimer.current);
+    priceSaveTimer.current = setTimeout(() => commitPrices(next), DEBOUNCE_MS);
+  };
+
+  // --- inline car edits ---------------------------------------------------
   const onChange = (idx, field, value) => {
     setCars((prev) => {
       const next = [...prev];
@@ -341,11 +366,104 @@ export default function CarEvaluation() {
     return 0;
   });
 
+  const elSekPerKwh = (Number(prices.el_price_ore_kwh) || 0) / 100;
+
   // --- UI -----------------------------------------------------------------
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-2xl font-bold">Car Evaluation</h2>
       {error && <div className="text-red-600">{error}</div>}
+
+      {/* Energy, Fuel & Commute (editable + autosave) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-3 bg-white rounded border shadow">
+      <div>
+        <label
+          htmlFor="el_price_ore_kwh"
+          className="block text-sm font-semibold mb-1"
+        >
+          Electricity Price (öre/kWh)
+        </label>
+        <input
+          id="el_price_ore_kwh"
+          type="number"
+          className="w-full border rounded px-2 py-1"
+          value={prices.el_price_ore_kwh}
+          onChange={(e) => updatePrice({ el_price_ore_kwh: Number(e.target.value) || 0 })}
+        />
+        <div className="text-xs text-gray-600 mt-1">
+          ≈ {toFixed1(elSekPerKwh)} SEK/kWh
+        </div>
+      </div>
+
+      <div>
+        <label
+          htmlFor="bensin_price_sek_litre"
+          className="block text-sm font-semibold mb-1"
+        >
+          Bensin (SEK/litre)
+        </label>
+        <input
+          id="bensin_price_sek_litre"
+          type="number"
+          className="w-full border rounded px-2 py-1"
+          value={prices.bensin_price_sek_litre}
+          onChange={(e) => updatePrice({ bensin_price_sek_litre: Number(e.target.value) || 0 })}
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="diesel_price_sek_litre"
+          className="block text-sm font-semibold mb-1"
+        >
+          Diesel (SEK/litre)
+        </label>
+        <input
+          id="diesel_price_sek_litre"
+          type="number"
+          className="w-full border rounded px-2 py-1"
+          value={prices.diesel_price_sek_litre}
+          onChange={(e) => updatePrice({ diesel_price_sek_litre: Number(e.target.value) || 0 })}
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="yearly_km"
+          className="block text-sm font-semibold mb-1"
+        >
+          Yearly driving (km)
+        </label>
+        <input
+          id="yearly_km"
+          type="number"
+          className="w-full border rounded px-2 py-1"
+          value={prices.yearly_km}
+          onChange={(e) => updatePrice({ yearly_km: Number(e.target.value) || 0 })}
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="daily_commute_km"
+          className="block text-sm font-semibold mb-1"
+        >
+          Daily commute (km)
+        </label>
+        <input
+          id="daily_commute_km"
+          type="number"
+          className="w-full border rounded px-2 py-1"
+          value={prices.daily_commute_km}
+          onChange={(e) => updatePrice({ daily_commute_km: Number(e.target.value) || 0 })}
+        />
+      </div>
+
+      <div className="md:col-span-3 lg:col-span-5 text-sm text-gray-600">
+        {savingPrices ? "Saving Energy & Fuel…" : "Energy & Fuel saved"}
+      </div>
+    </div>
+
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-3 bg-gray-50 rounded border">
@@ -383,9 +501,7 @@ export default function CarEvaluation() {
 
       {/* ONE scroll container only */}
       <div className="relative max-h-[72vh] overflow-auto border rounded">
-        {/* separate borders + zero spacing keeps sticky reliable */}
         <table className="min-w-max table-fixed border-separate border-spacing-0">
-          {/* Keep first column the same width everywhere */}
           <colgroup>
             <col className="w-[18rem]" />
           </colgroup>
@@ -442,7 +558,7 @@ export default function CarEvaluation() {
 
               return (
                 <tr key={car.id}>
-                  {/* Frozen first column cell — same width; body z below header */}
+                  {/* Frozen first column cell */}
                   <td className="border px-2 py-1 sticky left-0 z-30 bg-white w-[18rem]
                                  shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.06)]">
                     <input

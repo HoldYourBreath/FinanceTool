@@ -215,3 +215,21 @@ class PriceSettings(db.Model):
     yearly_km = db.Column(db.Integer, nullable=False, default=18000)
     daily_commute_km = db.Column(db.Integer, nullable=True, default=30)
 
+
+class AppSettings(db.Model):
+    __tablename__ = "app_settings"
+    id = db.Column(db.Integer, primary_key=True)  # always 1
+    electricity_price_ore_kwh = db.Column(db.Integer, nullable=False, default=250)
+    bensin_price_sek_litre   = db.Column(db.Numeric(10,2), nullable=False, default=14)
+    diesel_price_sek_litre   = db.Column(db.Numeric(10,2), nullable=False, default=15)
+    yearly_driving_km        = db.Column(db.Integer, nullable=False, default=18000)
+    daily_commute_km         = db.Column(db.Integer, nullable=False, default=140)
+
+    @staticmethod
+    def get_or_create():
+        inst = AppSettings.query.get(1)
+        if not inst:
+            inst = AppSettings(id=1)
+            db.session.add(inst)
+            db.session.commit()
+        return inst
