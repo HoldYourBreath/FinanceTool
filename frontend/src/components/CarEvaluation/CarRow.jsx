@@ -97,7 +97,7 @@ export default function CarRow({ car, idx, onChange, fmt0, fieldColor, NA, price
                          value={p.value}
                          onChange={(e) => onChange(idx, "dc_time_min_10_80", e.target.value)}
                          title="DC 10→80% (minutes)" />
-                  {p.isEst && <span className="text-xs text-gray-500 italic">(est)</span>}
+                  {p.isEst && <span className="text-xs text-gray-500 italic"></span>}
                 </>
               );
             })()}
@@ -127,7 +127,7 @@ export default function CarRow({ car, idx, onChange, fmt0, fieldColor, NA, price
                          value={p.value}
                          onChange={(e) => onChange(idx, "ac_time_h_0_100", e.target.value)}
                          title="AC 0→100% (hours)" />
-                  {p.isEst && <span className="text-xs text-gray-500 italic">(est)</span>}
+                  {p.isEst && <span className="text-xs text-gray-500 italic"></span>}
                 </>
               );
             })()}

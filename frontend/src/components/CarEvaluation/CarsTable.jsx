@@ -6,7 +6,7 @@ import CarRow from "./CarRow";
 function Header({ label, sortKey, align = "text-right", extra = "", onSort, sortBy, sortDir }) {
   return (
     <th
-      className={`border px-2 py-1 ${align} cursor-pointer select-none sticky top-0 z-40 bg-gray-100 ${extra}`}
+      className={`border px-2 py-1 ${align} cursor-pointer select-none sticky top-0 z-40 bg-gray-100 whitespace-pre-line break-words leading-tight ${extra}`}
       onClick={() => onSort(sortKey)}
       title="Click to sort"
     >
@@ -17,6 +17,7 @@ function Header({ label, sortKey, align = "text-right", extra = "", onSort, sort
     </th>
   );
 }
+
 
 export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, prices }) {
   const getVal = (car, key) => {
@@ -62,33 +63,33 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
             />
             <Header label="Year" sortKey="year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
             <Header label="Type" sortKey="type_of_vehicle" align="text-left" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Estimated Purchase Price" sortKey="estimated_purchase_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Summer Tires Price" sortKey="summer_tires_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Winter Tires Price" sortKey="winter_tires_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Consumption (kWh/100km)" sortKey="consumption_kwh_per_100km" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Consumption (l/100km)" sortKey="consumption_l_per_100km" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Battery (kWh)" sortKey="battery_capacity_kwh" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="DC Peak (kW)" sortKey="dc_peak_kw" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="DC 10→80 (min)" sortKey="dc_time_min_10_80" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="AC Onboard (kW)" sortKey="ac_onboard_kw" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="AC 0→100 (h)" sortKey="ac_time_h_0_100" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Energy & Fuel Price (SEK) / year" sortKey="energy_fuel_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="WLTP (EV) Range (km)" sortKey="range" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Acceleration (0–100 km/h)" sortKey="acceleration_0_100" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Trunk Size (l)" sortKey="trunk_size_litre" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Full Insurance / Year" sortKey="full_insurance_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Half Insurance / Year" sortKey="half_insurance_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Car Tax / Year" sortKey="car_tax_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Repairs / Year" sortKey="repairs_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Expected Value (3y)" sortKey="expected_value_after_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Expected Value (5y)" sortKey="expected_value_after_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="Expected Value (8y)" sortKey="expected_value_after_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="TCO Total (3y)" sortKey="tco_total_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="TCO Total (5y)" sortKey="tco_total_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="TCO Total (8y)" sortKey="tco_total_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="TCO / mo (3y)" sortKey="tco_per_month_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="TCO / mo (5y)" sortKey="tco_per_month_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-            <Header label="TCO / mo (8y)" sortKey="tco_per_month_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Price\n(SEK)"} sortKey="estimated_purchase_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Summer\nTires\n(SEK)"} sortKey="summer_tires_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Winter\nTires\n(SEK)"} sortKey="winter_tires_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Consumption\n(kWh/100km)"} sortKey="consumption_kwh_per_100km" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Consumption\n(l/100km)"} sortKey="consumption_l_per_100km" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Battery\n(kWh)"} sortKey="battery_capacity_kwh" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"DC Peak\n(kW)"} sortKey="dc_peak_kw" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"DC 10→80\n(min)"} sortKey="dc_time_min_10_80" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"AC Onboard\n(kW)"} sortKey="ac_onboard_kw" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"AC 0→100\n(h)"} sortKey="ac_time_h_0_100" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Consumption\n(SEK) / year"} sortKey="energy_fuel_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"WLTP (EV)\nRange (km)"} sortKey="range" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Acceleration\n(0–100 km/h)"} sortKey="acceleration_0_100" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Trunk Size\n(l)"} sortKey="trunk_size_litre" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Full Insurance\n/ Year"} sortKey="full_insurance_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Half Insurance\n/ Year"} sortKey="half_insurance_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Car Tax\n/ Year"} sortKey="car_tax_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Repairs\n/ Year"} sortKey="repairs_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Value\n(3y)"} sortKey="expected_value_after_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Value\n(5y)"} sortKey="expected_value_after_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"Value\n(8y)"} sortKey="expected_value_after_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"TCO Total\n(3y)"} sortKey="tco_total_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"TCO Total\n(5y)"} sortKey="tco_total_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"TCO Total\n(8y)"} sortKey="tco_total_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"TCO / mo\n(3y)"} sortKey="tco_per_month_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"TCO / mo\n(5y)"} sortKey="tco_per_month_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+            <Header label={"TCO / mo\n(8y)"} sortKey="tco_per_month_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
           </tr>
         </thead>
 
