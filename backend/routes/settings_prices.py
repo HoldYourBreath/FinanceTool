@@ -51,12 +51,12 @@ def save_prices():
     data = request.get_json(force=True) or {}
     s = _get_or_create_prices()
 
-    # Accept both new and legacy keys; new keys take precedence if both present.
-    el_price = data.get("el_price_ore_kwh", data.get("electricity_price_ore_kwh"))
+    # Only accept canonical keys (no legacy aliases)
+    el_price = data.get("el_price_ore_kwh")
     bensin   = data.get("bensin_price_sek_litre")
     diesel   = data.get("diesel_price_sek_litre")
-    yearly   = data.get("yearly_km", data.get("yearly_driving_km"))
-    commute  = data.get("daily_commute_km", data.get("daily_commute"))
+    yearly   = data.get("yearly_km")
+    commute  = data.get("daily_commute_km")
 
     # Safely coerce and update only provided fields
     if el_price is not None:
