@@ -4,10 +4,18 @@ export default function EnergyFuelPanel({ prices, updatePrice, saving }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-3 bg-white rounded border shadow">
       <div>
-        <label htmlFor="el_price_ore_kwh" className="block text-sm font-semibold mb-1">Electricity Price (öre/kWh)</label>
-        <input id="el_price_ore_kwh" type="number" className="w-full border rounded px-2 py-1"
-               value={prices.el_price_ore_kwh}
-               onChange={(e) => updatePrice({ el_price_ore_kwh: Number(e.target.value) || 0 })}/>
+        <label htmlFor="el_price_ore_kwh" className="block text-sm font-semibold mb-1">
+          Electricity Price (öre/kWh)
+        </label>
+        <input
+          id="el_price_ore_kwh"
+          type="number"
+          autoComplete="off"
+          inputMode="numeric"
+          className="w-full border rounded px-2 py-1"
+          value={prices.el_price_ore_kwh}
+          onChange={(e) => updatePrice({ el_price_ore_kwh: Number(e.target.value) || 0 })}
+        />
         <div className="text-xs text-gray-600 mt-1">≈ {elSekPerKwh.toFixed(1)} SEK/kWh</div>
       </div>
       <LabeledNumber id="bensin_price_sek_litre" label="Bensin (SEK/litre)"

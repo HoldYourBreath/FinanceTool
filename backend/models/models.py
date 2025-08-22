@@ -223,7 +223,7 @@ class AppSettings(db.Model):
     bensin_price_sek_litre   = db.Column(db.Numeric(10,2), nullable=False, default=14)
     diesel_price_sek_litre   = db.Column(db.Numeric(10,2), nullable=False, default=15)
     yearly_driving_km        = db.Column(db.Integer, nullable=False, default=18000)
-    daily_commute_km         = db.Column(db.Integer, nullable=False, default=140)
+    daily_commute_km         = db.Column(db.Integer, nullable=False, default=30)
 
     @staticmethod
     def get_or_create():
