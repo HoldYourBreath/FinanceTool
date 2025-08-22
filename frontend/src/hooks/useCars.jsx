@@ -6,20 +6,27 @@ const BODY_CHOICES_FALLBACK = ["SUV","Crossover","Sedan","Wagon","Hatchback","Co
 const SEG_CHOICES_FALLBACK  = ["A","B","C","D","E","F","J","M","S"];
 const SUV_CHOICES_FALLBACK  = ["Subcompact","Compact","Midsize","Full-size"];
 
+const DEFAULT_FILTERS = {
+  body_style: [],
+  eu_segment: [],
+  suv_tier: [],
+  type_of_vehicle: [],
+  q: "",
+  year_min: "",
+  year_max: "",
+};
+
 export default function useCars() {
   const [cars, setCars] = useState([]);
-  const [filters, setFilters] = useState({
-    body_style: [],
-    eu_segment: [],
-    suv_tier: [],
-    type_of_vehicle: [],
-    q: "",
-  });
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [catChoices, setCatChoices] = useState({
     body: BODY_CHOICES_FALLBACK,
-    seg: SEG_CHOICES_FALLBACK,
-    suv: SUV_CHOICES_FALLBACK,
+    seg:  SEG_CHOICES_FALLBACK,
+    suv:  SUV_CHOICES_FALLBACK,
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const didInit = useRef(false);
 
   const normalize = useCallback((c) => ({
@@ -71,44 +78,91 @@ export default function useCars() {
     if (filters.eu_segment.length)      p.set("eu_segment", filters.eu_segment.join(","));
     if (filters.suv_tier.length)        p.set("suv_tier", filters.suv_tier.join(","));
     if (filters.type_of_vehicle.length) p.set("type_of_vehicle", filters.type_of_vehicle.join(","));
-    if (filters.q)                       p.set("q", filters.q);
+    if (filters.q)                      p.set("q", filters.q);
+    if (filters.year_min)               p.set("year_min", String(filters.year_min));
+    if (filters.year_max)               p.set("year_max", String(filters.year_max));
     return p.toString();
   }, [filters]);
 
-  const loadCars = useCallback(async () => {
+  // Fetch + normalize + client-side year-range fallback
+  const fetchCars = useCallback(async () => {
     const qs = buildQuery();
     const url = qs ? `/cars?${qs}` : "/cars";
     const res = await api.get(url);
     const list = Array.isArray(res.data) ? res.data : [];
-    return list.map(normalize);
-  }, [buildQuery, normalize]);
+    const normalized = list.map(normalize);
+
+    // Client-side fallback in case backend ignores year_min/year_max
+    const yMin = Number(filters.year_min) || null;
+    const yMax = Number(filters.year_max) || null;
+    if (!yMin && !yMax) return normalized;
+
+    return normalized.filter((c) => {
+      const y = Number(c.year) || 0;
+      if (yMin && y < yMin) return false;
+      if (yMax && y > yMax) return false;
+      return true;
+    });
+  }, [buildQuery, normalize, filters.year_min, filters.year_max]);
+
+  const loadCars = useCallback(async () => {
+    let mounted = true;
+    setIsLoading(true);
+    setError("");
+    try {
+      const data = await fetchCars();
+      if (mounted) setCars(data);
+      return data;
+    } catch (e) {
+      if (mounted) setError("Failed to load cars.");
+      return [];
+    } finally {
+      if (mounted) setIsLoading(false);
+    }
+  }, [fetchCars]);
+
+  const refresh = useCallback(() => loadCars(), [loadCars]);
+
+  const resetFilters = useCallback(() => setFilters(DEFAULT_FILTERS), []);
 
   // init categories + first load
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
+
+    let mounted = true;
     (async () => {
       try {
         const cats = await api.get("/cars/categories");
         const data = cats.data || {};
-        setCatChoices({
+        const next = {
           body: Array.isArray(data.body_styles) && data.body_styles.length ? data.body_styles : BODY_CHOICES_FALLBACK,
           seg:  Array.isArray(data.eu_segments) && data.eu_segments.length ? data.eu_segments : SEG_CHOICES_FALLBACK,
-          suv:  Array.isArray(data.suv_tiers) && data.suv_tiers.length ? data.suv_tiers : SUV_CHOICES_FALLBACK,
-        });
+          suv:  Array.isArray(data.suv_tiers)   && data.suv_tiers.length   ? data.suv_tiers   : SUV_CHOICES_FALLBACK,
+        };
+        if (mounted) setCatChoices(next);
       } catch {
-        setCatChoices({ body: BODY_CHOICES_FALLBACK, seg: SEG_CHOICES_FALLBACK, suv: SUV_CHOICES_FALLBACK });
+        if (mounted) setCatChoices({ body: BODY_CHOICES_FALLBACK, seg: SEG_CHOICES_FALLBACK, suv: SUV_CHOICES_FALLBACK });
       }
-      const first = await loadCars();
-      setCars(first);
+      if (mounted) await loadCars();
     })();
+
+    return () => { mounted = false; };
   }, [loadCars]);
 
-  // reload when filters change
+  // reload when filters change (post-init)
   useEffect(() => {
     if (!didInit.current) return;
-    (async () => setCars(await loadCars()))();
+    loadCars();
   }, [filters, loadCars]);
 
-  return { cars, setCars, filters, setFilters, catChoices, loadCars };
+  return {
+    cars, setCars,
+    filters, setFilters,
+    catChoices,
+    loadCars: refresh,       // keep original name in the API surface
+    resetFilters,
+    isLoading,
+    error,
+  };
 }
