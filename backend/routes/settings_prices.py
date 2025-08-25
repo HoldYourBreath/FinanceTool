@@ -8,21 +8,36 @@ settings_prices_bp = Blueprint('settings_prices', __name__, url_prefix='/api/set
 
 # --- helpers ---------------------------------------------------------------
 
+from sqlalchemy.exc import IntegrityError
 
-def _get_or_create_prices():
-    ps = PriceSettings.query.get(1)
-    if not ps:
-        ps = PriceSettings(
-            id=1,
-            el_price_ore_kwh=250,
-            bensin_price_sek_litre=14,
-            diesel_price_sek_litre=15,
-            yearly_km=18000,
-            daily_commute_km=30,
-        )
-        db.session.add(ps)
+ROW_ID = 1  # single-row table semantics
+
+def _get_or_create_prices() -> PriceSettings:
+    # Prefer SQLAlchemy 2.0 style get()
+    row = db.session.get(PriceSettings, ROW_ID)
+    if row:
+        return row
+
+    # Attempt to insert defaults
+    row = PriceSettings(
+        id=ROW_ID,
+        el_price_ore_kwh=250,
+        diesel_price_sek_litre=15.0,
+        bensin_price_sek_litre=14.0,
+        yearly_km=18000,
+        daily_commute_km=30,
+    )
+    db.session.add(row)
+    try:
         db.session.commit()
-    return ps
+    except IntegrityError:
+        # Another request inserted it first; recover
+        db.session.rollback()
+        row = db.session.get(PriceSettings, ROW_ID)
+        if row is None:
+            raise  # unexpected; surface the error
+    return row
+
 
 
 def _to_num(v, cast=float, default=None):

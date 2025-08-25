@@ -1,0 +1,531 @@
+{
+            "months": [
+            {
+            "name": "January 2025",
+            "month_date": "2025-01-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne Napatech", "amount": 57500},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Janne Tax Return", "amount": 63370},
+              {"name": "Kristine", "amount": 15000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Loan Payment", "amount": 17540},
+              {"name": "Staffanstorps kommun", "amount": 15785},
+              {"name": "Anslutning EL", "amount": 54125},
+              {"name": "Dentist", "amount": 952}
+            ],
+            "loan_adjustments": [
+              {"name": "Start Loan", "note": "Start Loan", "amount": 3146385}
+            ]
+          },
+            {
+            "name": "February 2025",
+            "month_date": "2025-02-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne Napatech", "amount": 57500},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Janne Tax Return", "amount": 63370},
+              {"name": "Kristine", "amount": 15000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Loan Payment", "amount": 17540},
+              {"name": "Staffanstorps kommun", "amount": 15785},
+              {"name": "Anslutning EL", "amount": 54125},
+              {"name": "Dentist", "amount": 952}
+            ],
+            "loan_adjustments": [
+              {"name": "Start Loan", "note": "Start Loan", "amount": 3146385}
+            ]
+          },
+            {
+            "name": "March 2025",
+            "month_date": "2025-03-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne Napatech", "amount": 57500},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Janne Tax Return", "amount": 63370},
+              {"name": "Kristine", "amount": 15000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Loan Payment", "amount": 17540},
+              {"name": "Staffanstorps kommun", "amount": 15785},
+              {"name": "Anslutning EL", "amount": 54125},
+              {"name": "Dentist", "amount": 952}
+            ],
+            "loan_adjustments": [
+              {"name": "Start Loan", "note": "Start Loan", "amount": 3146385}
+            ]
+          },
+            {
+            "name": "April 2025",
+            "month_date": "2025-04-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne Napatech", "amount": 57500},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Janne Tax Return", "amount": 63370},
+              {"name": "Kristine", "amount": 15000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Loan Payment", "amount": 17540},
+              {"name": "Staffanstorps kommun", "amount": 15785},
+              {"name": "Anslutning EL", "amount": 54125},
+              {"name": "Dentist", "amount": 952}
+            ],
+            "loan_adjustments": [
+              {"name": "Start Loan", "note": "Start Loan", "amount": 3146385}
+            ]
+          },
+            {
+            "name": "May 2025",
+            "month_date": "2025-05-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne Napatech", "amount": 57500},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Janne Tax Return", "amount": 63370},
+              {"name": "Kristine", "amount": 15000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Loan Payment", "amount": 17540},
+              {"name": "Staffanstorps kommun", "amount": 15785},
+              {"name": "Anslutning EL", "amount": 54125},
+              {"name": "Dentist", "amount": 952}
+            ],
+            "loan_adjustments": [
+              {"name": "Start Loan", "note": "Start Loan", "amount": 3146385}
+            ]
+          },
+            {
+            "name": "June 2025",
+            "month_date": "2025-06-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne Napatech", "amount": 57500},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Janne Tax Return", "amount": 63370},
+              {"name": "Kristine", "amount": 15000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Loan Payment", "amount": 17540},
+              {"name": "Staffanstorps kommun", "amount": 15785},
+              {"name": "Anslutning EL", "amount": 54125},
+              {"name": "Dentist", "amount": 952}
+            ],
+            "loan_adjustments": [
+              {"name": "Start Loan", "note": "Start Loan", "amount": 3146385}
+            ]
+          },
+          {
+            "name": "July 2025",
+            "month_date": "2025-07-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne Napatech", "amount": 60500},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Kristine", "amount": 15000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Montana Heights", "amount": 1370},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Diesel", "amount": 950},
+              {"name": "Foods", "amount": 8000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Vacation", "amount": 6000},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 350}
+            ],
+            "loan_adjustments": []
+          },
+          {
+            "name": "August 2025",
+            "month_date": "2025-08-01",
+            "is_current": true,
+            "incomes": [
+              {"name": "Janne", "amount": 39200},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Kristine", "amount": 2000},
+              {"name": "Kristine Försäkringskassa", "amount": 9593},
+              {"name": "Rent Montana Heights", "amount": 1370},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Public Transport", "amount": 1960},
+              {"name": "Foods", "amount": 5000},
+              {"name": "Phones", "amount": 867},
+              {"name": "Subscriptions", "amount": 400},
+              {"name": "STAFFANSTORPS ENERGI AB", "amount": 834},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 235}
+            ],
+            "loan_adjustments": [{"name": "House 5%", "type": "disbursement", "amount": 221471}
+            ]
+          },
+          {
+            "name": "September 2025",
+            "month_date": "2025-09-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne", "amount": 43000},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Kristine", "amount": 5000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Montana Heights", "amount": 1370},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 500},
+              {"name": "Public Transport", "amount": 980},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 834},
+              {"name": "Subscriptions", "amount": 400},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 235},
+              {"name": "Loan Payment", "amount": 17540}
+            ],
+            "loan_adjustments": [{"name": "House 10%", "type": "disbursement", "amount": 442942}]
+          },
+          {
+            "name": "October 2025",
+            "month_date": "2025-10-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Janne", "amount": 43000},
+              {"name": "Janne Försäkringskassa", "amount": 1325},
+              {"name": "Kristine", "amount": 15000},
+              {"name": "Kristine Försäkringskassa", "amount": 1325},
+              {"name": "Rent Montana Heights", "amount": 1370},
+              {"name": "Rent Birmingham Village", "amount": 1450},
+              {"name": "Rent Townhouse", "amount": 1030}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2692},
+              {"name": "Rent", "amount": 12000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Diesel", "amount": 500},
+              {"name": "Car Maintenance", "amount": 2000},
+              {"name": "Public Transport", "amount": 980},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 400},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 235},
+              {"name": "Loan Payment", "amount": 10000}
+            ],
+            "loan_adjustments": []
+          },
+        {
+          "name": "November 2025",
+          "month_date": "2025-11-01",
+          "is_current": false,
+          "incomes": [
+            { "name": "Janne", "amount": 43000 },
+            { "name": "Janne Försäkringskassa", "amount": 1325 },
+            { "name": "Kristine", "amount": 14000 },
+            { "name": "Kristine Business", "amount": 2000 },
+            { "name": "Kristine Försäkringskassa", "amount": 1325 },
+            { "name": "Rent Montana Heights", "amount": 1370 },
+            { "name": "Rent Birmingham Village", "amount": 1450 },
+            { "name": "Rent Townhouse", "amount": 1030 },
+            { "name": "Rent Downpayment return", "amount": 12000 }
+          ],
+          "expenses": [
+            { "name": "Rent", "amount": 6000 },
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2692 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Car tire change", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 235 },
+            { "name": "Olivers Birthday", "amount": 2000 },
+            { "name": "Moving Company", "amount": 6000 }
+          ],
+          "loan_adjustments": [
+            { "name": "House 10%", "type": "disbursement", "amount": 442942 }
+          ]
+        },
+        {
+          "name": "December 2025",
+          "month_date": "2025-12-01",
+          "is_current": false,
+          "incomes": [
+            { "name": "Janne", "amount": 43000 },
+            { "name": "Janne Försäkringskassa", "amount": 1325 },
+            { "name": "Kristine", "amount": 14000 },
+            { "name": "Kristine Business", "amount": 2000 },
+            { "name": "Kristine Försäkringskassa", "amount": 1325 },
+            { "name": "Tax Return", "amount": 10000 },
+            { "name": "Rent Montana Heights", "amount": 1370 },
+            { "name": "Rent Birmingham Village", "amount": 1450 },
+            { "name": "Rent Townhouse", "amount": 1030 }
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2692 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 },
+            { "name": "Presents", "amount": 4000 },
+            { "name": "Christmas Extra Costs", "amount": 2000 },
+            { "name": "New Years Party", "amount": 1500 }
+          ],
+          "loan_adjustments": []
+        },
+        {
+          "name": "January 2026",
+          "month_date": "2026-01-01",
+          "is_current": false,
+          "incomes": [
+            { "name": "Janne", "amount": 42000 },
+            { "name": "Janne Försäkringskassa", "amount": 1325 },
+            { "name": "Kristine", "amount": 8000 },
+            { "name": "Kristine Business", "amount": 2000 },
+            { "name": "Kristine Försäkringskassa", "amount": 1325 },
+            { "name": "Rent Montana Heights", "amount": 1370 },
+            { "name": "Rent Birmingham Village", "amount": 1450 },
+            { "name": "Rent Townhouse", "amount": 1030 }
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2692 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Tax", "amount": 2082 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ],
+          "loan_adjustments": []
+        },
+        {
+          "name": "February 2026",
+          "month_date": "2026-02-01",
+          "is_current": false,
+          "incomes": [
+            { "name": "Janne", "amount": 42000 },
+            { "name": "Janne Försäkringskassa", "amount": 1325 },
+            { "name": "Kristine", "amount": 10000 },
+            { "name": "Kristine Business", "amount": 2000 },
+            { "name": "Kristine Försäkringskassa", "amount": 1325 },
+            { "name": "Rent Montana Heights", "amount": 1370 },
+            { "name": "Rent Birmingham Village", "amount": 1450 },
+            { "name": "Rent Townhouse", "amount": 1030 }
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2692 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ],
+          "loan_adjustments": []
+        },
+        {
+          "name": "March 2026",
+          "month_date": "2026-03-01",
+          "is_current": false,
+          "incomes": [
+            { "name": "Janne", "amount": 42000 },
+            { "name": "Janne Försäkringskassa", "amount": 1325 },
+            { "name": "Kristine", "amount": 15000 },
+            { "name": "Kristine Business", "amount": 2000 },
+            { "name": "Kristine Försäkringskassa", "amount": 1325 },
+            { "name": "Rent Montana Heights", "amount": 1370 },
+            { "name": "Rent Birmingham Village", "amount": 1450 },
+            { "name": "Rent Townhouse", "amount": 1030 }
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2692 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ],
+          "loan_adjustments": []
+        },
+        {
+          "name": "April 2026",
+          "month_date": "2026-04-01",
+          "is_current": false,
+          "incomes": [
+            { "name": "Janne", "amount": 42000 },
+            { "name": "Janne Försäkringskassa", "amount": 1325 },
+            { "name": "Kristine", "amount": 15000 },
+            { "name": "Kristine Business", "amount": 2000 },
+            { "name": "Kristine Försäkringskassa", "amount": 1325 },
+            { "name": "Rent Montana Heights", "amount": 1370 },
+            { "name": "Rent Birmingham Village", "amount": 1450 },
+            { "name": "Rent Townhouse", "amount": 1030 }
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2692 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Car tire change", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ],
+          "loan_adjustments": []
+        },
+        {
+          "name": "May 2026",
+          "month_date": "2026-05-01",
+          "is_current": false,
+          "incomes": [
+            { "name": "Janne", "amount": 42000 },
+            { "name": "Janne Försäkringskassa", "amount": 1325 },
+            { "name": "Kristine", "amount": 15000 },
+            { "name": "Kristine Business", "amount": 2000 },
+            { "name": "Kristine Försäkringskassa", "amount": 1325 },
+            { "name": "Rent Montana Heights", "amount": 1370 },
+            { "name": "Rent Birmingham Village", "amount": 1450 },
+            { "name": "Rent Townhouse", "amount": 1030 }
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2692 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Tax", "amount": 2082 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ],
+          "loan_adjustments": []
+        }
+        ]
+    }

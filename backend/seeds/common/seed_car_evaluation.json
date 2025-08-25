@@ -868,6 +868,33 @@
       "ac_onboard_kw": 11.0,
       "ac_time_h_0_100_est": 2.5,
       "ac_time_source": ""
-    }
-    ]
+    },
+   {
+  "model": "Xpeng P7 AWD Performance",
+  "year": 2024,
+  "body_style": "Sedan",
+  "eu_segment": "E",
+  "suv_tier": null,
+  "estimated_purchase_price": 524900,
+  "summer_tires_price": 12000,
+  "winter_tires_price": 10000,
+  "type_of_vehicle": "EV",
+  "consumption_kwh_per_100km": 16.4,
+  "battery_capacity_kwh": 100, 
+  "range_km": 505,
+  "acceleration_0_100": 4.1,
+  "driven_km": 20,
+  "battery_aviloo_score": 100,
+  "trunk_size_litre": 440,
+  "full_insurance_year": 16428,
+  "half_insurance_year": 7860,
+  "car_tax_year": 360,
+  "repairs_year": 2000,
+  "dc_peak_kw": 175,
+  "dc_time_min_10_80": 26,
+  "ac_onboard_kw": 11.0,
+  "ac_time_h_0_100_est": 9,
+  "ac_time_source": "Manufacturer / EV-Database official data"
+}
+]
 }

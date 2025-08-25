@@ -1,0 +1,46 @@
+{
+    "acc_info": [
+        {
+            "person": "Janne",
+            "bank": "Nordea",
+            "acc_number": "790525-1034",
+            "country": "Sweden",
+            "value": 38029
+        },
+        {
+            "person": "Janne",
+            "bank": "Nordea",
+            "acc_number": "Kredit: 790525-1034",
+            "country": "Sweden",
+            "value": -3276
+        },
+        {
+            "person": "Janne",
+            "bank": "Nordea",
+            "acc_number": "9041233459",
+            "country": "Denmark",
+            "value": 27516
+        },
+        {
+            "person": "Janne",
+            "bank": "Danskebank",
+            "acc_number": "FI22 8000 2638 6570 30",
+            "country": "Finland",
+            "value": 1000
+        },
+        {
+            "person": "Kristine",
+            "bank": "Nordea",
+            "acc_number": "0376528",
+            "country": "Sweden",
+            "value": 70800
+        },
+        {
+            "person": "Kristine",
+            "bank": "",
+            "acc_number": "",
+            "country": "Philippines",
+            "value": 2000
+        }
+    ]
+}

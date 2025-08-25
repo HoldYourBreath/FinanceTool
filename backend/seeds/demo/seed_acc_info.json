@@ -1,3 +1,16 @@
 [
-  { "name": "Demo account", "balance": 100000 }
+          {
+            "person": "Demo person 1",
+            "bank": "Nordea",
+            "acc_number": "123456",
+            "country": "Sweden",
+            "value": 50000
+        },
+        {
+            "person": "Demo person 2",
+            "bank": "Nordea",
+            "acc_number": "987654",
+            "country": "Sweden",
+            "value": 70000
+        }
 ]

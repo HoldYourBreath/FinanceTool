@@ -1,0 +1,8 @@
+{
+    "investments": [
+        { "name": "House Staffanstorp", "value": 7100000, "paid": 0, "rent": 0 },
+        { "name": "Montana Heights", "value": 750000, "paid": 650000, "rent": 1370 },
+        { "name": "Townhouse", "value": 170000, "paid": 130000, "rent": 1030 },
+        { "name": "Birmingham Village", "value": 340000, "paid": 300000, "rent": 1450 }
+    ]
+}
