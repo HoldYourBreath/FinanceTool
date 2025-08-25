@@ -26,7 +26,7 @@ export default function Settings() {
         flash('❌ Failed to load settings');
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const flash = (msg) => {

@@ -114,7 +114,7 @@ export default function useCars() {
       if (mounted) setCars(data);
       return data;
     } catch (e) {
-      if (mounted) setError("Failed to load cars.");
+      if (mounted) setError("Failed to load cars.", (e));
       return [];
     } finally {
       if (mounted) setIsLoading(false);

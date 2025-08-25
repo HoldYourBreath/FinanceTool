@@ -10,7 +10,7 @@ import globals from "globals";
 export default [
   // Ignore
   {
-    ignores: ["dist/**", "build/**", "node_modules/**", "**/*.min.*", "*.log"],
+    ignores: ["dist/**", "build/**", "node_modules/**", "**/*.min.*", "*.log", "**/site-packages/**"],
   },
 
   // Node config files (CJS/JS)

@@ -33,11 +33,19 @@ export default function Filters({ filters, setFilters, catChoices }) {
 
         {/* Year range */}
         <div className="w-[200px]">
-          <label className="block text-sm font-semibold mb-1">
+          {/* Use a span (not a label) for the section heading */}
+          <span className="block text-sm font-semibold mb-1" id="year-range-label">
             Year (min–max)
-          </label>
-          <div className="flex items-center gap-1">
+          </span>
+          <div
+            className="flex items-center gap-1"
+            aria-labelledby="year-range-label"
+          >
+            <label htmlFor="year-min" className="sr-only">
+              Year minimum
+            </label>
             <input
+              id="year-min"
               type="number"
               inputMode="numeric"
               placeholder="Min"
@@ -48,7 +56,11 @@ export default function Filters({ filters, setFilters, catChoices }) {
               }
             />
             <span className="text-gray-400">–</span>
+            <label htmlFor="year-max" className="sr-only">
+              Year maximum
+            </label>
             <input
+              id="year-max"
               type="number"
               inputMode="numeric"
               placeholder="Max"
@@ -75,10 +87,7 @@ export default function Filters({ filters, setFilters, catChoices }) {
         </div>
 
         {/* Clear */}
-        <button
-          className="ml-auto border px-3 py-2 rounded"
-          onClick={clearFilters}
-        >
+        <button className="ml-auto border px-3 py-2 rounded" onClick={clearFilters}>
           Clear filters
         </button>
       </div>

@@ -1,6 +1,6 @@
 // hooks/usePrices.jsx
-import { useCallback, useEffect, useRef, useState } from "react";
-import api from "../api/axios";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import api from '../api/axios';
 
 const DEFAULTS = {
   el_price_ore_kwh: 250,
@@ -11,17 +11,26 @@ const DEFAULTS = {
 };
 
 const toNum = (v) =>
-  v === null || v === undefined || v === "" || Number.isNaN(Number(v))
+  v === null || v === undefined || v === '' || Number.isNaN(Number(v))
     ? undefined
     : Number(v);
 
 // Accept multiple possible server key styles
 const normalizeServer = (d = {}) => ({
-  el_price_ore_kwh:        toNum(d.el_price_ore_kwh ?? d.elPriceOreKwh ?? d.elOre),
-  bensin_price_sek_litre:  toNum(d.bensin_price_sek_litre ?? d.petrol ?? d.bensin),
-  diesel_price_sek_litre:  toNum(d.diesel_price_sek_litre ?? d.diesel),
-  yearly_km:               toNum(d.yearly_km ?? d.yearlyKm),
-  daily_commute_km:        toNum(d.daily_commute_km ?? d.daily_commute ?? d.dailyCommuteKm),
+  // also accept 'electricity_price_ore_kwh'
+  el_price_ore_kwh:
+    toNum(
+      d.el_price_ore_kwh ??
+        d.electricity_price_ore_kwh ??
+        d.elPriceOreKwh ??
+        d.elOre,
+    ),
+  bensin_price_sek_litre: toNum(d.bensin_price_sek_litre ?? d.petrol ?? d.bensin),
+  diesel_price_sek_litre: toNum(d.diesel_price_sek_litre ?? d.diesel),
+  // also accept 'yearly_driving_km'
+  yearly_km: toNum(d.yearly_km ?? d.yearlyKm ?? d.yearly_driving_km),
+  daily_commute_km:
+    toNum(d.daily_commute_km ?? d.daily_commute ?? d.dailyCommuteKm),
 });
 
 const coerceNumbers = (obj = {}) => ({
@@ -40,16 +49,22 @@ export default function usePrices(debounceMs = 600) {
   // One-time cleanup: if a stale 140 is persisted, drop it once.
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem("price_settings") || "{}");
+      const saved = JSON.parse(localStorage.getItem('price_settings') || '{}');
       if (saved && saved.daily_commute_km === 140) {
-        localStorage.removeItem("price_settings");
+        localStorage.removeItem('price_settings');
       }
-    } catch {}
+    } catch {
+        void 0; // no-op to satisfy no-empty
+    }
   }, []);
 
   const initialSaved = (() => {
-    try { return JSON.parse(localStorage.getItem("price_settings") || "{}"); }
-    catch { return {}; }
+    try {
+      return JSON.parse(localStorage.getItem('price_settings') || '{}');
+    } catch {
+        void 0; // no-op to satisfy no-empty
+      return {};
+    }
   })();
 
   const [prices, setPrices] = useState(() => mergeSettings({ saved: initialSaved }));
@@ -58,38 +73,48 @@ export default function usePrices(debounceMs = 600) {
 
   const loadPrices = useCallback(async () => {
     try {
-      // ⬅️ Make sure this path is correct for your backend (e.g. '/api/price_settings')
-      const { data } = await api.get("/settings/prices");
+      // Ensure this path matches your backend route
+      const { data } = await api.get('/settings/prices');
       const db = normalizeServer(data);
-      const merged = mergeSettings({ saved: prices, db }); // DB wins when it has the key
-      setPrices(merged);
-      localStorage.setItem("price_settings", JSON.stringify(merged));
+      // Use functional setState to avoid stale 'prices' dependency
+      setPrices((prev) => {
+        const merged = mergeSettings({ saved: prev, db });
+        localStorage.setItem('price_settings', JSON.stringify(merged));
+        return merged;
+      });
     } catch (e) {
-      console.warn("Failed to load price settings; using saved/defaults", e);
+      console.warn('Failed to load price settings; using saved/defaults', e);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally stable
+  }, []);
 
   const commit = useCallback(async (payload) => {
     setSavingPrices(true);
     try {
-      await api.post("/settings/prices", payload);
+      await api.post('/settings/prices', payload);
     } finally {
       setSavingPrices(false);
     }
   }, []);
 
-  const updatePrice = useCallback((patch) => {
-    setPrices((prev) => {
-      const next = mergeSettings({ saved: { ...prev, ...patch } });
-      localStorage.setItem("price_settings", JSON.stringify(next));
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => commit(next), debounceMs);
-      return next;
-    });
-  }, [commit, debounceMs]);
+  const updatePrice = useCallback(
+    (patch) => {
+      setPrices((prev) => {
+        const next = mergeSettings({ saved: { ...prev, ...patch } });
+        localStorage.setItem('price_settings', JSON.stringify(next));
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => commit(next), debounceMs);
+        return next;
+      });
+    },
+    [commit, debounceMs],
+  );
 
-  useEffect(() => () => timerRef.current && clearTimeout(timerRef.current), []);
+  // Cleanup any pending debounce timer
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   return { prices, updatePrice, savingPrices, loadPrices };
 }
