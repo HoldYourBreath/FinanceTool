@@ -1,0 +1,28 @@
+{
+    "landCosts": [
+        { "name": "Tomt buy price", "amount": 150000, "status": "todo" },
+        { "name": "Lagfart", "amount": 30000, "status": "todo" },
+        { "name": "Pantbrev", "amount": 80000, "status": "todo" },
+        { "name": "Nybygkarta", "amount": 11000, "status": "todo" },
+        { "name": "Bygglov", "amount": 28000, "status": "todo" },
+        { "name": "Anslutning EL1", "amount": 7500, "status": "todo" },
+        { "name": "Geoteknisk undersökning", "amount": 20000, "status": "todo" },
+        { "name": "Kontrollsansvarig enl. PBL", "amount": 20000, "status": "todo" },
+        { "name": "Soil costs Total", "amount": 80000, "status": "todo" },
+        { "name": "Soil costs extra", "amount": 60000, "status": "todo" },
+        { "name": "Anslutning VA", "amount": 190000, "status": "todo" },
+        { "name": "Anslutning EL2", "amount": 55000, "status": "todo" },
+        { "name": "Grovutsättning enligt PBL, Finutsättning, Lägeskontroll", "amount": 15000, "status": "todo" },
+        { "name": "Fiberanslutning", "amount": 25000, "status": "todo" }
+    ],
+    "houseBuildingCosts": [
+        { "name": "House Cost1 20%", "amount": 800000, "status": "todo" },
+        { "name": "House Cost2 55%", "amount": 240000, "status": "todo" },
+        { "name": "House Cost3 5%", "amount": 220000, "status": "todo" },
+        { "name": "House Cost4 10%", "amount": 440000, "status": "todo" },
+        { "name": "House Cost5 10%", "amount": 440000, "status": "todo" },
+        { "name": "Water Drain", "amount": 4000, "status": "todo" },
+        { "name": "Kakel", "amount": 83000, "status": "todo" },
+        { "name": "Spotlights", "amount": 22000, "status": "todo" }
+    ]
+}

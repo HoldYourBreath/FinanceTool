@@ -1,10 +1,6 @@
-# Data Seeds / Backend
-backend/seeds/data/seed_house_land.json
-backend/seeds/data/seed_investments.json
-backend/seeds/data/seed_months.json
-backend/seeds/data/seed_planned_purchases.json
-backend/seeds/data/seed_acc_info.json
-backend/seeds/data/seed_financing.json
+# Private data
+backend/seeds/private/
+uploads/
 backend/scripts/
 
 # Node / Vite
@@ -20,6 +16,7 @@ dist/
 # Python / Flask
 venv/
 .env
+.env.local
 *.pyc
 *.pyo
 *.pyd
@@ -47,3 +44,4 @@ test-results/
 sql.txt
 uploads/
 ngrok.exe
+*.secret.json

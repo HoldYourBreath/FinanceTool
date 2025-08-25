@@ -1,0 +1,425 @@
+
+          
+          
+          
+          
+          
+          {
+            "months": [
+            {
+            "name": "January 2025",
+            "month_date": "2025-01-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 500},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250}
+            ]
+          },
+            {
+            "name": "February 2025",
+            "month_date": "2025-02-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Dentist", "amount": 952}
+            ]
+          },
+            {
+            "name": "March 2025",
+            "month_date": "2025-03-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Loan Payment", "amount": 17540},
+              {"name": "Dentist", "amount": 952}
+            ]
+          },
+            {
+            "name": "April 2025",
+            "month_date": "2025-04-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Dentist", "amount": 952}
+            ]
+          },
+            {
+            "name": "May 2025",
+            "month_date": "2025-05-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Dentist", "amount": 952}
+            ]
+          },
+            {
+            "name": "June 2025",
+            "month_date": "2025-06-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 1950},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 250},
+              {"name": "Dentist", "amount": 952}
+            ]
+            
+          },
+          {
+            "name": "July 2025",
+            "month_date": "2025-07-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Diesel", "amount": 950},
+              {"name": "Foods", "amount": 8000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 600},
+              {"name": "Vacation", "amount": 6000},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 350}
+            ]
+          },
+          {
+            "name": "August 2025",
+            "month_date": "2025-08-01",
+            "is_current": true,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+              ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Public Transport", "amount": 1960},
+              {"name": "Foods", "amount": 5000},
+              {"name": "Phones", "amount": 867},
+              {"name": "Subscriptions", "amount": 400},
+              {"name": "Electricity", "amount": 834},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 235}
+            ]
+          },
+          {
+            "name": "September 2025",
+            "month_date": "2025-09-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Tax", "amount": 2082},
+              {"name": "Car Diesel", "amount": 500},
+              {"name": "Public Transport", "amount": 980},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 834},
+              {"name": "Subscriptions", "amount": 400},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 235}
+            ]
+          },
+          {
+            "name": "October 2025",
+            "month_date": "2025-10-01",
+            "is_current": false,
+            "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+            ],
+            "expenses": [
+              {"name": "Daycare", "amount": 2600},
+              {"name": "Rent", "amount": 11000},
+              {"name": "Car Insurance", "amount": 433},
+              {"name": "Car Diesel", "amount": 500},
+              {"name": "Car Maintenance", "amount": 2000},
+              {"name": "Public Transport", "amount": 980},
+              {"name": "Foods", "amount": 7000},
+              {"name": "Phones", "amount": 806},
+              {"name": "Subscriptions", "amount": 400},
+              {"name": "Other", "amount": 3000},
+              {"name": "Union", "amount": 235}
+            ]
+          },
+        {
+          "name": "November 2025",
+          "month_date": "2025-11-01",
+          "is_current": false,
+          "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+          ],
+          "expenses": [
+            { "name": "Rent", "amount": 6000 },
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2600 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Car tire change", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 235 }
+          ]
+        },
+        {
+          "name": "December 2025",
+          "month_date": "2025-12-01",
+          "is_current": false,
+          "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2600 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 },
+            { "name": "Presents", "amount": 4000 },
+            { "name": "Christmas Extra Costs", "amount": 2000 },
+            { "name": "New Years Party", "amount": 1500 }
+          ]
+        },
+        {
+          "name": "January 2026",
+          "month_date": "2026-01-01",
+          "is_current": false,
+          "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2600 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Tax", "amount": 2082 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ]
+        },
+        {
+          "name": "February 2026",
+          "month_date": "2026-02-01",
+          "is_current": false,
+          "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2600 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ]
+        },
+        {
+          "name": "March 2026",
+          "month_date": "2026-03-01",
+          "is_current": false,
+          "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2600 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ]
+        },
+        {
+          "name": "April 2026",
+          "month_date": "2026-04-01",
+          "is_current": false,
+          "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2600 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Car tire change", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ]
+        },
+        {
+          "name": "May 2026",
+          "month_date": "2026-05-01",
+          "is_current": false,
+          "incomes": [
+              {"name": "Demo person1", "amount": 30000},
+              {"name": "Demo person1 Försäkringskassa", "amount": 1325},
+              {"name": "Demo person2", "amount": 24000},
+              {"name": "Demo person2 Försäkringskassa", "amount": 1325}
+          ],
+          "expenses": [
+            { "name": "Loan Payment", "amount": 20000 },
+            { "name": "House Costs", "amount": 5000 },
+            { "name": "Foods", "amount": 7000 },
+            { "name": "Daycare", "amount": 2600 },
+            { "name": "Car Insurance", "amount": 433 },
+            { "name": "Car Tax", "amount": 2082 },
+            { "name": "Car Diesel", "amount": 500 },
+            { "name": "Public Transport", "amount": 980 },
+            { "name": "Phones", "amount": 806 },
+            { "name": "Subscriptions", "amount": 600 },
+            { "name": "Other", "amount": 3000 },
+            { "name": "Union", "amount": 350 }
+          ]
+        }
+        ]
+    }
+        
