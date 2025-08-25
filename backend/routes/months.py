@@ -4,6 +4,7 @@ from models.models import Financing, Month, db
 
 months_bp = Blueprint('months', __name__)
 
+
 def build_months_data(months, financing_data, is_past=False):
     result = []
     prev_ending_funds = None
@@ -15,13 +16,17 @@ def build_months_data(months, financing_data, is_past=False):
         surplus = total_income - total_expenses
 
         starting_funds = float(month.starting_funds or 0.0) if idx == 0 else prev_ending_funds
-        loan_remaining = financing_data.get('loans_taken', float(month.loan_remaining or 0.0)) if idx == 0 else prev_loan_remaining
+        loan_remaining = (
+            financing_data.get('loans_taken', float(month.loan_remaining or 0.0))
+            if idx == 0
+            else prev_loan_remaining
+        )
 
         ending_funds = starting_funds + surplus
         loan_adjustment_delta = sum(
-            float(adj.amount) if adj.type == "disbursement" else -float(adj.amount)
+            float(adj.amount) if adj.type == 'disbursement' else -float(adj.amount)
             for adj in month.loan_adjustments
-            if adj.type in ("disbursement", "payment")
+            if adj.type in ('disbursement', 'payment')
         )
         loan_remaining += loan_adjustment_delta
 
@@ -45,22 +50,32 @@ def build_months_data(months, financing_data, is_past=False):
             if updated:
                 db.session.add(month)
 
-        result.append({
-            "id": month.id,
-            "name": month.name,
-            "month_date": month.month_date.isoformat() if month.month_date else None,
-            "startingFunds": starting_funds,
-            "endingFunds": ending_funds,
-            "surplus": surplus,
-            "loanRemaining": loan_remaining,
-            "is_current": month.is_current,
-            "incomes": [{"name": i.source, "amount": float(i.amount)} for i in month.incomes],
-            "expenses": [{"description": e.description, "amount": float(e.amount)} for e in month.expenses],
-            "loanAdjustments": [
-                {"name": adj.name, "type": adj.type, "amount": float(adj.amount), "note": adj.note}
-                for adj in month.loan_adjustments
-            ],
-        })
+        result.append(
+            {
+                'id': month.id,
+                'name': month.name,
+                'month_date': month.month_date.isoformat() if month.month_date else None,
+                'startingFunds': starting_funds,
+                'endingFunds': ending_funds,
+                'surplus': surplus,
+                'loanRemaining': loan_remaining,
+                'is_current': month.is_current,
+                'incomes': [{'name': i.source, 'amount': float(i.amount)} for i in month.incomes],
+                'expenses': [
+                    {'description': e.description, 'amount': float(e.amount)}
+                    for e in month.expenses
+                ],
+                'loanAdjustments': [
+                    {
+                        'name': adj.name,
+                        'type': adj.type,
+                        'amount': float(adj.amount),
+                        'note': adj.note,
+                    }
+                    for adj in month.loan_adjustments
+                ],
+            }
+        )
 
         prev_ending_funds = ending_funds
         prev_loan_remaining = loan_remaining
@@ -69,6 +84,7 @@ def build_months_data(months, financing_data, is_past=False):
         db.session.commit()
 
     return result
+
 
 @months_bp.route('/api/months')
 def get_months():
@@ -95,9 +111,3 @@ def get_all_months():
 
     all_months_data = build_months_data(months, financing_data, is_past=True)
     return jsonify(all_months_data)
-
-
-
-
-
-

@@ -28,7 +28,6 @@ def register_routes(app):
     app.register_blueprint(cars_bp)
     app.register_blueprint(settings_prices_bp)
 
-    print("🔍 Registered Routes:")
+    print('🔍 Registered Routes:')
     for rule in app.url_map.iter_rules():
         print(rule)
-

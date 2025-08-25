@@ -5,15 +5,15 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Iterable
 from decimal import Decimal
 from pathlib import Path
-from typing import Iterable, Optional
 
 # ------------------------------------------------------------------------------
 # Locate project roots (works whether run from repo root or backend/)
 # ------------------------------------------------------------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent
-BACKEND_DIR = SCRIPT_DIR.parent if SCRIPT_DIR.name == "scripts" else SCRIPT_DIR
+BACKEND_DIR = SCRIPT_DIR.parent if SCRIPT_DIR.name == 'scripts' else SCRIPT_DIR
 REPO_ROOT = BACKEND_DIR.parent
 
 for p in (str(BACKEND_DIR), str(REPO_ROOT)):
@@ -23,6 +23,7 @@ for p in (str(BACKEND_DIR), str(REPO_ROOT)):
 # Optional: load .env / .env.local if present
 try:
     from dotenv import load_dotenv  # type: ignore
+
     load_dotenv()
 except Exception:
     pass
@@ -40,13 +41,13 @@ except ImportError:
 # ------------------------------------------------------------------------------
 # Config
 # ------------------------------------------------------------------------------
-ENV_FILE_VAR = "SEED_FILE_ACC_INFO"  # direct file override
-ENV_DIR_VAR = "SEED_DIR"             # directory override (demo/private/etc.)
+ENV_FILE_VAR = 'SEED_FILE_ACC_INFO'  # direct file override
+ENV_DIR_VAR = 'SEED_DIR'  # directory override (demo/private/etc.)
 # Accept both names for convenience
-CAND_FILENAMES = ("seed_acc_info.json", "acc_info.json")
+CAND_FILENAMES = ('seed_acc_info.json', 'acc_info.json')
 
 FALLBACK_ROWS = [
-    {"person": "Demo", "bank": "DemoBank", "acc_number": "0000", "country": "SE", "value": 0}
+    {'person': 'Demo', 'bank': 'DemoBank', 'acc_number': '0000', 'country': 'SE', 'value': 0}
 ]
 
 
@@ -60,20 +61,20 @@ def _search_roots() -> Iterable[Path]:
         yield (REPO_ROOT / env_dir) if not os.path.isabs(env_dir) else Path(env_dir)
 
     # Common convention in this repo
-    yield BACKEND_DIR / "seeds" / "private"  # ignored (real data)
-    yield BACKEND_DIR / "seeds" / "common"   # committed (shared)
-    yield BACKEND_DIR / "seeds"              # generic seeds
-    yield BACKEND_DIR / "data"               # legacy
-    yield REPO_ROOT / "seeds"
-    yield REPO_ROOT / "data"
+    yield BACKEND_DIR / 'seeds' / 'private'  # ignored (real data)
+    yield BACKEND_DIR / 'seeds' / 'common'  # committed (shared)
+    yield BACKEND_DIR / 'seeds'  # generic seeds
+    yield BACKEND_DIR / 'data'  # legacy
+    yield REPO_ROOT / 'seeds'
+    yield REPO_ROOT / 'data'
 
 
-def _resolve_seed_path(cli_path: Optional[str]) -> Optional[Path]:
+def _resolve_seed_path(cli_path: str | None) -> Path | None:
     # 1) CLI argument
     if cli_path:
         p = Path(cli_path)
         if not p.is_absolute():
-            rp = (REPO_ROOT / p)
+            rp = REPO_ROOT / p
             if rp.exists():
                 return rp
         return p if p.exists() else None
@@ -83,7 +84,7 @@ def _resolve_seed_path(cli_path: Optional[str]) -> Optional[Path]:
     if env_file:
         p = Path(env_file)
         if not p.is_absolute():
-            rp = (REPO_ROOT / p)
+            rp = REPO_ROOT / p
             if rp.exists():
                 return rp
         if p.exists():
@@ -103,12 +104,12 @@ def _resolve_seed_path(cli_path: Optional[str]) -> Optional[Path]:
 # IO helpers
 # ------------------------------------------------------------------------------
 def _to_float(v) -> float:
-    if v is None or v == "":
+    if v is None or v == '':
         return 0.0
     if isinstance(v, (int, float)):
         return float(v)
     if isinstance(v, str):
-        s = v.strip().replace(",", ".")
+        s = v.strip().replace(',', '.')
         try:
             return float(Decimal(s))
         except Exception:
@@ -116,12 +117,12 @@ def _to_float(v) -> float:
     return 0.0
 
 
-def _load_rows(seed_file: Optional[Path]) -> list[dict]:
+def _load_rows(seed_file: Path | None) -> list[dict]:
     if seed_file and seed_file.exists():
-        with seed_file.open(encoding="utf-8") as f:
+        with seed_file.open(encoding='utf-8') as f:
             data = json.load(f)
         # Support both {"acc_info": [...]} and [...]
-        rows = data["acc_info"] if isinstance(data, dict) and "acc_info" in data else data
+        rows = data['acc_info'] if isinstance(data, dict) and 'acc_info' in data else data
         if not isinstance(rows, list):
             raise ValueError("Seed JSON must be a list or contain key 'acc_info' as a list.")
         return rows
@@ -131,13 +132,15 @@ def _load_rows(seed_file: Optional[Path]) -> list[dict]:
 # ------------------------------------------------------------------------------
 # Seeding
 # ------------------------------------------------------------------------------
-def seed(seed_path: Optional[str] = None, truncate: bool = True, dry_run: bool = False) -> None:
+def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = False) -> None:
     app = create_app()
     seed_file = _resolve_seed_path(seed_path)
 
-    print(f"📂 CWD: {Path.cwd()}")
-    print(f"📄 Seed file: {seed_file if seed_file else '(missing → using fallback)'}")
-    print(f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}")
+    print(f'📂 CWD: {Path.cwd()}')
+    print(f'📄 Seed file: {seed_file if seed_file else "(missing → using fallback)"}')
+    print(
+        f'🧪 Dry run: {"yes" if dry_run else "no"} / Truncate first: {"yes" if truncate else "no"}'
+    )
 
     rows = _load_rows(seed_file)
 
@@ -148,34 +151,36 @@ def seed(seed_path: Optional[str] = None, truncate: bool = True, dry_run: bool =
         inserted = 0
         for item in rows:
             acc = AccInfo(
-                person=str(item.get("person", "")).strip(),
-                bank=str(item.get("bank", "")).strip(),
-                acc_number=str(item.get("acc_number", "")).strip(),
-                country=str(item.get("country", "")).strip(),
-                value=_to_float(item.get("value", 0)),
+                person=str(item.get('person', '')).strip(),
+                bank=str(item.get('bank', '')).strip(),
+                acc_number=str(item.get('acc_number', '')).strip(),
+                country=str(item.get('country', '')).strip(),
+                value=_to_float(item.get('value', 0)),
             )
             db.session.add(acc)
             inserted += 1
 
         if dry_run:
             db.session.rollback()
-            print(f"🔍 Dry-run complete: would insert {inserted} row(s).")
+            print(f'🔍 Dry-run complete: would insert {inserted} row(s).')
         else:
             db.session.commit()
-            print(f"✅ Seeded {inserted} acc_info row(s).")
+            print(f'✅ Seeded {inserted} acc_info row(s).')
 
 
 # ------------------------------------------------------------------------------
 # CLI
 # ------------------------------------------------------------------------------
 def _parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Seed AccInfo rows.")
-    ap.add_argument("--file", help=f"Path to seed file (overrides ${ENV_FILE_VAR})", default=None)
-    ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
-    ap.add_argument("--dry-run", action="store_true", help="Validate and show counts without writing")
+    ap = argparse.ArgumentParser(description='Seed AccInfo rows.')
+    ap.add_argument('--file', help=f'Path to seed file (overrides ${ENV_FILE_VAR})', default=None)
+    ap.add_argument('--no-truncate', action='store_true', help='Do not delete existing rows first')
+    ap.add_argument(
+        '--dry-run', action='store_true', help='Validate and show counts without writing'
+    )
     return ap.parse_args()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     args = _parse_args()
     seed(seed_path=args.file, truncate=not args.no_truncate, dry_run=args.dry_run)

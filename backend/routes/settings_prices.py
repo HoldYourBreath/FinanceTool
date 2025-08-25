@@ -1,11 +1,13 @@
 # backend/routes/settings_prices.py
 from flask import Blueprint, jsonify, request
-from models.models import db, PriceSettings  # <-- use the correct model
 
-settings_prices_bp = Blueprint("settings_prices", __name__, url_prefix="/api/settings")
+from models.models import PriceSettings, db  # <-- use the correct model
+
+settings_prices_bp = Blueprint('settings_prices', __name__, url_prefix='/api/settings')
 
 
 # --- helpers ---------------------------------------------------------------
+
 
 def _get_or_create_prices():
     ps = PriceSettings.query.get(1)
@@ -25,7 +27,7 @@ def _get_or_create_prices():
 
 def _to_num(v, cast=float, default=None):
     try:
-        if v is None or v == "":
+        if v is None or v == '':
             return default
         return cast(v)
     except Exception:
@@ -34,29 +36,32 @@ def _to_num(v, cast=float, default=None):
 
 # --- routes ----------------------------------------------------------------
 
-@settings_prices_bp.route("/prices", methods=["GET"])
+
+@settings_prices_bp.route('/prices', methods=['GET'])
 def get_prices():
     s = _get_or_create_prices()
-    return jsonify({
-        "el_price_ore_kwh": int(s.el_price_ore_kwh),
-        "bensin_price_sek_litre": float(s.bensin_price_sek_litre),
-        "diesel_price_sek_litre": float(s.diesel_price_sek_litre),
-        "yearly_km": int(s.yearly_km),
-        "daily_commute_km": int(s.daily_commute_km),
-    })
+    return jsonify(
+        {
+            'el_price_ore_kwh': int(s.el_price_ore_kwh),
+            'bensin_price_sek_litre': float(s.bensin_price_sek_litre),
+            'diesel_price_sek_litre': float(s.diesel_price_sek_litre),
+            'yearly_km': int(s.yearly_km),
+            'daily_commute_km': int(s.daily_commute_km),
+        }
+    )
 
 
-@settings_prices_bp.route("/prices", methods=["POST"])
+@settings_prices_bp.route('/prices', methods=['POST'])
 def save_prices():
     data = request.get_json(force=True) or {}
     s = _get_or_create_prices()
 
     # Only accept canonical keys (no legacy aliases)
-    el_price = data.get("el_price_ore_kwh")
-    bensin   = data.get("bensin_price_sek_litre")
-    diesel   = data.get("diesel_price_sek_litre")
-    yearly   = data.get("yearly_km")
-    commute  = data.get("daily_commute_km")
+    el_price = data.get('el_price_ore_kwh')
+    bensin = data.get('bensin_price_sek_litre')
+    diesel = data.get('diesel_price_sek_litre')
+    yearly = data.get('yearly_km')
+    commute = data.get('daily_commute_km')
 
     # Safely coerce and update only provided fields
     if el_price is not None:
@@ -72,11 +77,13 @@ def save_prices():
 
     db.session.commit()
 
-    return jsonify({
-        "ok": True,
-        "el_price_ore_kwh": int(s.el_price_ore_kwh),
-        "bensin_price_sek_litre": float(s.bensin_price_sek_litre),
-        "diesel_price_sek_litre": float(s.diesel_price_sek_litre),
-        "yearly_km": int(s.yearly_km),
-        "daily_commute_km": int(s.daily_commute_km),
-    })
+    return jsonify(
+        {
+            'ok': True,
+            'el_price_ore_kwh': int(s.el_price_ore_kwh),
+            'bensin_price_sek_litre': float(s.bensin_price_sek_litre),
+            'diesel_price_sek_litre': float(s.diesel_price_sek_litre),
+            'yearly_km': int(s.yearly_km),
+            'daily_commute_km': int(s.daily_commute_km),
+        }
+    )
