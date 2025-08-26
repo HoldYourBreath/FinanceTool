@@ -217,10 +217,21 @@ jobs:
           fi
 
       # Install browsers & OS deps with caching, avoids npm 429 on playwright-core tgz fetch
-      - name: Setup Playwright
-        uses: microsoft/playwright-github-action@v1
+      # ---------- Playwright (cache + CLI install) ----------
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
         with:
-          version: 1.48.2
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('tests/package-lock.json') }}
+          restore-keys: |
+            ms-playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers (chromium) + system deps
+        working-directory: tests
+        run: |
+          # Ensure Playwright CLI is present from devDependencies in tests/
+          npx playwright install --with-deps chromium
+          npx playwright --version
 
       - name: Playwright version
         working-directory: tests
