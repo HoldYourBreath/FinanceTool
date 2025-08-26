@@ -20,6 +20,10 @@ def build_months_data(months, financing_data, is_past: bool = False):
     Compute derived month fields. If is_past=False, update and persist
     Month.starting_funds, Month.ending_funds, Month.surplus, Month.loan_remaining
     when they differ (idempotent writes).
+
+    Also returns richer income data:
+      - incomes:        [{ name, person, amount }]
+      - incomesByPerson: { personNameOrUnknown: totalAmount }
     """
     result = []
     prev_ending_funds = None
@@ -27,7 +31,22 @@ def build_months_data(months, financing_data, is_past: bool = False):
     dirty = False
 
     for idx, month in enumerate(months):
-        total_income = sum(_f(i.amount) for i in getattr(month, "incomes", []))
+        # Build detailed incomes (include person if the column exists)
+        incomes_list = [
+            {
+                "name": i.source,
+                "person": getattr(i, "person", None),
+                "amount": _f(i.amount),
+            }
+            for i in getattr(month, "incomes", [])
+        ]
+        # Group incomes by person (fallback to "Unknown" if missing)
+        incomes_by_person = {}
+        for item in incomes_list:
+            key = item["person"] or "Unknown"
+            incomes_by_person[key] = incomes_by_person.get(key, 0.0) + _f(item["amount"])
+
+        total_income = sum(x["amount"] for x in incomes_list)
         total_expenses = sum(_f(e.amount) for e in getattr(month, "expenses", []))
         surplus = total_income - total_expenses
 
@@ -85,8 +104,16 @@ def build_months_data(months, financing_data, is_past: bool = False):
                 "surplus": _f(surplus),
                 "loanRemaining": _f(loan_remaining),
                 "is_current": bool(getattr(month, "is_current", False)),
-                "incomes": [{"name": i.source, "amount": _f(i.amount)} for i in getattr(month, "incomes", [])],
-                "expenses": [{"description": e.description, "amount": _f(e.amount)} for e in getattr(month, "expenses", [])],
+
+                # incomes with person + grouped view
+                "incomes": incomes_list,
+                "incomesByPerson": incomes_by_person,
+
+                # expenses and loan adjustments (unchanged)
+                "expenses": [
+                    {"description": e.description, "amount": _f(e.amount)}
+                    for e in getattr(month, "expenses", [])
+                ],
                 "loanAdjustments": [
                     {"name": adj.name, "type": adj.type, "amount": _f(adj.amount), "note": adj.note}
                     for adj in getattr(month, "loan_adjustments", [])
