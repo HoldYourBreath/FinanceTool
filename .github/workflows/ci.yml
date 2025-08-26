@@ -194,10 +194,27 @@ jobs:
           npm config set fund false
           npm config set audit false
 
-      - name: Install test deps (with retry)
+      - name: Install test deps (lockfile-aware with fallback)
         working-directory: tests
         run: |
-          (npm ci || (sleep 10 && npm ci) || (sleep 20 && npm ci))
+          # be gentle to registry + retries
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm config set prefer-offline true
+          npm config set fund false
+          npm config set audit false
+
+          if [ -f package-lock.json ]; then
+            # Try clean install. If lockfile is out of sync (EUSAGE), fall back to npm install.
+            npm ci --no-audit --no-fund || {
+              echo "npm ci failed (likely lockfile mismatch). Falling back to npm install…"
+              rm -rf node_modules
+              npm install --no-audit --no-fund
+            }
+          else
+            npm install --no-audit --no-fund
+          fi
 
       # Install browsers & OS deps with caching, avoids npm 429 on playwright-core tgz fetch
       - name: Setup Playwright
