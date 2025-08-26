@@ -3,6 +3,6 @@
         { "name": "loan_promise", "value": 4000000 },
         { "name": "loan_target", "value": 3800000 },    
         { "name": "loans_taken", "value": 2000000 },
-        { "name": "janne_nordea_kredit", "value": 0 }
+        { "name": "demo_kredit", "value": 0 }
     ]
 }
