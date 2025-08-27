@@ -11,9 +11,8 @@ test('URLs', async ({page}) => {
     await page.goto('http://localhost:5173/car-evaluation')
 })
 
-const API = process.env.API_URL || 'http://127.0.0.1:5000';
-
 test('APIs', async ({ request }) => {
+  const API = process.env.API || 'http://127.0.0.1:5000';
   for (const p of ['/api/acc_info', 
                    '/api/months', 
                    '/api/investments',
@@ -26,8 +25,12 @@ test('APIs', async ({ request }) => {
                    '/api/land_costs', 
                    '/api/loan_adjustments', 
                    '/api/settings/prices']) {
-    const res = await request.get(`${API}${p}`);
-    expect(res.ok(), `${p} should respond 2xx`).toBeTruthy();
+    const url = new URL(p, API).toString();
+    const res = await request.get(url);
+    const body = await res.text();
+    expect(
+      res.ok(),
+      `${p} should respond 2xx, got ${res.status()} ${body.slice(0, 200)}`
+    ).toBeTruthy();
   }
 });
-
