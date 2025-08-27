@@ -32,7 +32,6 @@ export default function CarEvaluationPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <h2 className="text-2xl font-bold">Car Evaluation</h2>
 
       <EnergyFuelPanel prices={prices} updatePrice={updatePrice} saving={savingPrices} />
 

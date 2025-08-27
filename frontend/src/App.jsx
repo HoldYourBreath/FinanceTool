@@ -15,65 +15,84 @@ import Settings from "./components/Settings";
 import CarEvaluation from "./components/CarEvaluation";
 import EditAccInfo from "./components/EditAccInfo";
 
+const base =
+  "relative inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium ring-1 ring-gray-200 transition";
+const active = "bg-indigo-600 text-white ring-indigo-700 shadow-sm";
+const idle = "bg-white text-gray-700 hover:bg-gray-50";
+
 export default function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-100 text-gray-800 p-4">
-        <nav className="flex gap-4 mb-6">
-          <NavLink
-            to="/past-months"
-            className="px-4 py-2 rounded bg-purple-500 text-white hover:bg-purple-600"
-          >
-            Past Months
-          </NavLink>
-          <NavLink
-            to="/"
-            className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
-          >
-            Monthly
-          </NavLink>
-          <NavLink
-            to="/spending"
-            className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
-          >
-            Spending
-          </NavLink>
-          <NavLink
-            to="/investments"
-            className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600"
-          >
-            Investments
-          </NavLink>
-          <NavLink
-            to="/house-costs"
-            className="px-4 py-2 rounded bg-purple-500 text-white hover:bg-purple-600"
-          >
-            House Costs
-          </NavLink>
-          <NavLink
-            to="/settings"
-            className="px-4 py-2 rounded bg-purple-500 text-white hover:bg-purple-600"
-          >
-            Settings
-          </NavLink>
-          <NavLink
-            to="/car-evaluation"
-            className="px-4 py-2 rounded bg-teal-500 text-white hover:bg-teal-600"
-          >
-            Car Evaluation
-          </NavLink>
+      <div className="min-h-screen bg-gray-100 text-gray-800">
+        {/* Top nav with active highlight */}
+        <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
+          <div className="mx-auto max-w-7xl px-3 py-3 flex flex-wrap gap-2">
+            <NavLink
+              to="/past-months"
+              className={({ isActive }) => `${base} ${isActive ? active : idle}`}
+              title="Past Months"
+            >
+              Past Months
+            </NavLink>
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => `${base} ${isActive ? active : idle}`}
+              title="Monthly"
+            >
+              Monthly
+            </NavLink>
+            <NavLink
+              to="/spending"
+              className={({ isActive }) => `${base} ${isActive ? active : idle}`}
+              title="Spending"
+            >
+              Spending
+            </NavLink>
+            <NavLink
+              to="/investments"
+              className={({ isActive }) => `${base} ${isActive ? active : idle}`}
+              title="Investments"
+            >
+              Investments
+            </NavLink>
+            <NavLink
+              to="/house-costs"
+              className={({ isActive }) => `${base} ${isActive ? active : idle}`}
+              title="House Costs"
+            >
+              House Costs
+            </NavLink>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) => `${base} ${isActive ? active : idle}`}
+              title="Settings"
+            >
+              Settings
+            </NavLink>
+            <NavLink
+              to="/car-evaluation"
+              className={({ isActive }) => `${base} ${isActive ? active : idle}`}
+              title="Car Evaluation"
+            >
+              Car Evaluation
+            </NavLink>
+          </div>
         </nav>
 
-        <Routes>
-          <Route path="/past-months" element={<PastMonths />} />
-          <Route path="/" element={<MonthlyOverview />} />
-          <Route path="/spending" element={<SpendingPlanner />} />
-          <Route path="/investments" element={<Investments />} />
-          <Route path="/house-costs" element={<HouseCostsTab />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/car-evaluation" element={<CarEvaluation />} />
-          <Route path="/edit-acc-info" element={<EditAccInfo />} />
-        </Routes>
+        {/* Page content */}
+        <main className="mx-auto max-w-7xl p-4">
+          <Routes>
+            <Route path="/past-months" element={<PastMonths />} />
+            <Route path="/" element={<MonthlyOverview />} />
+            <Route path="/spending" element={<SpendingPlanner />} />
+            <Route path="/investments" element={<Investments />} />
+            <Route path="/house-costs" element={<HouseCostsTab />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/car-evaluation" element={<CarEvaluation />} />
+            <Route path="/edit-acc-info" element={<EditAccInfo />} />
+          </Routes>
+        </main>
       </div>
     </Router>
   );

@@ -116,7 +116,6 @@ export default function PastMonths() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-blue-600">📅 Past Months</h1>
 
       {Array.from(
         { length: Math.ceil(monthsData.length / 4) },

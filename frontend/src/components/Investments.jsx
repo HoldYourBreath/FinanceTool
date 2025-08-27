@@ -69,9 +69,6 @@ export default function Investments() {
     <div className="p-6 bg-white rounded-lg shadow space-y-8">
       {/* acc_info Financial Data */}
       <section>
-        <h1 className="text-3xl font-bold mb-4 text-blue-600">
-          📄 acc_info Financial Data
-        </h1>
 
         {/* stays on page; refresh after success */}
         <CsvUpload onUpdateacc_info={refreshAccInfo} />
