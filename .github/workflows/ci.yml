@@ -26,7 +26,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # -------------------- 1) Backend unit tests --------------------
   backend:
     runs-on: ubuntu-latest
     steps:
@@ -53,7 +52,6 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: pytest -q backend/tests --maxfail=1 --disable-warnings
 
-  # -------------------- 2) Build frontend --------------------
   frontend:
     runs-on: ubuntu-latest
     needs: backend
@@ -70,9 +68,7 @@ jobs:
       # Normalize Windows-pinned lockfile to Linux and drop optional deps
       - name: Normalize lockfile (frontend, omit optional)
         working-directory: frontend
-        run: |
-          npm config set optional false
-          npm i --package-lock-only --omit=optional
+        run: npm i --package-lock-only --omit=optional
 
       - name: Install deps (frontend)
         working-directory: frontend
@@ -82,7 +78,6 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-  # -------------------- 3) E2E with Playwright --------------------
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -91,7 +86,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ---------- Python / backend ----------
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -151,7 +145,6 @@ jobs:
           done
           curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null || { echo "---- backend.log ----"; tail -n +1 backend.log || true; exit 1; }
 
-      # ---------- Node / frontend for E2E ----------
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -163,20 +156,15 @@ jobs:
       # Root install (only if root package.json exists)
       - name: Normalize lockfile (root, omit optional)
         if: hashFiles('package.json') != ''
-        run: |
-          npm config set optional false
-          npm i --package-lock-only --omit=optional
+        run: npm i --package-lock-only --omit=optional
 
       - name: Install deps (root for Playwright)
         if: hashFiles('package.json') != ''
         run: npm ci --omit=optional
 
-      # Frontend install for serving UI during tests
       - name: Normalize lockfile (frontend, omit optional)
         working-directory: frontend
-        run: |
-          npm config set optional false
-          npm i --package-lock-only --omit=optional
+        run: npm i --package-lock-only --omit=optional
 
       - name: Install deps (frontend)
         working-directory: frontend
@@ -197,7 +185,6 @@ jobs:
           done
           curl -fsS http://127.0.0.1:5173/ >/dev/null || { echo "---- vite.log ----"; tail -n +1 vite.log || true; exit 1; }
 
-      # ---------- Playwright ----------
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
