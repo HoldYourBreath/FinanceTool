@@ -5,7 +5,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
-    "types": ["@playwright/test"]
+    "types": ["node", "@playwright/test"]
   },
   "include": ["**/*.ts"]
 }
