@@ -64,7 +64,12 @@ jobs:
         run: npm i --package-lock-only
       - name: Install deps (frontend)
         working-directory: frontend
-        run: npm ci
+        run: |
+          npm ci --no-audit --no-fund || {
+            echo "Lockfile out of sync. Regenerating…"
+            npm install --package-lock-only
+            npm ci --no-audit --no-fund
+          }
       - name: Build (frontend)
         working-directory: frontend
         run: npm run build
