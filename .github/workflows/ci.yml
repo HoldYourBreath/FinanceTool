@@ -65,14 +65,14 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      # Normalize Windows-pinned lockfile to Linux and drop optional deps
-      - name: Normalize lockfile (frontend, omit optional)
+      # Re-resolve lockfile for Linux (keeps optional deps like rollup/linux, lightningcss/linux)
+      - name: Normalize lockfile (frontend)
         working-directory: frontend
-        run: npm i --package-lock-only --omit=optional
+        run: npm i --package-lock-only
 
       - name: Install deps (frontend)
         working-directory: frontend
-        run: npm ci --omit=optional
+        run: npm ci
 
       - name: Build (frontend)
         working-directory: frontend
@@ -86,6 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ---------- Python / backend ----------
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -145,6 +146,7 @@ jobs:
           done
           curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null || { echo "---- backend.log ----"; tail -n +1 backend.log || true; exit 1; }
 
+      # ---------- Node / frontend for E2E ----------
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -153,22 +155,22 @@ jobs:
             package-lock.json
             frontend/package-lock.json
 
-      # Root install (only if root package.json exists)
-      - name: Normalize lockfile (root, omit optional)
+      # Root install (only if there is a root package.json)
+      - name: Normalize lockfile (root)
         if: hashFiles('package.json') != ''
-        run: npm i --package-lock-only --omit=optional
+        run: npm i --package-lock-only
 
       - name: Install deps (root for Playwright)
         if: hashFiles('package.json') != ''
-        run: npm ci --omit=optional
+        run: npm ci
 
-      - name: Normalize lockfile (frontend, omit optional)
+      - name: Normalize lockfile (frontend)
         working-directory: frontend
-        run: npm i --package-lock-only --omit=optional
+        run: npm i --package-lock-only
 
       - name: Install deps (frontend)
         working-directory: frontend
-        run: npm ci --omit=optional
+        run: npm ci
 
       - name: Build (frontend)
         working-directory: frontend
@@ -185,6 +187,7 @@ jobs:
           done
           curl -fsS http://127.0.0.1:5173/ >/dev/null || { echo "---- vite.log ----"; tail -n +1 vite.log || true; exit 1; }
 
+      # ---------- Playwright ----------
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
