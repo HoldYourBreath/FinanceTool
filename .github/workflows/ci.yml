@@ -50,12 +50,10 @@ jobs:
 
       - name: Run pytest (backend)
         env:
-          # Ensure imports like `from backend.utils.energy ...` resolve even when CWD=backend during test discovery.
           PYTHONPATH: ${{ github.workspace }}
-        run: |
-          pytest -q backend/tests --maxfail=1 --disable-warnings
+        run: pytest -q backend/tests --maxfail=1 --disable-warnings
 
-  # -------------------- 2) Build frontend (kept separate for clearer logs) --------------------
+  # -------------------- 2) Build frontend --------------------
   frontend:
     runs-on: ubuntu-latest
     needs: backend
@@ -69,9 +67,16 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      # Normalize Windows-pinned lockfile to Linux and drop optional deps
+      - name: Normalize lockfile (frontend, omit optional)
+        working-directory: frontend
+        run: |
+          npm config set optional false
+          npm i --package-lock-only --omit=optional
+
       - name: Install deps (frontend)
         working-directory: frontend
-        run: npm ci
+        run: npm ci --omit=optional
 
       - name: Build (frontend)
         working-directory: frontend
@@ -106,8 +111,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           python - <<'PY'
-          import importlib
-          import sys
+          import importlib, sys
           print("PYTHONPATH[0]:", sys.path[0])
           importlib.import_module("backend.app")
           importlib.import_module("backend.routes")
@@ -147,7 +151,7 @@ jobs:
           done
           curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null || { echo "---- backend.log ----"; tail -n +1 backend.log || true; exit 1; }
 
-      # ---------- Node / frontend ----------
+      # ---------- Node / frontend for E2E ----------
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -156,8 +160,23 @@ jobs:
             package-lock.json
             frontend/package-lock.json
 
+      # Root install (only if root package.json exists)
+      - name: Normalize lockfile (root, omit optional)
+        if: hashFiles('package.json') != ''
+        run: |
+          npm config set optional false
+          npm i --package-lock-only --omit=optional
+
       - name: Install deps (root for Playwright)
+        if: hashFiles('package.json') != ''
         run: npm ci --omit=optional
+
+      # Frontend install for serving UI during tests
+      - name: Normalize lockfile (frontend, omit optional)
+        working-directory: frontend
+        run: |
+          npm config set optional false
+          npm i --package-lock-only --omit=optional
 
       - name: Install deps (frontend)
         working-directory: frontend
@@ -183,19 +202,24 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ms-playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('package-lock.json', 'frontend/package-lock.json') }}
           restore-keys: |
             ms-playwright-${{ runner.os }}-
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests
+      - name: Run Playwright tests (auto-detect config)
         env:
           CI: true
           API_URL: http://127.0.0.1:5000
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
-        run: npx playwright test --reporter=line
+        run: |
+          if [ -f tests/playwright.config.ts ] || [ -f tests/playwright.config.js ]; then
+            (cd tests && npx playwright test --reporter=line)
+          else
+            npx playwright test --reporter=line
+          fi
 
       - name: Upload logs (on failure)
         if: failure()
@@ -212,5 +236,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: playwright-report
+          path: |
+            playwright-report
+            tests/playwright-report
           if-no-files-found: ignore
