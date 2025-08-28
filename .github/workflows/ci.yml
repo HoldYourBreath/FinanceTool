@@ -65,12 +65,16 @@ jobs:
       - name: Install deps (frontend)
         working-directory: frontend
         run: |
-          # Try strict, then repair lockfile, then fall back to npm install
+          set -e
+          echo "pwd=$(pwd)"
+          node -e "console.log('has lock:', require('fs').existsSync('package-lock.json'))"
+          # Try strict first
           npm ci --no-audit --no-fund || {
-            echo "Lockfile out of sync → regenerating..."
+            echo "Lockfile out of sync → force-regenerating…"
+            rm -f package-lock.json
             npm install --package-lock-only --no-audit --no-fund
             npm ci --no-audit --no-fund || {
-              echo "Still failing → using npm install as fallback"
+              echo "Still failing → fallback to npm install (non-strict)"
               rm -rf node_modules
               npm install --no-audit --no-fund
             }
