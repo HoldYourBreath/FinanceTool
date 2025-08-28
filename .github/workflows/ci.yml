@@ -93,6 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [backend, frontend]
+    if: ${{ needs.backend.result == 'success' && needs.frontend.result == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
