@@ -1,4 +1,8 @@
 {
+  "name": "financetool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal finance dashboard (React + Vite + TS + Playwright)",
   "author": "Janne Mäkinen",
   "license": "MIT",
   "repository": {
@@ -9,24 +13,31 @@
     "url": "https://github.com/HoldYourBreath/FinanceTool/issues"
   },
   "homepage": "https://github.com/HoldYourBreath/FinanceTool#readme",
-  "name": "financetool",
-  "version": "1.0.0",
   "type": "module",
-  "description": "",
-  "main": "index.js",
+  "engines": {
+    "node": ">=18.18"
+  },
+  "packageManager": "npm@11.5.2",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "vite",
+    "dev": "vite --host --open",
     "build": "vite build",
+    "preview": "vite preview --host --open",
     "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "lint": "eslint .",
-    "preview": "vite preview",
     "lint:fix": "eslint . --fix",
-    "test:e2e": "playwright test"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "PWDEBUG=1 playwright test",
+    "postinstall": "playwright install || true"
   },
   "keywords": [],
   "dependencies": {
     "axios": "^1.10.0",
+    "lucide-react": "^0.542.0",
     "papaparse": "^5.5.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

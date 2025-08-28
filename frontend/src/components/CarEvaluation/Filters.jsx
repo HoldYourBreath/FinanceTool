@@ -13,34 +13,38 @@ export default function Filters({ filters, setFilters, catChoices }) {
       year_max: "",
     });
 
+  const labelCls = "block text-sm font-semibold mb-1 text-slate-700";
+  const inputCls =
+    "w-full rounded-lg border border-emerald-200 bg-white/70 px-3 py-2 text-sm shadow-inner " +
+    "focus:outline-none focus:ring-2 focus:ring-emerald-400";
+  const chipScrollCls =
+    "overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+
   return (
-    <div className="p-3 bg-gray-50 rounded border space-y-2">
+    <section className="rounded-2xl bg-emerald-50/70 ring-1 ring-emerald-200 p-4 shadow-sm backdrop-blur-sm space-y-3">
       {/* Top toolbar: Search + Year + Type + Clear */}
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="flex flex-wrap items-end gap-3">
         {/* Search */}
         <div className="flex-1 min-w-[260px]">
-          <label htmlFor="filter-q" className="block text-sm font-semibold mb-1">
+          <label htmlFor="filter-q" className={labelCls}>
             Search model
           </label>
           <input
             id="filter-q"
-            className="w-full border rounded px-2 py-1"
+            className={inputCls}
             placeholder="e.g., Model Y, Ioniq 5"
             value={filters.q}
             onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+            autoComplete="off"
           />
         </div>
 
         {/* Year range */}
-        <div className="w-[200px]">
-          {/* Use a span (not a label) for the section heading */}
-          <span className="block text-sm font-semibold mb-1" id="year-range-label">
+        <div className="w-[220px]">
+          <span className={labelCls} id="year-range-label">
             Year (min–max)
           </span>
-          <div
-            className="flex items-center gap-1"
-            aria-labelledby="year-range-label"
-          >
+          <div className="flex items-center gap-2" aria-labelledby="year-range-label">
             <label htmlFor="year-min" className="sr-only">
               Year minimum
             </label>
@@ -49,13 +53,11 @@ export default function Filters({ filters, setFilters, catChoices }) {
               type="number"
               inputMode="numeric"
               placeholder="Min"
-              className="w-24 border rounded px-2 py-1"
+              className={inputCls + " w-24"}
               value={filters.year_min}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, year_min: e.target.value }))
-              }
+              onChange={(e) => setFilters((f) => ({ ...f, year_min: e.target.value }))}
             />
-            <span className="text-gray-400">–</span>
+            <span className="text-slate-400">–</span>
             <label htmlFor="year-max" className="sr-only">
               Year maximum
             </label>
@@ -64,19 +66,17 @@ export default function Filters({ filters, setFilters, catChoices }) {
               type="number"
               inputMode="numeric"
               placeholder="Max"
-              className="w-24 border rounded px-2 py-1"
+              className={inputCls + " w-24"}
               value={filters.year_max}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, year_max: e.target.value }))
-              }
+              onChange={(e) => setFilters((f) => ({ ...f, year_max: e.target.value }))}
             />
           </div>
         </div>
 
-        {/* Type – horizontally scrollable chips to keep height tiny */}
+        {/* Type – horizontally scrollable chips */}
         <div className="flex-1 min-w-[240px]">
-          <div className="text-sm font-semibold mb-1">Type</div>
-          <div className="overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className={labelCls}>Type</div>
+          <div className={chipScrollCls}>
             <MultiToggle
               label=""
               options={TYPE_CHOICES}
@@ -87,22 +87,27 @@ export default function Filters({ filters, setFilters, catChoices }) {
         </div>
 
         {/* Clear */}
-        <button className="ml-auto border px-3 py-2 rounded" onClick={clearFilters}>
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="ml-auto rounded-lg border border-emerald-300 bg-white/70 px-3 py-2 text-sm shadow-sm hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+          title="Reset all filters"
+        >
           Clear filters
         </button>
       </div>
 
       {/* Advanced (collapsed by default) */}
       <details className="group">
-        <summary className="cursor-pointer select-none text-sm text-gray-700 hover:text-gray-900 flex items-center gap-2">
-          <span className="inline-block px-2 py-1 border rounded bg-white">
+        <summary className="cursor-pointer select-none text-sm text-slate-700 hover:text-slate-900 flex items-center gap-2">
+          <span className="inline-block px-2 py-1 rounded-lg bg-white/70 ring-1 ring-emerald-200 shadow-sm">
             Advanced filters
           </span>
-          <span className="text-gray-400 group-open:hidden">▼</span>
-          <span className="text-gray-400 hidden group-open:inline">▲</span>
+          <span className="text-slate-400 group-open:hidden">▼</span>
+          <span className="text-slate-400 hidden group-open:inline">▲</span>
         </summary>
 
-        <div className="pt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="pt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="col-span-1">
             <MultiToggle
               label="Body style"
@@ -129,6 +134,6 @@ export default function Filters({ filters, setFilters, catChoices }) {
           </div>
         </div>
       </details>
-    </div>
+    </section>
   );
 }
