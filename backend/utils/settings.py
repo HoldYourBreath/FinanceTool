@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from models.models import PriceSettings, db
+from backend.models.models import PriceSettings, db
 
 DEFAULTS = dict(
     el_price_ore_kwh=250,  # öre/kWh
