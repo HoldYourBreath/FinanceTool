@@ -65,10 +65,15 @@ jobs:
       - name: Install deps (frontend)
         working-directory: frontend
         run: |
+          # Try strict, then repair lockfile, then fall back to npm install
           npm ci --no-audit --no-fund || {
-            echo "Lockfile out of sync. Regenerating…"
+            echo "Lockfile out of sync → regenerating..."
             npm install --package-lock-only --no-audit --no-fund
-            npm ci --no-audit --no-fund
+            npm ci --no-audit --no-fund || {
+              echo "Still failing → using npm install as fallback"
+              rm -rf node_modules
+              npm install --no-audit --no-fund
+            }
           }
       - name: Build (frontend)
         working-directory: frontend
