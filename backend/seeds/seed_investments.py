@@ -1,81 +1,58 @@
-# scripts/seed_investments.py
+# backend/seeds/seed_investments.py
 from __future__ import annotations
 
 import argparse
 import json
 import os
 import sys
-from collections.abc import Iterable
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from collections.abc import Iterable
+from decimal import Decimal
 
-# --- locate project roots ----------------------------------------------------
-SCRIPT_DIR = Path(__file__).resolve().parent
-BACKEND_DIR = SCRIPT_DIR.parent if SCRIPT_DIR.name == 'scripts' else SCRIPT_DIR
-REPO_ROOT = BACKEND_DIR.parent
+from sqlalchemy import delete as sa_delete
 
-for p in (str(BACKEND_DIR), str(REPO_ROOT)):
+# ---- Make repo imports work (run from repo root OR backend/) ----
+THIS_FILE = Path(__file__).resolve()
+BACKEND_DIR = THIS_FILE.parents[1]        # .../backend
+REPO_ROOT = BACKEND_DIR.parent            # repo root
+for p in (str(REPO_ROOT),):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-# Optional: load .env / .env.local
+# Load optional .env files
 try:
     from dotenv import load_dotenv  # type: ignore
-
-    load_dotenv()
+    for env_file in (REPO_ROOT / ".env", BACKEND_DIR / ".env",
+                     REPO_ROOT / ".env.local", BACKEND_DIR / ".env.local"):
+        if env_file.exists():
+            load_dotenv(env_file)
 except Exception:
     pass
 
-# Try both import styles
-try:
-    from app import create_app  # when running inside backend/
-except ImportError:  # running from repo root as a package
-    from backend.app import create_app  # type: ignore
+# ---- Import from backend.* only (single module namespace!) ----
+from backend.app import create_app
+import backend.models.models as models
+db = models.db
+Investment = models.Investment
 
-try:
-    from models.models import Investment, db  # when inside backend/
-except ImportError:
-    from backend.models.models import Investment, db  # type: ignore
-
-# SQLAlchemy type checks (best-effort)
-try:
-    from sqlalchemy.sql.sqltypes import Boolean as SABoolean
-    from sqlalchemy.sql.sqltypes import Float as SAFloat
-    from sqlalchemy.sql.sqltypes import Integer as SAInteger
-    from sqlalchemy.sql.sqltypes import Numeric as SANumeric  # type: ignore
-    from sqlalchemy.sql.sqltypes import String as SAString
-except Exception:
-    SANumeric = SAFloat = SAInteger = SAString = SABoolean = object  # fallbacks
-
-# ------------------------------------------------------------------------------
-# Config
-# ------------------------------------------------------------------------------
-ENV_FILE_VAR = 'SEED_FILE_INVESTMENTS'
-ENV_DIR_VAR = 'SEED_DIR'
-CAND_FILENAMES = ('seed_investments.json', 'investments.json')
-
+# ---- Config / discovery ----
+ENV_FILE_VAR = "SEED_FILE_INVESTMENTS"
+ENV_DIR_VAR = "SEED_DIR"
+CAND_FILENAMES = ("seed_investments.json", "investments.json")
 FALLBACK_ROWS: list[dict] = []
 
-_DB_URL = (os.getenv('DATABASE_URL') or os.getenv('SQLALCHEMY_DATABASE_URI') or '').lower()
-USE_SQLITE = 'sqlite' in _DB_URL
-
-
-# ------------------------------------------------------------------------------
-# Path resolution
-# ------------------------------------------------------------------------------
 def _search_roots() -> Iterable[Path]:
     env_dir = os.getenv(ENV_DIR_VAR)
     if env_dir:
         p = Path(env_dir)
         yield (REPO_ROOT / p) if not p.is_absolute() else p
-    yield BACKEND_DIR / 'seeds' / 'private'
-    yield BACKEND_DIR / 'seeds' / 'common'
-    yield BACKEND_DIR / 'seeds'
-    yield BACKEND_DIR / 'data'
-    yield REPO_ROOT / 'seeds'
-    yield REPO_ROOT / 'data'
-
+    yield BACKEND_DIR / "seeds" / "private"
+    yield BACKEND_DIR / "seeds" / "common"
+    yield BACKEND_DIR / "seeds"
+    yield BACKEND_DIR / "data"
+    yield REPO_ROOT / "seeds"
+    yield REPO_ROOT / "data"
 
 def _resolve_seed_path(cli_path: str | None) -> Path | None:
     if cli_path:
@@ -86,6 +63,7 @@ def _resolve_seed_path(cli_path: str | None) -> Path | None:
                 if cand.exists():
                     return cand
         return p if p.exists() else None
+
     env_file = os.getenv(ENV_FILE_VAR)
     if env_file:
         p = Path(env_file)
@@ -96,6 +74,7 @@ def _resolve_seed_path(cli_path: str | None) -> Path | None:
                     return cand
         if p.exists():
             return p
+
     for root in _search_roots():
         for name in CAND_FILENAMES:
             cand = root / name
@@ -103,36 +82,27 @@ def _resolve_seed_path(cli_path: str | None) -> Path | None:
                 return cand
     return None
 
-
-# ------------------------------------------------------------------------------
-# Coercion helpers
-# ------------------------------------------------------------------------------
-def normalize_row(item: dict) -> dict:
-    return _sanitize_item(item)
-
-
+# ---- Coercion helpers ----
 def _to_decimal(v: Any) -> Decimal:
-    if v is None or (isinstance(v, str) and v.strip() == ''):
-        return Decimal('0')
+    if v is None or (isinstance(v, str) and v.strip() == ""):
+        return Decimal("0")
     if isinstance(v, Decimal):
         return v
     if isinstance(v, (int, float)):
         return Decimal(str(v))
     if isinstance(v, str):
-        s = v.strip().replace(',', '.')
+        s = v.strip().replace(",", ".")
         try:
             return Decimal(s)
         except Exception:
-            return Decimal('0')
-    return Decimal('0')
-
+            return Decimal("0")
+    return Decimal("0")
 
 def _to_float(v: Any) -> float:
     try:
         return float(_to_decimal(v))
     except Exception:
         return 0.0
-
 
 def _to_int(v: Any) -> int:
     try:
@@ -143,20 +113,16 @@ def _to_int(v: Any) -> int:
         except Exception:
             return 0
 
-
 def _to_bool(v: Any) -> bool:
     if isinstance(v, bool):
         return v
     if isinstance(v, (int, float)):
         return v != 0
     if isinstance(v, str):
-        return v.strip().lower() in {'1', 'true', 't', 'yes', 'y', 'on'}
+        return v.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
     return False
 
-
-# ------------------------------------------------------------------------------
-# Sanitize per column type
-# ------------------------------------------------------------------------------
+# Map a sloppy dict to Investment columns (best-effort)
 def _sanitize_item(item: dict) -> dict:
     cols = {c.name: c for c in Investment.__table__.columns}  # type: ignore[attr-defined]
     out: dict = {}
@@ -164,13 +130,14 @@ def _sanitize_item(item: dict) -> dict:
         if name not in item:
             continue
         raw = item[name]
-        t = col.type
+        t = getattr(col, "type", None)
         try:
-            if isinstance(t, (SANumeric, SAFloat)):
-                out[name] = _to_float(raw)  # avoid Decimal with SQLite
-            elif isinstance(t, SAInteger):
+            tn = type(t).__name__.lower() if t is not None else ""
+            if any(k in tn for k in ("numeric", "float", "real", "double")):
+                out[name] = _to_float(raw)
+            elif "integer" in tn:
                 out[name] = _to_int(raw)
-            elif isinstance(t, SABoolean):
+            elif "boolean" in tn:
                 out[name] = _to_bool(raw)
             else:
                 out[name] = raw.strip() if isinstance(raw, str) else raw
@@ -178,273 +145,62 @@ def _sanitize_item(item: dict) -> dict:
             out[name] = raw
     return out
 
-
-# ------------------------------------------------------------------------------
-# Row discovery utilities
-# ------------------------------------------------------------------------------
-_LIST_KEYS_HINT = (
-    'investments',
-    'items',
-    'holdings',
-    'positions',
-    'assets',
-    'portfolio',
-    'securities',
-    'entries',
-    'rows',
-    'data',
-    'records',
-    'list',
-    'values',
-    'table',
-)
-_COL_KEYS = ('columns', 'cols', 'headers', 'fields', 'schema')
-_ROW_KEYS = ('data', 'rows', 'values')
-
-
-def _extract_colnames(cols: Any) -> list[str] | None:
-    if isinstance(cols, list) and cols and all(isinstance(c, str) for c in cols):
-        return [str(c) for c in cols]
-    if isinstance(cols, list) and cols and all(isinstance(c, dict) for c in cols):
-        names: list[str] = []
-        for c in cols:
-            name = c.get('name') or c.get('field') or c.get('id')
-            names.append(str(name) if name is not None else '')
-        return names if any(n for n in names) else None
-    if isinstance(cols, dict):
-        inner = cols.get('fields') or cols.get('columns')
-        return _extract_colnames(inner)
-    return None
-
-
-def _rows_from_columns_and_data(obj: dict) -> list[dict] | None:
-    colnames: list[str] | None = None
-    for ck in _COL_KEYS:
-        if ck in obj:
-            colnames = _extract_colnames(obj[ck])
-            if colnames:
-                break
-    if not colnames:
-        return None
-    for rk in _ROW_KEYS:
-        rows = obj.get(rk)
-        if isinstance(rows, list) and rows:
-            if isinstance(rows[0], (list, tuple)):
-                out = []
-                for r in rows:
-                    out.append({colnames[i]: r[i] for i in range(min(len(colnames), len(r)))})
-                return out
-            if isinstance(rows[0], dict):
-                return rows
-    return None
-
-
-def _dict_of_arrays_to_rows(d: dict) -> list[dict] | None:
-    # e.g. {"symbol":["AAPL","TSLA"], "qty":[10,5], "price":[...]}
-    keys = list(d.keys())
-    if not keys:
-        return None
-    arrays = [d[k] for k in keys if isinstance(d[k], list)]
-    if not arrays or len(arrays) != len(keys):
-        return None
-    lengths = {len(a) for a in arrays}
-    if len(lengths) != 1:
-        return None
-    n = lengths.pop()
-    rows: list[dict] = []
-    for i in range(n):
-        rows.append({k: d[k][i] for k in keys})
-    return rows
-
-
-def _list_of_lists_to_rows(lst: list) -> list[dict] | None:
-    # if first row looks like header (all strings), use it; else generate col1..colN
-    if not lst or not isinstance(lst[0], (list, tuple)):
-        return None
-    first = lst[0]
-    if all(isinstance(x, str) for x in first):
-        headers = [str(x) for x in first]
-        data = lst[1:]
-    else:
-        m = max(len(r) for r in lst if isinstance(r, (list, tuple)))
-        headers = [f'col{i + 1}' for i in range(m)]
-        data = lst
-    out: list[dict] = []
-    for r in data:
-        if isinstance(r, (list, tuple)):
-            out.append({headers[i]: r[i] for i in range(min(len(headers), len(r)))})
-    return out if out else None
-
-
-def _flatten_dict_of_lists(d: dict) -> list[dict]:
-    out: list[dict] = []
-    for v in d.values():
-        if isinstance(v, list):
-            out.extend([x for x in v if isinstance(x, dict)])
-    return out
-
-
-def _flatten_dict_of_dicts(d: dict) -> list[dict]:
-    out: list[dict] = []
-    for v in d.values():
-        if isinstance(v, dict):
-            vals = list(v.values())
-            if vals and all(isinstance(x, dict) for x in vals):
-                out.extend(vals)
-    return out
-
-
-def _walk_candidates(
-    obj: Any, path: tuple[str, ...], found: list[tuple[tuple[str, ...], list[dict]]]
-) -> None:
-    if isinstance(obj, list):
-        if obj and isinstance(obj[0], dict):
-            found.append((path, obj))
-        elif obj and isinstance(obj[0], (list, tuple)):
-            rows = _list_of_lists_to_rows(obj)
-            if rows:
-                found.append((path + ('<list-of-lists>',), rows))
-        else:
-            for i, it in enumerate(obj):
-                _walk_candidates(it, path + (f'[{i}]',), found)
-    elif isinstance(obj, dict):
-        tab = _rows_from_columns_and_data(obj)
-        if tab:
-            found.append((path + ('<columns+rows>',), tab))
-        colar = _dict_of_arrays_to_rows(obj)
-        if colar:
-            found.append((path + ('<dict-of-arrays>',), colar))
-        for k, v in obj.items():
-            _walk_candidates(v, path + (k,), found)
-
-
-def _best_candidate(
-    cands: list[tuple[tuple[str, ...], list[dict]]],
-) -> tuple[tuple[str, ...], list[dict]] | None:
-    if not cands:
-        return None
-
-    def score(c: tuple[tuple[str, ...], list[dict]]) -> tuple[int, int]:
-        path, rows = c
-        bonus = any(k in path for k in _LIST_KEYS_HINT)
-        return (1 if bonus else 0, len(rows))
-
-    cands.sort(key=score, reverse=True)
-    return cands[0]
-
-
-def _maybe_parse_text_blob(s: str) -> Any:
-    # Try stringified JSON; else NDJSON; else CSV
-    st = s.strip()
-    if not st:
-        return []
-    # stringified JSON inside quotes?
-    try:
-        return json.loads(st)
-    except Exception:
-        pass
-    # NDJSON
-    lines = [ln for ln in st.splitlines() if ln.strip()]
-    docs: list[Any] = []
-    ndjson_ok = True
-    for ln in lines:
-        try:
-            docs.append(json.loads(ln))
-        except Exception:
-            ndjson_ok = False
-            break
-    if ndjson_ok and docs and all(isinstance(d, dict) for d in docs):
-        return docs
-    # crude CSV (no quotes/escapes parsing)
-    if ',' in st:
-        parts = [row.split(',') for row in lines]
-        rows = _list_of_lists_to_rows(parts)
-        if rows:
-            return rows
+# ---- Load rows ----
+def _discover_rows(data: Any) -> list[dict]:
+    if isinstance(data, list):
+        return [x for x in data if isinstance(x, dict)]
+    if isinstance(data, dict):
+        for k in ("investments", "rows", "data", "items", "entries"):
+            if k in data and isinstance(data[k], list):
+                return [x for x in data[k] if isinstance(x, dict)]
     return []
 
-
-def _discover_rows(data):
-    # Accept top-level list or {"investments": [...]}, even if empty
-    if isinstance(data, list):
-        return data, '$'
-
-    if isinstance(data, dict):
-        for key in ('investments', 'rows', 'data'):
-            if key in data:  # ← key existence, not truthiness
-                val = data[key]
-                if val is None:
-                    return [], f'$.{key}'
-                if isinstance(val, list):
-                    return val, f'$.{key}'
-                raise ValueError(f"Expected a list under '{key}', got {type(val).__name__}")
-        # No recognized key? Treat as empty, not an error.
-        return [], '$'
-
-    raise ValueError(f'Unsupported seed data type: {type(data).__name__}')
-
-
-# ------------------------------------------------------------------------------
-# Data loading
-# ------------------------------------------------------------------------------
-def _load_rows(seed_file: Path | None) -> tuple[list[dict], str]:
+def _load_rows(seed_file: Path | None) -> list[dict]:
     if not (seed_file and seed_file.exists()):
-        return (FALLBACK_ROWS, '(missing)')
-    with seed_file.open(encoding='utf-8') as f:
-        data = json.load(f)
-    rows, path = _discover_rows(data)
-    return rows, path
+        return FALLBACK_ROWS
+    with seed_file.open(encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except Exception:
+            return FALLBACK_ROWS
+    return _discover_rows(data)
 
+# ---- Seeding ----
+def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool = False) -> None:
+    app = create_app()
+    with app.app_context():
+        seed_file = _resolve_seed_path(seed_path)
+        rows = _load_rows(seed_file)
+        print(f"📄 investments seed: {seed_file if seed_file else '(missing → seeding nothing)'}")
+        print(f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}")
+        print(f"📦 Parsed rows: {len(rows)}")
 
-# ------------------------------------------------------------------------------
-# Seeding
-# ------------------------------------------------------------------------------
-# Seeding
-def seed(seed_path: str | None, truncate: bool = True, dry_run: bool = False):
-    resolved = _resolve_seed_path(seed_path)  # ← use your resolver
-    print(f'📄 Seed file: {resolved if resolved else "(missing)"}')
-
-    rows, from_path = _load_rows(resolved)  # ← pass Path|None
-    print(f'🔎 Discovered {len(rows)} row(s) from {from_path}')
-
-    with create_app().app_context():
-        if truncate:
-            print('🧹 Truncating investments table...')
-            db.session.query(Investment).delete()
-            if dry_run:
-                db.session.rollback()
-            else:
-                db.session.commit()
-            print('✅ Truncate complete.')
-
-        if not rows:
-            print('ℹ️ Seed file has no investments. Nothing to insert.')
-            return
-
-        for r in rows:
-            db.session.add(Investment(**normalize_row(r)))
+        if truncate and not dry_run:
+            db.session.execute(sa_delete(Investment))
+            db.session.commit()
 
         if dry_run:
             db.session.rollback()
-            print(f'✅ Dry-run complete. Would insert {len(rows)} rows.')
-        else:
-            db.session.commit()
-            print(f'✅ Inserted {len(rows)} rows.')
+            print("🔍 Dry-run complete")
+            return
 
+        inserted = 0
+        for r in rows:
+            obj = Investment(**_sanitize_item(r))
+            db.session.add(obj)
+            inserted += 1
 
-# ------------------------------------------------------------------------------
-# CLI
-# ------------------------------------------------------------------------------
+        db.session.commit()
+        print(f"✅ Seeded {inserted} investments")
+
+# ---- CLI ----
 def _parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description='Seed Investment rows.')
-    ap.add_argument('--file', help=f'Path to seed file (overrides ${ENV_FILE_VAR})', default=None)
-    ap.add_argument('--no-truncate', action='store_true', help='Do not delete existing rows first')
-    ap.add_argument(
-        '--dry-run', action='store_true', help='Validate and show counts without writing'
-    )
+    ap = argparse.ArgumentParser(description="Seed Investment rows.")
+    ap.add_argument("--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})")
+    ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
+    ap.add_argument("--dry-run", action="store_true", help="Validate and show counts without writing")
     return ap.parse_args()
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = _parse_args()
     seed(seed_path=args.file, truncate=not args.no_truncate, dry_run=args.dry_run)

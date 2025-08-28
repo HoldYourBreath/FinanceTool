@@ -1,4 +1,4 @@
-<#
+<# 
   setup_install.ps1
   - Installs backend (Python) and frontend (Node) dependencies
   - Creates backend .env with defaults if missing
@@ -24,14 +24,14 @@ function Fail($m){ Write-Host "[FAIL]  $m" -ForegroundColor Red }
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -Path $repoRoot
 
-# -------- helpers --------
+# ---------------- helpers ----------------
 function Get-PythonCmd {
   param([string]$Requested = '3.11')
   $hasPy = Get-Command py -ErrorAction SilentlyContinue
   if ($hasPy) {
     try { & py "-$Requested" -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py', "-$Requested") } } catch {}
-    try { & py -3 -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py', '-3') } } catch {}
-    try { & py -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py') } } catch {}
+    try { & py -3 -c "import sys;print(1)" *> $null; if ($LASTEXITCODE -eq 0) { return @('py', '-3') } } catch {}
+    try { & py -c "import sys;print(1)" *> $null; if ($LASTEXITCODE -eq 0) { return @('py') } } catch {}
   }
   $hasPython = Get-Command python -ErrorAction SilentlyContinue
   if ($hasPython) { return @('python') }
@@ -97,7 +97,6 @@ function Run-Npx {
   return $proc.ExitCode
 }
 
-
 function Run-Npm {
   param([string]$ArgsLine)
   $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
@@ -107,7 +106,7 @@ function Run-Npm {
   return $proc.ExitCode
 }
 
-# -------- backend --------
+# ---------------- backend ----------------
 if (-not (Test-Path '.\backend')) { Fail 'backend folder not found'; exit 1 }
 Info 'Setting up backend...'
 Set-Location '.\backend'
@@ -139,7 +138,7 @@ if (Test-Path '.\requirements.txt') {
   Warn 'requirements.txt not found — skipping backend install'
 }
 
-# .env (NOTE: the @" and "@ lines must start at column 1)
+# .env
 $envPath = '.\.env'
 if (-not (Test-Path $envPath)) {
 @"
@@ -155,7 +154,7 @@ SQLALCHEMY_DATABASE_URI=sqlite:///dev.db
   Info 'backend .env already exists — leaving it unchanged'
 }
 
-# -------- frontend --------
+# ---------------- frontend ----------------
 Set-Location '..\frontend'
 Info 'Setting up frontend...'
 
@@ -175,15 +174,17 @@ try {
   Warn ("Could not query node/npm versions: " + $_.Exception.Message)
 }
 
+# Install dependencies (prefer lockfile)
 $exit = 0
 if (Test-Path '.\package-lock.json') {
   Info 'Installing frontend deps with npm ci...'
-  $exit = Run-Npm 'ci'
+  $exit = Run-Npm 'ci --no-audit --no-fund'
 } else {
   Info 'Installing frontend deps with npm install...'
-  $exit = Run-Npm 'install'
+  $exit = Run-Npm 'install --no-audit --no-fund'
 }
 
+# Fallback if lockfile mismatch / flakiness
 if ($exit -ne 0) {
   Warn "npm install failed (exit $exit). Attempting cleanup and retry..."
   foreach ($name in @('esbuild','rollup','node')) { try { taskkill /IM "$name.exe" /F 2>$null | Out-Null } catch {} }
@@ -191,7 +192,7 @@ if ($exit -ne 0) {
   if (Test-Path '.\node_modules') { cmd /c rmdir /s /q node_modules }
   if (Test-Path '.\package-lock.json') { Remove-Item '.\package-lock.json' -Force -ErrorAction SilentlyContinue }
   Run-Npm 'cache verify' | Out-Null
-  $exit = Run-Npm 'install'
+  $exit = Run-Npm 'install --no-audit --no-fund'
 }
 
 if ($exit -eq 0) {
@@ -202,7 +203,7 @@ if ($exit -eq 0) {
   exit $exit
 }
 
-# --- Ensure Playwright test runner is present ---
+# Ensure @playwright/test & browsers are present
 try {
   $pkgJson = Get-Content '.\package.json' -Raw
 } catch {
@@ -211,43 +212,40 @@ try {
 
 if ($pkgJson -notmatch '"@playwright/test"\s*:') {
   Info 'Installing @playwright/test...'
-  $code = Run-Npm 'install -D @playwright/test'
+  $code = Run-Npm 'install -D @playwright/test --no-audit --no-fund'
   if ($code -ne 0) { Fail 'Failed to install @playwright/test'; exit $code }
   Ok '@playwright/test installed'
 } else {
   Info '@playwright/test already present'
 }
 
-# --- Install Playwright browsers ---
 Info 'Installing Playwright browsers...'
 $code = Run-Npx 'playwright install'
 if ($code -ne 0) { Fail 'playwright install failed'; exit $code }
 Ok 'Playwright browsers installed'
 
-
-# -------- seeding --------
+# ---------------- seeding ----------------
 function Run-Seed {
-  param([string]$SeedsDir)
+  param([string]$RepoRoot)
 
-  if (-not (Test-Path $SeedsDir)) {
-    Warn ("Seeds directory not found: " + $SeedsDir + " - skipping seeding.")
-    return
-  }
-
-  $venvPy = Join-Path $repoRoot 'backend\.venv\Scripts\python.exe'
+  $venvPy = Join-Path $RepoRoot 'backend\.venv\Scripts\python.exe'
   if (-not (Test-Path $venvPy)) { $venvPy = 'python' }
 
+  # Ensure backend.* imports work regardless of CWD
+  $prevPyPath = $env:PYTHONPATH
+  if ($prevPyPath) { $env:PYTHONPATH = "$RepoRoot;$prevPyPath" } else { $env:PYTHONPATH = "$RepoRoot" }
+
   Info 'Seeding database...'
-  Push-Location $SeedsDir
   $code = 0
   try {
-    & $venvPy 'seed_all.py'
+    # Run the orchestrator as a module so absolute imports resolve
+    & $venvPy '-m' 'backend.seeds.seed_all'
     $code = $LASTEXITCODE
   } catch {
     $code = 1
-    Warn ("Exception while running seed_all.py: " + $_.Exception.Message)
+    Warn ("Exception while running backend.seeds.seed_all: " + $_.Exception.Message)
   } finally {
-    Pop-Location
+    $env:PYTHONPATH = $prevPyPath
   }
 
   if ($code -ne 0) {
@@ -262,9 +260,7 @@ Set-Location $repoRoot
 if ($SkipSeed) {
   Info 'Skipping seeding (flag set).'
 } else {
-  $seeds = Join-Path $repoRoot 'backend\seeds'
-  Run-Seed -SeedsDir $seeds
+  Run-Seed -RepoRoot $repoRoot
 }
-
 
 Ok 'Setup complete. Next: .\run_dev.ps1 to start servers.'

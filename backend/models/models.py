@@ -1,9 +1,7 @@
 from datetime import datetime
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Enum, Numeric
-from sqlalchemy import Enum as SAEnum
-from sqlalchemy.sql import func
+from sqlalchemy import Enum as SAEnum, Numeric, func
 
 db = SQLAlchemy()
 
@@ -98,7 +96,7 @@ class HouseCost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     amount = db.Column(db.Numeric, nullable=False)
-    status = db.Column(Enum('done', 'todo', name='cost_status'), nullable=False, default='todo')
+    status = db.Column(SAEnum('done', 'todo', name='cost_status'), nullable=False, default='todo')
     created_at = db.Column(db.DateTime, server_default=func.now())
 
 

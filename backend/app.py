@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template
 from flask_cors import CORS
 from backend.routes import register_routes
+from backend.config import get_config, Config
 
 from backend.models.models import db
 
@@ -21,18 +22,13 @@ def _resolve_db_url() -> str:
 
 def create_app():
     app = Flask(__name__)
-    cors_origin = os.getenv('CORS_ORIGIN', 'http://localhost:5173')
-    CORS(app, resources={r'/api/*': {'origins': cors_origin}})
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = _resolve_db_url()
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config.from_object(get_config())
 
     db.init_app(app)
     register_routes(app)
 
-    @app.route('/')
-    def index():
-        return render_template('index.html')
+    with app.app_context():
+        print("[DB]", Config.EFFECTIVE_DB_URL_SAFE)
 
     return app
 

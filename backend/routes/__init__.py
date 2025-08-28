@@ -12,6 +12,7 @@ from .loans import loans_bp
 from .months import months_bp
 from .planned_purchases import planned_purchases_bp
 from .settings import settings_bp
+from backend.routes.debug import debug_bp
 
 
 def register_routes(app):
@@ -28,6 +29,7 @@ def register_routes(app):
     app.register_blueprint(file_upload_bp)
     app.register_blueprint(cars_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(debug_bp)
 
     print('Registered Routes:')
     for rule in app.url_map.iter_rules():
