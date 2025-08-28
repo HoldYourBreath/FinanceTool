@@ -157,11 +157,11 @@ jobs:
             frontend/package-lock.json
 
       - name: Install deps (root for Playwright)
-        run: npm ci
+        run: npm ci --omit=optional
 
       - name: Install deps (frontend)
         working-directory: frontend
-        run: npm ci
+        run: npm ci --omit=optional
 
       - name: Build (frontend)
         working-directory: frontend
