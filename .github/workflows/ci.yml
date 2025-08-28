@@ -46,7 +46,7 @@ jobs:
       - name: Run pytest (backend)
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: pytest -q backend/tests --maxfail=1 --disable-warnings
+        run: pytest backend/tests --maxfail=1 --disable-warnings
 
   frontend:
     runs-on: ubuntu-latest
