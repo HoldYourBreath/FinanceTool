@@ -1,6 +1,6 @@
 # routes/loan_adjustments.py
 from flask import Blueprint, jsonify, request, current_app
-from models.models import LoanAdjustment, db
+from backend.models.models import LoanAdjustment, db
 
 # Final paths:
 #   GET/POST /api/loan_adjustments

@@ -6,7 +6,7 @@ import os
 from typing import Any
 
 from flask import Blueprint, jsonify, request, current_app
-from models.models import AccInfo, Month, PriceSettings, db
+from backend.models.models import AccInfo, Month, PriceSettings, db
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/api/settings")
 

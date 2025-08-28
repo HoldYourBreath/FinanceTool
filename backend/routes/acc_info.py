@@ -1,6 +1,6 @@
 # routes/acc_info.py
 from flask import Blueprint, jsonify, request, current_app
-from models.models import AccInfo, db
+from backend.models.models import AccInfo, db
 
 # Final paths: /api/acc_info/...
 acc_info_bp = Blueprint("acc_info", __name__, url_prefix="/api/acc_info")

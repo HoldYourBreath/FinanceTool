@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request, current_app
-from models.models import Car, db
+from backend.models.models import Car, db
 
 # --- Optional utils: keep CI green if these modules aren't available ---
 try:

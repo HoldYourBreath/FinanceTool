@@ -1,6 +1,6 @@
 # routes/house_costs.py
 from flask import Blueprint, jsonify, request, current_app
-from models.models import HouseCost, LandCost, db
+from backend.models.models import HouseCost, LandCost, db
 
 house_bp = Blueprint("house", __name__, url_prefix="/api")
 

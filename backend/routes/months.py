@@ -1,6 +1,6 @@
 # routes/months.py
 from flask import Blueprint, jsonify, current_app
-from models.models import Financing, Month, db
+from backend.models.models import Financing, Month, db
 
 # Final paths:
 #   GET /api/months        -> months from the current month (inclusive) onward

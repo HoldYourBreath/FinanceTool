@@ -5,8 +5,8 @@ from .depreciation import (
     estimate_new_price_from_today_price,
     predict_future_value_from_today_price,
 )
-from .energy import energy_cost_per_month
-from .format import to_num
+from backend.utils.energy import energy_cost_per_month
+from backend.utils.format import to_num
 from .settings import get_yearly_km
 
 

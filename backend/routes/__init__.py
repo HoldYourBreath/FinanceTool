@@ -1,6 +1,6 @@
 # routes/__init__.py
 from .health import health_bp
-from routes.file_upload_routes import file_upload_bp
+from .file_upload_routes import file_upload_bp
 from .acc_info import acc_info_bp
 from .car_evaluation import cars_bp
 from .expenses import expenses_bp

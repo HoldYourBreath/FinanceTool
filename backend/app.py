@@ -4,9 +4,9 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, render_template
 from flask_cors import CORS
-from routes import register_routes
+from backend.routes import register_routes
 
-from models.models import db
+from backend.models.models import db
 
 load_dotenv()
 

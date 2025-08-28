@@ -1,7 +1,7 @@
 # routes/planned_purchases.py
 from datetime import datetime
 from flask import Blueprint, jsonify, request, current_app
-from models.models import PlannedPurchase, db
+from backend.models.models import PlannedPurchase, db
 
 # Final paths:
 #   GET/POST   /api/planned_purchases
