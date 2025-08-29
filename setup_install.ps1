@@ -1,8 +1,8 @@
 <# 
   setup_install.ps1
   - Installs backend (Python) and frontend (Node) dependencies
-  - Creates backend .env with defaults if missing
-  - Seeds the database at the end (skip with -SkipSeed)
+  - Creates backend env files for **Postgres** (dev & demo)
+  - Seeds the selected database at the end (skip with -SkipSeed)
   - Optionally installs Node LTS with -AutoInstallNode (winget)
 #>
 
@@ -10,7 +10,12 @@ param(
   [switch]$AutoInstallNode,
   [switch]$SkipSeed,
   [ValidateSet('3.12','3.11','3')]
-  [string]$PythonVersion = '3.11'
+  [string]$PythonVersion = '3.11',
+  [ValidateSet('dev','demo')]
+  [string]$Env = 'dev',
+  # Customize your Postgres URLs here (passwords may need URL-encoding)
+  [string]$DevDbUrl  = 'postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker',
+  [string]$DemoDbUrl = 'postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker_demo'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,7 +34,7 @@ function Get-PythonCmd {
   param([string]$Requested = '3.11')
   $hasPy = Get-Command py -ErrorAction SilentlyContinue
   if ($hasPy) {
-    try { & py "-$Requested" -c "import sys;print(1)" > $null 2>&1; if ($LASTEXITCODE -eq 0) { return @('py', "-$Requested") } } catch {}
+    try { & py "-$Requested" -c "import sys;print(1)" *> $null; if ($LASTEXITCODE -eq 0) { return @('py', "-$Requested") } } catch {}
     try { & py -3 -c "import sys;print(1)" *> $null; if ($LASTEXITCODE -eq 0) { return @('py', '-3') } } catch {}
     try { & py -c "import sys;print(1)" *> $null; if ($LASTEXITCODE -eq 0) { return @('py') } } catch {}
   }
@@ -138,18 +143,36 @@ if (Test-Path '.\requirements.txt') {
   Warn 'requirements.txt not found — skipping backend install'
 }
 
-# .env
-$envPath = '.\.env'
-if (-not (Test-Path $envPath)) {
+# --- Write env files for Postgres (dev/demo) ---
+$envDev  = '.\.env.dev'
+$envDemo = '.\.env.demo'
+if (-not (Test-Path $envDev)) {
 @"
-# --- Backend .env (generated) ---
-FLASK_DEBUG=1
+# Backend .env.dev (dev/private)
+APP_ENV=dev
+DATABASE_URL=$DevDbUrl
 CORS_ORIGIN=http://localhost:5173
-SQLALCHEMY_DATABASE_URI=sqlite:///dev.db
-# PostgreSQL example:
-# SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:password@localhost:5432/financial_tracker
-"@ | Out-File -Encoding UTF8 $envPath
-  Ok 'Created backend .env'
+"@ | Out-File -Encoding UTF8 $envDev
+  Ok 'Created backend .env.dev'
+} else {
+  Info '.env.dev already exists — leaving it unchanged'
+}
+if (-not (Test-Path $envDemo)) {
+@"
+# Backend .env.demo (demo dataset, separate Postgres DB)
+APP_ENV=demo
+DEMO_DATABASE_URL=$DemoDbUrl
+CORS_ORIGIN=http://localhost:5173
+"@ | Out-File -Encoding UTF8 $envDemo
+  Ok 'Created backend .env.demo'
+} else {
+  Info '.env.demo already exists — leaving it unchanged'
+}
+# keep a plain .env for convenience (points to selected env)
+$activeEnvPath = '.\.env'
+if (-not (Test-Path $activeEnvPath)) {
+  if ($Env -eq 'demo') { Copy-Item $envDemo $activeEnvPath } else { Copy-Item $envDev $activeEnvPath }
+  Ok "Created backend .env (from .$Env)"
 } else {
   Info 'backend .env already exists — leaving it unchanged'
 }
@@ -204,12 +227,7 @@ if ($exit -eq 0) {
 }
 
 # Ensure @playwright/test & browsers are present
-try {
-  $pkgJson = Get-Content '.\package.json' -Raw
-} catch {
-  Fail 'Could not read frontend/package.json'; exit 1
-}
-
+try { $pkgJson = Get-Content '.\package.json' -Raw } catch { Fail 'Could not read frontend/package.json'; exit 1 }
 if ($pkgJson -notmatch '"@playwright/test"\s*:') {
   Info 'Installing @playwright/test...'
   $code = Run-Npm 'install -D @playwright/test --no-audit --no-fund'
@@ -218,7 +236,6 @@ if ($pkgJson -notmatch '"@playwright/test"\s*:') {
 } else {
   Info '@playwright/test already present'
 }
-
 Info 'Installing Playwright browsers...'
 $code = Run-Npx 'playwright install'
 if ($code -ne 0) { Fail 'playwright install failed'; exit $code }
@@ -226,7 +243,7 @@ Ok 'Playwright browsers installed'
 
 # ---------------- seeding ----------------
 function Run-Seed {
-  param([string]$RepoRoot)
+  param([string]$RepoRoot,[string]$EnvName,[string]$DevUrl,[string]$DemoUrl)
 
   $venvPy = Join-Path $RepoRoot 'backend\.venv\Scripts\python.exe'
   if (-not (Test-Path $venvPy)) { $venvPy = 'python' }
@@ -235,10 +252,19 @@ function Run-Seed {
   $prevPyPath = $env:PYTHONPATH
   if ($prevPyPath) { $env:PYTHONPATH = "$RepoRoot;$prevPyPath" } else { $env:PYTHONPATH = "$RepoRoot" }
 
+  # Select DB per env (Postgres only)
+  $env:APP_ENV = $EnvName
+  if ($EnvName -eq 'demo') {
+    $env:DEMO_DATABASE_URL = $DemoUrl
+    Write-Host "[INFO]  Seeding DEMO database: $DemoUrl" -ForegroundColor Cyan
+  } else {
+    $env:DATABASE_URL = $DevUrl
+    Write-Host "[INFO]  Seeding DEV database:  $DevUrl" -ForegroundColor Cyan
+  }
+
   Info 'Seeding database...'
   $code = 0
   try {
-    # Run the orchestrator as a module so absolute imports resolve
     & $venvPy '-m' 'backend.seeds.seed_all'
     $code = $LASTEXITCODE
   } catch {
@@ -260,7 +286,11 @@ Set-Location $repoRoot
 if ($SkipSeed) {
   Info 'Skipping seeding (flag set).'
 } else {
-  Run-Seed -RepoRoot $repoRoot
+  Run-Seed -RepoRoot $repoRoot -EnvName $Env -DevUrl $DevDbUrl -DemoUrl $DemoDbUrl
 }
 
-Ok 'Setup complete. Next: .\run_dev.ps1 to start servers.'
+Ok "Setup complete. Active env: $Env
+- Backend env files: backend/.env.dev and backend/.env.demo
+- To switch default env file: Copy-Item backend/.env.$Env backend/.env -Force
+- Next: .\run_dev.ps1 (dev on :5000) or .\run_demo.ps1 (demo on :5001)
+"

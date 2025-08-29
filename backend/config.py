@@ -5,7 +5,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 
-# Load environment variables from .env if present
+# Load environment variables from .env (dev/demo files or process env)
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -14,18 +14,14 @@ INSTANCE_DIR = (BASE_DIR / ".." / "instance").resolve()
 
 def _normalize_db_url(url: str | None) -> str | None:
     """
-    Accept common variants:
-      - postgres://...           -> postgresql+psycopg2://...
-      - postgresql://...         -> postgresql+psycopg2://...
-    Leave others as-is.
+    Normalize common Postgres URL variants to 'postgresql+psycopg2://...'.
     """
     if not url:
         return None
     url = url.strip()
-
     if url.startswith("postgres://"):
         return "postgresql+psycopg2://" + url[len("postgres://") :]
-    if url.startswith("postgresql://"):
+    if url.startswith("postgresql://") and "+psycopg2" not in url:
         return "postgresql+psycopg2://" + url[len("postgresql://") :]
     return url
 
@@ -47,40 +43,53 @@ def _safe_url(url: str) -> str:
 
 
 class Config:
+    # --- General ---
     SECRET_KEY = os.getenv("SECRET_KEY", "default-secret-key")
-    # Accept comma-separated CORS origins; default to Vite dev
-    CORS_ORIGIN = os.getenv("CORS_ORIGIN", "http://localhost:5173")
 
-    # Database URI (normalize & fallback)
-    _env_url = _normalize_db_url(os.getenv("DATABASE_URL"))
+    # Accept either CORS_ORIGIN or CORS_ORIGINS (comma-separated)
+    _cors = os.getenv("CORS_ORIGIN") or os.getenv("CORS_ORIGINS") or "http://localhost:5173"
+    CORS_ORIGIN = _cors  # keep string for simple setups
+    CORS_ORIGINS_LIST = [x.strip() for x in _cors.split(",")] if _cors else ["http://localhost:5173"]
 
-    if _env_url:
-        SQLALCHEMY_DATABASE_URI = _env_url
-    else:
-        # Fallback only if DATABASE_URL is not set
-        INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
-        SQLALCHEMY_DATABASE_URI = f"sqlite:///{(INSTANCE_DIR / 'dev.db').as_posix()}"
+    # --- Environment selection (dev/demo/prod) ---
+    APP_ENV = (os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "dev").lower()
 
+    # Primary URLs
+    DEMO_DATABASE_URL = _normalize_db_url(os.getenv("DEMO_DATABASE_URL"))
+    DATABASE_URL = _normalize_db_url(os.getenv("DATABASE_URL"))
+
+    # Choose DB per env:
+    # - demo  -> DEMO_DATABASE_URL (required for demo), fallback to DATABASE_URL
+    # - other -> DATABASE_URL
+    _chosen = None
+    if APP_ENV == "demo" and DEMO_DATABASE_URL:
+        _chosen = DEMO_DATABASE_URL
+    elif DATABASE_URL:
+        _chosen = DATABASE_URL
+
+    # Final fallback (avoid SQLite to keep parity with prod)
+    if not _chosen:
+        # Adjust the host/creds if needed for your local PG
+        _chosen = "postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker"
+
+    SQLALCHEMY_DATABASE_URI = _chosen
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ECHO = os.getenv("SQLALCHEMY_ECHO", "0").lower() in {"1", "true", "yes", "on"}
 
     # Helpful for startup logs (password redacted)
     EFFECTIVE_DB_URL_SAFE = _safe_url(SQLALCHEMY_DATABASE_URI)
 
-    # Engine tweaks (mainly useful for Postgres)
-    # backend/config.py  (inside Config)
+    # Engine options (Postgres)
     if SQLALCHEMY_DATABASE_URI.startswith("postgresql"):
         SQLALCHEMY_ENGINE_OPTIONS = {
             "pool_pre_ping": True,
             "pool_recycle": 1800,
-            "connect_args": {
-                "options": "-csearch_path=public"  # << force the schema with your data
-            },
+            # Force default schema to 'public' (adjust if you use another schema)
+            "connect_args": {"options": "-csearch_path=public"},
         }
     else:
+        # If you truly need SQLite in some niche case, add options here.
         SQLALCHEMY_ENGINE_OPTIONS = {}
-
-    # Optional echo (SQL logs) controlled via env
-    SQLALCHEMY_ECHO = os.getenv("SQLALCHEMY_ECHO", "0") in ("1", "true", "True")
 
 
 class DevelopmentConfig(Config):
@@ -93,7 +102,7 @@ class ProductionConfig(Config):
 
 def get_config() -> str:
     """Return the dotted path to the config class based on APP_ENV/FLASK_ENV."""
-    env = (os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "development").lower()
+    env = Config.APP_ENV
     if env.startswith("prod"):
         return "backend.config.ProductionConfig"
     return "backend.config.DevelopmentConfig"
