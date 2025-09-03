@@ -1,10 +1,20 @@
 # backend/seeds/seed_all.py
 from __future__ import annotations
+from backend.utils.db_bootstrap import ensure_database_exists
 
 import os
 import subprocess
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(BACKEND_DIR / ".env")        # loads APP_ENV and DATABASE_URL/DEMO_DATABASE_URL
+
+
+pg_url = os.getenv("DATABASE_URL") or os.getenv("DEMO_DATABASE_URL")
+if pg_url and pg_url.startswith("postgresql+psycopg2://"):
+    ensure_database_exists(pg_url)
 
 # ----- paths / env -----
 REPO_ROOT = Path(__file__).resolve().parents[2]  # project root
@@ -12,17 +22,19 @@ DEFAULT_PYTHONPATH = os.environ.get("PYTHONPATH", "")
 ENV = os.environ.copy()
 ENV["PYTHONPATH"] = f"{REPO_ROOT}{os.pathsep}{DEFAULT_PYTHONPATH}" if DEFAULT_PYTHONPATH else str(REPO_ROOT)
 
+# ----- env helpers -----
 def _is_demo(env: dict[str, str]) -> bool:
     return (env.get("APP_ENV") or "").lower() == "demo"
 
-def _effective_db_url(env: dict[str, str]) -> str | None:
+def resolve_db_url(env: dict[str, str]) -> str | None:
     """
-    For demo: prefer DEMO_DATABASE_URL; otherwise DATABASE_URL.
+    For demo: prefer DEMO_DATABASE_URL; otherwise fallback to DATABASE_URL.
     For dev/other: DATABASE_URL.
     """
     if _is_demo(env):
         return env.get("DEMO_DATABASE_URL") or env.get("DATABASE_URL")
     return env.get("DATABASE_URL")
+
 
 def _safe(url: str | None) -> str:
     if not url:
@@ -75,7 +87,7 @@ def main() -> None:
     steps = [(m, msg) for (m, msg) in STEPS if not only or m in only]
 
     # Log target DB for safety (redacted)
-    eff = _effective_db_url(ENV)
+    eff = resolve_db_url(ENV)
     mode = (ENV.get("APP_ENV") or "dev").lower()
     print(f"📦 REPO_ROOT: {REPO_ROOT}")
     print(f"🔧 APP_ENV:   {mode}")

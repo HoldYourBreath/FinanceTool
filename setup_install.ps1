@@ -159,10 +159,12 @@ CORS_ORIGIN=http://localhost:5173
 }
 if (-not (Test-Path $envDemo)) {
 @"
-# Backend .env.demo (demo dataset, separate Postgres DB)
+# Backend .env.demo (demo dataset, Postgres)
 APP_ENV=demo
+DATABASE_URL=$DemoDbUrl
 DEMO_DATABASE_URL=$DemoDbUrl
 CORS_ORIGIN=http://localhost:5173
+
 "@ | Out-File -Encoding UTF8 $envDemo
   Ok 'Created backend .env.demo'
 } else {
@@ -255,8 +257,11 @@ function Run-Seed {
   # Select DB per env (Postgres only)
   $env:APP_ENV = $EnvName
   if ($EnvName -eq 'demo') {
+    $env:APP_ENV = 'demo'
     $env:DEMO_DATABASE_URL = $DemoUrl
+    $env:DATABASE_URL = $DemoUrl
     Write-Host "[INFO]  Seeding DEMO database: $DemoUrl" -ForegroundColor Cyan
+    Ensure-PostgresDatabase -DbUrl $DemoUrl
   } else {
     $env:DATABASE_URL = $DevUrl
     Write-Host "[INFO]  Seeding DEV database:  $DevUrl" -ForegroundColor Cyan
