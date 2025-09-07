@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Enum as SAEnum, Numeric, func
@@ -129,6 +130,7 @@ class PlannedPurchase(db.Model):
 
 
 class Investment(db.Model):
+    # NOTE: if your table name is 'investments', add: __tablename__ = 'investments'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     value = db.Column(db.Integer, nullable=False)
@@ -167,8 +169,12 @@ class Car(db.Model):
     estimated_purchase_price = db.Column(db.Integer, default=0)
     summer_tires_price = db.Column(db.Integer, default=0)
     winter_tires_price = db.Column(db.Integer, default=0)
-    consumption_kwh_per_100km = db.Column(db.Numeric(6, 2), default=0)
+
+    # EV / energy consumption
+    # Made nullable and without a default so missing values don't appear as 0.00
+    consumption_kwh_per_100km = db.Column(Numeric(6, 2), nullable=True)
     consumption_l_per_100km = db.Column(db.Float, nullable=True, default=0.0)
+
     type_of_vehicle = db.Column(vehicle_type_enum, nullable=False, server_default='EV')
     battery_capacity_kwh = db.Column(db.Numeric(6, 2), default=0)
     acceleration_0_100 = db.Column(db.Float)  # seconds 0–100 km/h
@@ -202,6 +208,71 @@ class Car(db.Model):
     tire_cost = db.Column(Numeric(12, 2), default=0)
     car_tax = db.Column(Numeric(12, 2), default=0)
     consumption_cost = db.Column(Numeric(12, 2), default=0)
+
+    # ---- API serialization ----
+    @staticmethod
+    def _as_float(v):
+        if v is None:
+            return None
+        if isinstance(v, Decimal):
+            return float(v)
+        try:
+            return float(v)
+        except Exception:
+            return None
+
+    def to_dict(self):
+        """
+        Map DB fields to stable API keys.
+        Expose `consumption_kwh_100km` for the frontend while reading DB's `consumption_kwh_per_100km`.
+        Keep a fallback alias for compatibility.
+        """
+        return {
+            'id': self.id,
+            'model': self.model,
+            'year': self.year,
+            'estimated_purchase_price': self.estimated_purchase_price,
+            'summer_tires_price': self.summer_tires_price,
+            'winter_tires_price': self.winter_tires_price,
+
+            # Preferred API key:
+            'consumption_kwh_100km': self._as_float(self.consumption_kwh_per_100km),
+            # Back-compat alias (optional; remove later if not needed):
+            'consumption_kwh_per_100km': self._as_float(self.consumption_kwh_per_100km),
+
+            'consumption_l_100km': self._as_float(self.consumption_l_per_100km),
+            'type_of_vehicle': self.type_of_vehicle,
+            'battery_capacity_kwh': self._as_float(self.battery_capacity_kwh),
+            'acceleration_0_100': self._as_float(self.acceleration_0_100),
+            'range_km': self.range_km,
+            'driven_km': self.driven_km,
+            'battery_aviloo_score': self.battery_aviloo_score,
+            'trunk_size_litre': self.trunk_size_litre,
+            'full_insurance_year': self.full_insurance_year,
+            'half_insurance_year': self.half_insurance_year,
+            'car_tax_year': self.car_tax_year,
+            'repairs_year': self.repairs_year,
+            'body_style': self.body_style,
+            'eu_segment': self.eu_segment,
+            'suv_tier': self.suv_tier,
+            'dc_peak_kw': self._as_float(self.dc_peak_kw),
+            'dc_time_min_10_80': self._as_float(self.dc_time_min_10_80),
+            'dc_time_min_10_80_est': self._as_float(self.dc_time_min_10_80_est),
+            'dc_time_source': self.dc_time_source,
+            'ac_onboard_kw': self._as_float(self.ac_onboard_kw),
+            'ac_time_h_0_100': self._as_float(self.ac_time_h_0_100),
+            'ac_time_h_0_100_est': self._as_float(self.ac_time_h_0_100_est),
+            'ac_time_source': self.ac_time_source,
+
+            # Derived/legacy fields if you still surface them elsewhere:
+            'tco_3_years': self._as_float(self.tco_3_years),
+            'tco_5_years': self._as_float(self.tco_5_years),
+            'tco_8_years': self._as_float(self.tco_8_years),
+            'insurance_cost': self._as_float(self.insurance_cost),
+            'tire_cost': self._as_float(self.tire_cost),
+            'car_tax': self._as_float(self.car_tax),
+            'consumption_cost': self._as_float(self.consumption_cost),
+        }
 
 
 class PriceSettings(db.Model):
