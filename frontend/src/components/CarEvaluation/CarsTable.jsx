@@ -3,6 +3,29 @@ import { toNum, fmt0 } from "../../utils/format";
 import { fieldColor, NA } from "../../utils/carCost";
 import CarRow from "./CarRow";
 
+// EV-only columns in your table
+const EV_ONLY_KEYS = [
+  "battery_capacity_kwh",
+  "dc_peak_kw",
+  "dc_time_min_10_80",
+  "ac_onboard_kw",
+  "ac_time_h_0_100",
+  "consumption_kwh_100km",
+  "consumption_kwh_per_100km",
+  "range",
+];
+
+// Detect diesel/bensin ICE cars (PHEV/EV should NOT match)
+const isICE = (car) => {
+  const src = (
+    car.type_of_vehicle ??
+    car.fuel_type ??
+    car.fuel ??
+    ""
+  ).toString().toLowerCase();
+  return ["diesel", "bensin", "petrol", "gasoline"].includes(src);
+};
+
 const pick = (obj, ...keys) => keys.map(k => obj?.[k]).find(v => v !== undefined && v !== null);
 
 const asNum = (v) => {
@@ -53,16 +76,27 @@ function Header({
 export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, prices }) {
   // --- value getter with unified consumption key ---
   const getVal = (car, key) => {
-    const isKwhKey = key === "consumption_kwh_100km" || key === "consumption_kwh_per_100km";
-    const raw = isKwhKey
-      ? pick(car, "consumption_kwh_100km", "consumption_kwh_per_100km")
-      : car[key];
+  // EV-only fields are not applicable for ICE cars → sort as null (last)
+  if (EV_ONLY_KEYS.includes(key) && isICE(car)) return null;
 
-    const n = asNum(raw);
-    if (n !== null) return n;                 // numeric sort
-    if (typeof raw === "string") return raw.toLowerCase(); // alpha sort
-    return null;                              // nulls sort last
-  };
+  const isKwhKey =
+    key === "consumption_kwh_100km" || key === "consumption_kwh_per_100km";
+  const raw = isKwhKey
+    ? pick(car, "consumption_kwh_100km", "consumption_kwh_per_100km")
+    : car[key];
+
+  const n = asNum(raw);
+
+  // Treat 0 in EV-only fields as "not applicable" for sorting
+  if (EV_ONLY_KEYS.includes(key) && (n === 0 || raw === 0 || raw === "0")) {
+    return null;
+  }
+
+  if (n !== null) return n;                       // numeric sort
+  if (typeof raw === "string") return raw.toLowerCase(); // alpha sort
+  return null;                                    // nulls sort last
+};
+
 
   // --- normalize both keys so downstream always has them ---
   const normalizedCars = cars.map(c => ({
@@ -184,6 +218,8 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
                   fieldColor={fieldColor}
                   NA={NA}
                   prices={prices}
+                  isICE={isICE}
+                  EV_ONLY_KEYS={EV_ONLY_KEYS}
                 />
               ))}
             </tbody>
