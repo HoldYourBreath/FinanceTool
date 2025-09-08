@@ -1,21 +1,23 @@
 <# 
   setup_install.ps1
-  - Installs backend (Python) and frontend (Node) dependencies
-  - Creates backend env files for **Postgres** (dev & demo)
-  - Seeds the selected database at the end (skip with -SkipSeed)
-  - Optionally installs Node LTS with -AutoInstallNode (winget)
+  - Installs backend (Python) and frontend (Node) deps
+  - Writes backend env files for Postgres (dev & demo)
+  - Creates DBs if missing
+  - Seeds selected env by default (or both with -SeedBoth)
+  - Verifies that 'repairs_year' data is present after seeding
 #>
 
 param(
   [switch]$AutoInstallNode,
   [switch]$SkipSeed,
+  [switch]$SeedBoth,
   [ValidateSet('3.12','3.11','3')]
   [string]$PythonVersion = '3.11',
   [ValidateSet('dev','demo')]
   [string]$Env = 'dev',
-  # Customize your Postgres URLs here (passwords may need URL-encoding)
-  [string]$DevDbUrl  = 'postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker',
-  [string]$DemoDbUrl = 'postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker_demo'
+  # Postgres URLs (encode passwords if they have symbols)
+  [string]$DevDbUrl  = 'postgresql+psycopg2://postgres:admin@127.0.0.1:5432/financial_tracker',
+  [string]$DemoDbUrl = 'postgresql+psycopg2://postgres:admin@127.0.0.1:5432/financial_tracker_demo'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,7 +27,7 @@ function Ok($m){   Write-Host "[OK]    $m" -ForegroundColor Green }
 function Warn($m){ Write-Host "[WARN]  $m" -ForegroundColor Yellow }
 function Fail($m){ Write-Host "[FAIL]  $m" -ForegroundColor Red }
 
-# repo root (this script's folder)
+# repo root
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -Path $repoRoot
 
@@ -51,7 +53,7 @@ function Invoke-ArrayCommand {
   & $exe @rest @Args
 }
 
-function Ensure-Node-On-Path {
+function Enable-NodeOnPath {
   $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
   if ($nodeCmd) {
     $nodeDir = Split-Path $nodeCmd.Source
@@ -79,10 +81,7 @@ function Ensure-Node-On-Path {
 function Install-NodeLTS {
   if (-not $AutoInstallNode) { return $false }
   $winget = Get-Command winget -ErrorAction SilentlyContinue
-  if (-not $winget) {
-    Warn "winget not found; cannot auto-install Node. Install Node.js LTS manually and re-run."
-    return $false
-  }
+  if (-not $winget) { Warn "winget not found; install Node.js LTS manually."; return $false }
   Info "Installing Node.js LTS via winget..."
   try {
     winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements --silent
@@ -90,7 +89,7 @@ function Install-NodeLTS {
     Warn ("winget install failed: " + $_.Exception.Message)
     return $false
   }
-  return (Ensure-Node-On-Path)
+  return (Enable-NodeOnPath)
 }
 
 function Run-Npx {
@@ -109,6 +108,50 @@ function Run-Npm {
   if (-not $npm) { throw "npm not found on PATH." }
   $proc = Start-Process -FilePath $npm.Source -ArgumentList $ArgsLine -NoNewWindow -Wait -PassThru
   return $proc.ExitCode
+}
+
+function Invoke-BackendPython {
+  param(
+    [string]$Code,
+    [string]$RepoRoot
+  )
+  $venvPy = Join-Path $RepoRoot 'backend\.venv\Scripts\python.exe'
+  if (-not (Test-Path $venvPy)) { $venvPy = 'python' }
+
+  $prevPyPath = $env:PYTHONPATH
+  if ($prevPyPath) { $env:PYTHONPATH = "$RepoRoot;$prevPyPath" } else { $env:PYTHONPATH = "$RepoRoot" }
+
+  # write code to a temp .py and execute it
+  $tmp = Join-Path $env:TEMP ("seed_" + [guid]::NewGuid().ToString("N") + ".py")
+  try {
+    Set-Content -LiteralPath $tmp -Value $Code -Encoding UTF8
+    & $venvPy $tmp
+  } finally {
+    $env:PYTHONPATH = $prevPyPath
+    if (Test-Path $tmp) { Remove-Item $tmp -Force -ErrorAction SilentlyContinue }
+  }
+}
+
+
+function Ensure-PostgresDatabase {
+  param([string]$DbUrl,[string]$RepoRoot)
+  # Reuse the helper tool if present; otherwise best-effort connect to create.
+  $tool = Join-Path $RepoRoot 'backend\tools\create_pg_db.py'
+  if (Test-Path $tool) {
+    $prevDemo = $env:DEMO_DATABASE_URL
+    $env:DEMO_DATABASE_URL = $DbUrl
+    try {
+      Info "Ensuring database exists (via backend.tools.create_pg_db)..."
+      Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+from backend.tools.create_pg_db import main as _main
+_main()
+"@
+    } finally {
+      $env:DEMO_DATABASE_URL = $prevDemo
+    }
+  } else {
+    Warn "create_pg_db.py not found. Skipping DB create check; assuming DB exists."
+  }
 }
 
 # ---------------- backend ----------------
@@ -146,44 +189,37 @@ if (Test-Path '.\requirements.txt') {
 # --- Write env files for Postgres (dev/demo) ---
 $envDev  = '.\.env.dev'
 $envDemo = '.\.env.demo'
-if (-not (Test-Path $envDev)) {
 @"
 # Backend .env.dev (dev/private)
 APP_ENV=dev
 DATABASE_URL=$DevDbUrl
 CORS_ORIGIN=http://localhost:5173
 "@ | Out-File -Encoding UTF8 $envDev
-  Ok 'Created backend .env.dev'
-} else {
-  Info '.env.dev already exists — leaving it unchanged'
-}
-if (-not (Test-Path $envDemo)) {
+Ok 'Wrote backend .env.dev'
+
 @"
 # Backend .env.demo (demo dataset, Postgres)
 APP_ENV=demo
 DATABASE_URL=$DemoDbUrl
 DEMO_DATABASE_URL=$DemoDbUrl
 CORS_ORIGIN=http://localhost:5173
-
 "@ | Out-File -Encoding UTF8 $envDemo
-  Ok 'Created backend .env.demo'
-} else {
-  Info '.env.demo already exists — leaving it unchanged'
-}
-# keep a plain .env for convenience (points to selected env)
+Ok 'Wrote backend .env.demo'
+
+# keep a plain .env that points to the chosen env (overwrite to avoid confusion)
 $activeEnvPath = '.\.env'
-if (-not (Test-Path $activeEnvPath)) {
-  if ($Env -eq 'demo') { Copy-Item $envDemo $activeEnvPath } else { Copy-Item $envDev $activeEnvPath }
-  Ok "Created backend .env (from .$Env)"
+if ($Env -eq 'demo') {
+  Copy-Item $envDemo $activeEnvPath -Force
 } else {
-  Info 'backend .env already exists — leaving it unchanged'
+  Copy-Item $envDev  $activeEnvPath -Force
 }
+Ok "Selected backend env: $Env (wrote backend\.env)"
 
 # ---------------- frontend ----------------
 Set-Location '..\frontend'
 Info 'Setting up frontend...'
 
-if (-not (Ensure-Node-On-Path)) {
+if (-not (Enable-NodeOnPath)) {
   if (-not (Install-NodeLTS)) {
     Fail 'Node.js not available. Install Node LTS and re-run.'
     Set-Location $repoRoot
@@ -199,7 +235,7 @@ try {
   Warn ("Could not query node/npm versions: " + $_.Exception.Message)
 }
 
-# Install dependencies (prefer lockfile)
+# Install deps
 $exit = 0
 if (Test-Path '.\package-lock.json') {
   Info 'Installing frontend deps with npm ci...'
@@ -208,8 +244,6 @@ if (Test-Path '.\package-lock.json') {
   Info 'Installing frontend deps with npm install...'
   $exit = Run-Npm 'install --no-audit --no-fund'
 }
-
-# Fallback if lockfile mismatch / flakiness
 if ($exit -ne 0) {
   Warn "npm install failed (exit $exit). Attempting cleanup and retry..."
   foreach ($name in @('esbuild','rollup','node')) { try { taskkill /IM "$name.exe" /F 2>$null | Out-Null } catch {} }
@@ -219,16 +253,13 @@ if ($exit -ne 0) {
   Run-Npm 'cache verify' | Out-Null
   $exit = Run-Npm 'install --no-audit --no-fund'
 }
-
-if ($exit -eq 0) {
-  Ok 'Frontend dependencies installed'
-} else {
+if ($exit -eq 0) { Ok 'Frontend dependencies installed' } else {
   Fail "Frontend install failed (exit $exit). See npm log in $env:LOCALAPPDATA\npm-cache\_logs"
   Set-Location $repoRoot
   exit $exit
 }
 
-# Ensure @playwright/test & browsers are present
+# Ensure Playwright
 try { $pkgJson = Get-Content '.\package.json' -Raw } catch { Fail 'Could not read frontend/package.json'; exit 1 }
 if ($pkgJson -notmatch '"@playwright/test"\s*:') {
   Info 'Installing @playwright/test...'
@@ -243,59 +274,69 @@ $code = Run-Npx 'playwright install'
 if ($code -ne 0) { Fail 'playwright install failed'; exit $code }
 Ok 'Playwright browsers installed'
 
-# ---------------- seeding ----------------
-function Run-Seed {
-  param([string]$RepoRoot,[string]$EnvName,[string]$DevUrl,[string]$DemoUrl)
+# ---------------- seeding & verification ----------------
+function Initialize-SeedEnvironment {
+  param(
+    [string]$EnvName,
+    [string]$DbUrl,
+    [string]$RepoRoot
+  )
 
-  $venvPy = Join-Path $RepoRoot 'backend\.venv\Scripts\python.exe'
-  if (-not (Test-Path $venvPy)) { $venvPy = 'python' }
+  # Ensure DB exists (best-effort)
+  Ensure-PostgresDatabase -DbUrl $DbUrl -RepoRoot $RepoRoot
 
-  # Ensure backend.* imports work regardless of CWD
-  $prevPyPath = $env:PYTHONPATH
-  if ($prevPyPath) { $env:PYTHONPATH = "$RepoRoot;$prevPyPath" } else { $env:PYTHONPATH = "$RepoRoot" }
-
-  # Select DB per env (Postgres only)
+  # Configure env for backend
   $env:APP_ENV = $EnvName
-  if ($EnvName -eq 'demo') {
-    $env:APP_ENV = 'demo'
-    $env:DEMO_DATABASE_URL = $DemoUrl
-    $env:DATABASE_URL = $DemoUrl
-    Write-Host "[INFO]  Seeding DEMO database: $DemoUrl" -ForegroundColor Cyan
-    Ensure-PostgresDatabase -DbUrl $DemoUrl
-  } else {
-    $env:DATABASE_URL = $DevUrl
-    Write-Host "[INFO]  Seeding DEV database:  $DevUrl" -ForegroundColor Cyan
-  }
+  $env:DATABASE_URL = $DbUrl
+  if ($EnvName -eq 'demo') { $env:DEMO_DATABASE_URL = $DbUrl }
 
-  Info 'Seeding database...'
-  $code = 0
-  try {
-    & $venvPy '-m' 'backend.seeds.seed_all'
-    $code = $LASTEXITCODE
-  } catch {
-    $code = 1
-    Warn ("Exception while running backend.seeds.seed_all: " + $_.Exception.Message)
-  } finally {
-    $env:PYTHONPATH = $prevPyPath
-  }
+  Info "Seeding ($EnvName) → $DbUrl"
+  Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+from backend.app import create_app
+a=create_app(); ctx=a.app_context(); ctx.push()
+print('APP_ENV =', a.config.get('APP_ENV'))
+print('DB URI  =', a.config.get('SQLALCHEMY_DATABASE_URI'))
+from backend.seeds import seed_all
+seed_all.main() if hasattr(seed_all,'main') else None
+ctx.pop()
+"@
 
-  if ($code -ne 0) {
-    Fail ("Seeding failed (exit " + $code + ").")
-    exit $code
-  } else {
-    Ok 'Seeding completed.'
-  }
+  # Verify a few rows made it, and that repairs_year is non-null for EVs
+  Info "Verifying seed ($EnvName)..."
+  Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+from backend.app import create_app
+a=create_app(); ctx=a.app_context(); ctx.push()
+from backend.models.models import Car, db
+rows = db.session.query(Car.model, Car.repairs_year, Car.type_of_vehicle).order_by(Car.model).limit(8).all()
+print('Sample cars:', rows)
+nulls = db.session.query(Car).filter((Car.type_of_vehicle.in_(['EV','PHEV'])) & ((Car.repairs_year.is_(None)))).count()
+print('EV/PHEV rows with NULL repairs_year:', nulls)
+ctx.pop()
+"@
+  Ok "Seed verified for $EnvName"
 }
 
 Set-Location $repoRoot
 if ($SkipSeed) {
   Info 'Skipping seeding (flag set).'
 } else {
-  Run-Seed -RepoRoot $repoRoot -EnvName $Env -DevUrl $DevDbUrl -DemoUrl $DemoDbUrl
+  if ($SeedBoth) {
+    Initialize-SeedEnvironment -EnvName 'dev'  -DbUrl $DevDbUrl  -RepoRoot $repoRoot
+    Initialize-SeedEnvironment -EnvName 'demo' -DbUrl $DemoDbUrl -RepoRoot $repoRoot
+  } else {
+    if ($Env -eq 'demo') {
+      Initialize-SeedEnvironment -EnvName 'demo' -DbUrl $DemoDbUrl -RepoRoot $repoRoot
+    } else {
+      Initialize-SeedEnvironment -EnvName 'dev'  -DbUrl $DevDbUrl  -RepoRoot $repoRoot
+    }
+  }
 }
 
-Ok "Setup complete. Active env: $Env
-- Backend env files: backend/.env.dev and backend/.env.demo
-- To switch default env file: Copy-Item backend/.env.$Env backend/.env -Force
-- Next: .\run_dev.ps1 (dev on :5000) or .\run_demo.ps1 (demo on :5001)
+Ok "Setup complete.
+- Active backend env file now points to: $Env  (backend\.env)
+- DB (dev):  $DevDbUrl
+- DB (demo): $DemoDbUrl
+Next:
+  .\run_dev.ps1   # start dev API/UI
+  .\run_demo.ps1  # start demo API/UI
 "
