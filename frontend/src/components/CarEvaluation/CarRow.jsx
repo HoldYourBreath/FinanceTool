@@ -1,5 +1,6 @@
 // components/car-evaluation/CarRow.jsx
 import { rowBgFor } from '../../utils/vehicleTypeStyles';
+import { brandBgClass, canonicalBrand } from '../../utils/brandColors';
 import { priceBg } from '../../utils/priceStyles';
 import { toFixed1 } from "../../utils/format";
 import { normType, pickOfficialOrEst, TYPE_CHOICES } from "../../utils/normalizers";
@@ -15,13 +16,16 @@ export default function CarRow({ car, idx, onChange, fmt0, fieldColor, NA, price
   return (
     <tr className={`${rowBg} transition-colors`} data-type={car.type_of_vehicle}>
       {/* Model (frozen) */}
-      <td className="border px-2 py-1 sticky left-0 z-30 bg-inherit w-[18rem]
-                     shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.06)]">
-        <input
-          className="w-full border px-1 font-bold"
-          value={car.model}
-          onChange={(e) => onChange(idx, "model", e.target.value)}
-        />
+      <td
+      className={`border px-2 py-1 sticky left-0 z-30 w-[18rem]
+                shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.06)] ${brandBgClass(car.model)}`}
+      title={canonicalBrand(car.model) || undefined}
+      >
+      <input
+        className="w-full border px-1 font-bold bg-transparent focus:bg-white/70"
+        value={car.model}
+        onChange={(e) => onChange(idx, "model", e.target.value)}
+      />
       </td>
 
       {/* Year */}
