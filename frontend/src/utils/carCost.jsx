@@ -2,14 +2,23 @@
 // (pure JS, safe to use in Vite)
 
 const COLORS = {
-  good: "bg-green-50 text-green-700",
-  ok: "bg-yellow-50 text-yellow-700",
-  bad: "bg-red-50 text-red-700",
+  great: "bg-emerald-50 text-emerald-700",
+  good:  "bg-green-50 text-green-700",
+  ok:    "bg-yellow-50 text-yellow-700",
+  fair:  "bg-amber-50 text-amber-700",
+  bad:   "bg-red-50 text-red-700",
 };
 
 export const fieldColor = (field, value) => {
   const v = Number(value) || 0;
   switch (field) {
+    case "repairs_year":
+      if (v > 7000) return COLORS.bad; 
+      if (v > 6000) return COLORS.fair;
+      if (v > 5000) return COLORS.ok;
+      if (v > 4000) return COLORS.good;
+      return COLORS.great;    
+      
     case "trunk_size_litre":
       if (v > 500) return COLORS.good;
       if (v < 400) return COLORS.bad;

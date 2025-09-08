@@ -258,7 +258,7 @@ export default function CarRow({ car, idx, onChange, fmt0, fieldColor, NA, price
       <td className="border px-2 py-1 text-right">
         <input
           type="number"
-          className="w-24 border px-1 text-right"
+          className={`w-24 border px-1 text-right ${fieldColor("repairs_year", car.repairs_year)}`}
           value={car.repairs_year}
           onChange={(e) => onChange(idx, "repairs_year", e.target.value)}
           min="0"
