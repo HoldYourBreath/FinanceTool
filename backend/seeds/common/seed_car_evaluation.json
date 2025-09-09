@@ -22,12 +22,10 @@
       "car_tax_year": 360,
       "repairs_year": 5000,
       "dc_peak_kw": 125.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 45.92,
+      "dc_time_min_10_80": 45.92,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 7.45,
+      "ac_time_h_0_100": 7.45,
       "ac_time_source": ""
     },
     {
@@ -52,12 +50,10 @@
       "car_tax_year": 360,
       "repairs_year": 5500,
       "dc_peak_kw": 250.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 21.56,
+      "dc_time_min_10_80": 21.56,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 7.0,
+      "ac_time_h_0_100": 7.0,
       "ac_time_source": ""
     },
     {
@@ -83,11 +79,9 @@
       "repairs_year": 5000,
       "dc_peak_kw": 250.0,
       "dc_time_min_10_80": 22,
-      "dc_time_min_10_80_est": 22,
       "dc_time_source": "",
       "ac_onboard_kw": 11.5,
       "ac_time_h_0_100": 5.5,
-      "ac_time_h_0_100_est": "",
       "ac_time_source": ""
     },
     {
@@ -112,12 +106,10 @@
       "car_tax_year": 360,
       "repairs_year": 3500,
       "dc_peak_kw": 220.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 23.1,
+      "dc_time_min_10_80": 23.1,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 6.6,
+      "ac_time_h_0_100": 6.6,
       "ac_time_source": ""
     },
     {
@@ -142,12 +134,10 @@
       "car_tax_year": 360,
       "repairs_year": 3000,
       "dc_peak_kw": 77.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 58.18,
+      "dc_time_min_10_80": 58.18,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 5.82,
+      "ac_time_h_0_100": 5.82,
       "ac_time_source": ""
     },
     {
@@ -172,12 +162,10 @@
       "car_tax_year": 360,
       "repairs_year": 3500,
       "dc_peak_kw": 230.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 23.58,
+      "dc_time_min_10_80": 23.58,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 7.04,
+      "ac_time_h_0_100": 7.04,
       "ac_time_source": ""
     },
     {
@@ -202,12 +190,10 @@
       "car_tax_year": 360,
       "repairs_year": 4500,
       "dc_peak_kw": 77.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 58.18,
+      "dc_time_min_10_80": 58.18,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 5.82,
+      "ac_time_h_0_100": 5.82,
       "ac_time_source": ""
     },
     {
@@ -232,12 +218,10 @@
       "car_tax_year": 360,
       "repairs_year": 5000,
       "dc_peak_kw": 150.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 35.29,
+      "dc_time_min_10_80": 35.29,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 6.88,
+      "ac_time_h_0_100": 6.88,
       "ac_time_source": ""
     },
     {
@@ -262,12 +246,10 @@
       "car_tax_year": 360,
       "repairs_year": 3500,
       "dc_peak_kw": 100.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 43.4,
+      "dc_time_min_10_80": 43.4,
       "dc_time_source": "",
       "ac_onboard_kw": 6.6,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 9.39,
+      "ac_time_h_0_100": 9.39,
       "ac_time_source": ""
     },
     {
@@ -292,12 +274,10 @@
       "car_tax_year": 360,
       "repairs_year": 4500,
       "dc_peak_kw": 250.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 21.0,
+      "dc_time_min_10_80": 21.0,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 6.82,
+      "ac_time_h_0_100": 6.82,
       "ac_time_source": ""
     },
     {
@@ -323,11 +303,9 @@
       "repairs_year": 5500,
       "dc_peak_kw": 170,
       "dc_time_min_10_80": 22,
-      "dc_time_min_10_80_est": "",
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
       "ac_time_h_0_100": 5.5,
-      "ac_time_h_0_100_est": null,
       "ac_time_source": ""
     },
     {
@@ -352,12 +330,10 @@
       "car_tax_year": 360,
       "repairs_year": 4000,
       "dc_peak_kw": 150.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 20.77,
+      "dc_time_min_10_80": 20.77,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 4.05,
+      "ac_time_h_0_100": 4.05,
       "ac_time_source": ""
     },
     {
@@ -382,12 +358,10 @@
       "car_tax_year": 360,
       "repairs_year": 4500,
       "dc_peak_kw": 76.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 40.99,
+      "dc_time_min_10_80": 40.99,
       "dc_time_source": "",
       "ac_onboard_kw": 6.6,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 6.74,
+      "ac_time_h_0_100": 6.74,
       "ac_time_source": ""
     },
     {
@@ -412,12 +386,10 @@
       "car_tax_year": 360,
       "repairs_year": 5000,
       "dc_peak_kw": 125.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 45.92,
+      "dc_time_min_10_80": 45.92,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 7.45,
+      "ac_time_h_0_100": 7.45,
       "ac_time_source": ""
     },
     {
@@ -442,12 +414,10 @@
       "car_tax_year": 360,
       "repairs_year": 5500,
       "dc_peak_kw": 150.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 32.2,
+      "dc_time_min_10_80": 32.2,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 6.27,
+      "ac_time_h_0_100": 6.27,
       "ac_time_source": ""
     },
     {
@@ -472,12 +442,10 @@
       "car_tax_year": 360,
       "repairs_year": 3500,
       "dc_peak_kw": 100.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 35.0,
+      "dc_time_min_10_80": 35.0,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 4.55,
+      "ac_time_h_0_100": 4.55,
       "ac_time_source": ""
     },
     {
@@ -502,12 +470,10 @@
       "car_tax_year": 360,
       "repairs_year": 3500,
       "dc_peak_kw": 100.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 35.0,
+      "dc_time_min_10_80": 35.0,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 4.55,
+      "ac_time_h_0_100": 4.55,
       "ac_time_source": ""
     },
     {
@@ -621,12 +587,10 @@
       "car_tax_year": 360,
       "repairs_year": 8000,
       "dc_peak_kw": 18.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 70.39,
+      "dc_time_min_10_80": 70.39,
       "dc_time_source": "",
       "ac_onboard_kw": 6.6,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 2.74,
+      "ac_time_h_0_100": 2.74,
       "ac_time_source": ""
     },
     {
@@ -653,11 +617,9 @@
       "repairs_year": 7500,
       "dc_peak_kw": 0.0,
       "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": null,
       "dc_time_source": "",
       "ac_onboard_kw": 3.3,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 2.7,
+      "ac_time_h_0_100": 2.7,
       "ac_time_source": ""
     },
     {
@@ -682,12 +644,10 @@
       "car_tax_year": 360,
       "repairs_year": 4000,
       "dc_peak_kw": 120.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 33.83,
+      "dc_time_min_10_80": 33.83,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 5.27,
+      "ac_time_h_0_100": 5.27,
       "ac_time_source": ""
     },
     {
@@ -712,12 +672,10 @@
       "car_tax_year": 360,
       "repairs_year": 4500,
       "dc_peak_kw": 125.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 45.92,
+      "dc_time_min_10_80": 45.92,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 7.45,
+      "ac_time_h_0_100": 7.45,
       "ac_time_source": ""
     },
     {
@@ -742,12 +700,10 @@
       "car_tax_year": 360,
       "repairs_year": 3500,
       "dc_peak_kw": 88.0,
-      "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": 48.05,
+      "dc_time_min_10_80": 48.05,
       "dc_time_source": "",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 5.49,
+      "ac_time_h_0_100": 5.49,
       "ac_time_source": ""
     },
     {
@@ -774,11 +730,9 @@
       "repairs_year": 8000,
       "dc_peak_kw": 88.0,
       "dc_time_min_10_80": null,
-      "dc_time_min_10_80_est": null,
       "dc_time_source": "",
       "ac_onboard_kw": 3.7,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 5.49,
+      "ac_time_h_0_100": 5.49,
       "ac_time_source": ""
     },
     {
@@ -804,11 +758,9 @@
       "repairs_year": 3500,
       "dc_peak_kw": 40,
       "dc_time_min_10_80": 36,
-      "dc_time_min_10_80_est": 36,
       "dc_time_source": "EV Database WLTP",
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100": null,
-      "ac_time_h_0_100_est": 3,
+      "ac_time_h_0_100": 3,
       "ac_time_source": "EV Database WLTP"
     },
     {
@@ -834,11 +786,9 @@
       "repairs_year": 3500,
       "dc_peak_kw": 49,
       "dc_time_min_10_80": 36,
-      "dc_time_min_10_80_est": 36,
       "dc_time_source": "EV Database (0%→235 km) & WLTP-derived",
       "ac_onboard_kw": 11.0,
       "ac_time_h_0_100": 4.25,
-      "ac_time_h_0_100_est": 4.25,
       "ac_time_source": "EV Database (0→235 km)"
     },
     {
@@ -865,7 +815,7 @@
       "dc_peak_kw": 44,
       "dc_time_min_10_80": 29,
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100_est": 2.5,
+      "ac_time_h_0_100": 2.5,
       "ac_time_source": ""
     },
     {
@@ -892,7 +842,7 @@
       "dc_peak_kw": 175,
       "dc_time_min_10_80": 26,
       "ac_onboard_kw": 11.0,
-      "ac_time_h_0_100_est": 9,
+      "ac_time_h_0_100": 9,
       "ac_time_source": "Manufacturer / EV-Database official data"
     }
   ]
