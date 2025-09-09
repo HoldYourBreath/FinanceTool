@@ -9,8 +9,28 @@ const COLORS = {
   bad: "bg-red-50 text-red-700",
 };
 
-export const fieldColor = (field, value) => {
+const FIELD_ALIASES = {
+  range: "range_km",
+  consumption_kwh_100km: "consumption_kwh_per_100km",
+  consumption_l_100km: "consumption_l_per_100km",
+
+  // charging time aliases
+  dc_time_min_10_80_est: "dc_time_min_10_80",
+  ac_time_h_0_100_est: "ac_time_h_0_100",
+
+  // peak power aliases
+  dc_peak: "dc_peak_kw",
+  ac_onboard: "ac_onboard_kw",
+};
+
+function canon(field) {
+  return FIELD_ALIASES[field] || field;
+}
+
+export const fieldColor = (rawField, value) => {
+  const field = canon(rawField);
   const v = Number(value) || 0;
+
   switch (field) {
     case "repairs_year":
       if (v > 7000) return COLORS.bad;
@@ -23,26 +43,64 @@ export const fieldColor = (field, value) => {
       if (v > 500) return COLORS.good;
       if (v < 400) return COLORS.bad;
       return COLORS.ok;
-    case "range":
-      if (v > 500) return COLORS.good;
+
+    case "range_km": // accepts "range" via alias
+      if (v >= 500) return COLORS.good;
       if (v < 400) return COLORS.bad;
       return COLORS.ok;
+
     case "acceleration_0_100":
       if (v < 7) return COLORS.good;
       if (v > 9) return COLORS.bad;
       return COLORS.ok;
+
     case "full_insurance_year":
       if (v < 11000) return COLORS.good;
       if (v > 13000) return COLORS.bad;
       return COLORS.ok;
+
     case "half_insurance_year":
       if (v < 6000) return COLORS.good;
       if (v > 8000) return COLORS.bad;
       return COLORS.ok;
+
     case "car_tax_year":
       if (v < 1000) return COLORS.good;
       if (v > 2000) return COLORS.bad;
       return COLORS.ok;
+
+    // DC fast charge 10–80% (minutes) — lower = better
+    case "dc_time_min_10_80":
+      if (v <= 20) return COLORS.great;
+      if (v <= 30) return COLORS.good;
+      if (v <= 40) return COLORS.ok;
+      if (v <= 50) return COLORS.fair;
+      return COLORS.bad;
+
+    // AC charge 0–100% (hours) — lower = better
+    case "ac_time_h_0_100":
+      if (v <= 6) return COLORS.great;
+      if (v <= 8) return COLORS.good;
+      if (v <= 10) return COLORS.ok;
+      if (v <= 12) return COLORS.fair;
+      return COLORS.bad;
+
+    // DC peak power (kW) — higher = better
+    case "dc_peak_kw":
+      if (v >= 250) return COLORS.great;
+      if (v >= 200) return COLORS.good;
+      if (v >= 150) return COLORS.ok;
+      if (v >= 100) return COLORS.fair;
+      return COLORS.bad;
+
+    // AC onboard charger (kW) — higher = better
+    case "ac_onboard_kw":
+      if (v >= 22) return COLORS.great;
+      if (v >= 11) return COLORS.good;
+      if (v >= 7.4) return COLORS.ok;
+      if (v >= 3.6) return COLORS.fair;
+      return COLORS.bad;
+
     default:
       return "";
   }
