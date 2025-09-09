@@ -61,45 +61,44 @@ export default function MonthlyOverview() {
   }
 
   // infer a "person" label from backend field or the income name
-const personFromIncome = (inc) => {
-  // prefer backend-provided field if present
-  const p = String(inc?.person ?? "").trim();
-  if (p) return p;
+  const personFromIncome = (inc) => {
+    // prefer backend-provided field if present
+    const p = String(inc?.person ?? "").trim();
+    if (p) return p;
 
-  // otherwise, infer from the name (avoid treating "rent" as a person)
-  const name = String(inc?.name || "");
-  if (/\brent\b/i.test(name)) return null;
+    // otherwise, infer from the name (avoid treating "rent" as a person)
+    const name = String(inc?.name || "");
+    if (/\brent\b/i.test(name)) return null;
 
-  // "<Name>'s ..." possessive
-  const poss = name.match(/\b([A-ZÅÄÖ][\w\-’']+)'s\b/);
-  if (poss) return poss[1];
+    // "<Name>'s ..." possessive
+    const poss = name.match(/\b([A-ZÅÄÖ][\w\-’']+)'s\b/);
+    if (poss) return poss[1];
 
-  // first capitalized token heuristic
-  const first = name.match(/^\s*([A-ZÅÄÖ][\w\-’']+)/);
-  if (first) return first[1];
+    // first capitalized token heuristic
+    const first = name.match(/^\s*([A-ZÅÄÖ][\w\-’']+)/);
+    if (first) return first[1];
 
-  return null;
-};
-
+    return null;
+  };
 
   const categorizeIncome = (incomes) => {
-  const byLabel = { "Rental Income": [] }; // fixed bucket for rent
-  const totals = {}; // for optional sorting later
+    const byLabel = { "Rental Income": [] }; // fixed bucket for rent
+    const totals = {}; // for optional sorting later
 
-  incomes.forEach((inc) => {
-    const name = String(inc?.name || "");
-    if (/\brent\b/i.test(name)) {
-      byLabel["Rental Income"].push(inc);
-      return;
-    }
+    incomes.forEach((inc) => {
+      const name = String(inc?.name || "");
+      if (/\brent\b/i.test(name)) {
+        byLabel["Rental Income"].push(inc);
+        return;
+      }
 
-    const person = personFromIncome(inc) || "Other"; // fallback bucket
-    const label = `${person} Income`;
-    if (!byLabel[label]) byLabel[label] = [];
-    byLabel[label].push(inc);
+      const person = personFromIncome(inc) || "Other"; // fallback bucket
+      const label = `${person} Income`;
+      if (!byLabel[label]) byLabel[label] = [];
+      byLabel[label].push(inc);
 
-    // track totals if you want to sort categories by size
-    totals[label] = (totals[label] || 0) + Number(inc.amount || 0);
+      // track totals if you want to sort categories by size
+      totals[label] = (totals[label] || 0) + Number(inc.amount || 0);
     });
 
     // Optional: sort categories by total descending (Rental last)
@@ -112,7 +111,6 @@ const personFromIncome = (inc) => {
     // return back to object for existing render code
     return Object.fromEntries(entries);
   };
-
 
   const categorizeExpense = (expenses) => {
     const cats = {

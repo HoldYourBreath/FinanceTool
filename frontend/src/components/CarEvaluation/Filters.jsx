@@ -37,7 +37,10 @@ export default function Filters({ filters, setFilters, catChoices }) {
     return () => clearTimeout(t);
   }, [qLocal, setFilters]);
 
-  const clearFilters = useCallback(() => setFilters({ ...EMPTY }), [setFilters]);
+  const clearFilters = useCallback(
+    () => setFilters({ ...EMPTY }),
+    [setFilters],
+  );
 
   const isPristine = useMemo(() => {
     return (
@@ -55,34 +58,40 @@ export default function Filters({ filters, setFilters, catChoices }) {
     (e) => {
       const v = e.target.value;
       // allow empty; otherwise clamp to a reasonable range
-      setFilters((f) => ({ ...f, year_min: v === "" ? "" : String(Math.max(1980, +v)) }));
+      setFilters((f) => ({
+        ...f,
+        year_min: v === "" ? "" : String(Math.max(1980, +v)),
+      }));
     },
-    [setFilters]
+    [setFilters],
   );
 
   const onYearMax = useCallback(
     (e) => {
       const v = e.target.value;
-      setFilters((f) => ({ ...f, year_max: v === "" ? "" : String(Math.max(1980, +v)) }));
+      setFilters((f) => ({
+        ...f,
+        year_max: v === "" ? "" : String(Math.max(1980, +v)),
+      }));
     },
-    [setFilters]
+    [setFilters],
   );
 
   const onTypeChange = useCallback(
     (v) => setFilters((f) => ({ ...f, type_of_vehicle: v })),
-    [setFilters]
+    [setFilters],
   );
   const onBodyChange = useCallback(
     (v) => setFilters((f) => ({ ...f, body_style: v })),
-    [setFilters]
+    [setFilters],
   );
   const onSegChange = useCallback(
     (v) => setFilters((f) => ({ ...f, eu_segment: v })),
-    [setFilters]
+    [setFilters],
   );
   const onSuvChange = useCallback(
     (v) => setFilters((f) => ({ ...f, suv_tier: v })),
-    [setFilters]
+    [setFilters],
   );
 
   return (
@@ -114,7 +123,10 @@ export default function Filters({ filters, setFilters, catChoices }) {
           <span className={labelCls} id="year-range-label">
             Year (min–max)
           </span>
-          <div className="flex items-center gap-2" aria-labelledby="year-range-label">
+          <div
+            className="flex items-center gap-2"
+            aria-labelledby="year-range-label"
+          >
             <label htmlFor="year-min" className="sr-only">
               Year minimum
             </label>
@@ -185,7 +197,10 @@ export default function Filters({ filters, setFilters, catChoices }) {
           <span className="text-slate-400 group-open:hidden" aria-hidden="true">
             ▼
           </span>
-          <span className="text-slate-400 hidden group-open:inline" aria-hidden="true">
+          <span
+            className="text-slate-400 hidden group-open:inline"
+            aria-hidden="true"
+          >
             ▲
           </span>
         </summary>
@@ -228,8 +243,10 @@ Filters.propTypes = {
     suv_tier: PropTypes.arrayOf(PropTypes.string).isRequired,
     type_of_vehicle: PropTypes.arrayOf(PropTypes.string).isRequired,
     q: PropTypes.string.isRequired,
-    year_min: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    year_max: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    year_min: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+      .isRequired,
+    year_max: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+      .isRequired,
   }).isRequired,
   setFilters: PropTypes.func.isRequired,
   catChoices: PropTypes.shape({

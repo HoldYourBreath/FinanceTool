@@ -6,7 +6,9 @@ export default function EnergyFuelPanel({ prices, updatePrice }) {
 
   return (
     <section className="rounded-2xl bg-sky-50/70 ring-1 ring-sky-200 p-4 shadow-sm backdrop-blur-sm">
-      <h3 className="mb-3 text-sm font-semibold text-slate-700">Energy &amp; Fuel</h3>
+      <h3 className="mb-3 text-sm font-semibold text-slate-700">
+        Energy &amp; Fuel
+      </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div>

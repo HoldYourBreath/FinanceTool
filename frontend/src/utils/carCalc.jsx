@@ -5,12 +5,14 @@ const depreciationRates = { 3: 0.15, 5: 0.25, 8: 0.4 };
 
 export function energyFuelCostYear(car, prices) {
   const kmPerMonth = (Number(prices?.yearly_km) || 0) / 12;
-  return monthlyConsumptionCost(car, kmPerMonth, {
-    el_price_ore_kwh: prices?.el_price_ore_kwh,
-    diesel_price_sek_litre: prices?.diesel_price_sek_litre,
-    bensin_price_sek_litre: prices?.bensin_price_sek_litre,
-    daily_commute_km: prices?.daily_commute_km,
-  }) * 12;
+  return (
+    monthlyConsumptionCost(car, kmPerMonth, {
+      el_price_ore_kwh: prices?.el_price_ore_kwh,
+      diesel_price_sek_litre: prices?.diesel_price_sek_litre,
+      bensin_price_sek_litre: prices?.bensin_price_sek_litre,
+      daily_commute_km: prices?.daily_commute_km,
+    }) * 12
+  );
 }
 
 export function calcTCO(car, years, prices) {
@@ -19,12 +21,15 @@ export function calcTCO(car, years, prices) {
   const months = years * 12;
 
   const energyFuelPerMonth = energyFuelCostYear(car, prices) / 12;
-  const tiresPerMonth = months ? (toNum(car.summer_tires_price) + toNum(car.winter_tires_price)) / months : 0;
+  const tiresPerMonth = months
+    ? (toNum(car.summer_tires_price) + toNum(car.winter_tires_price)) / months
+    : 0;
   const insurance = toNum(car.full_insurance_year) / 12;
-  const repairs   = toNum(car.repairs_year) / 12;
-  const tax       = toNum(car.car_tax_year) / 12;
+  const repairs = toNum(car.repairs_year) / 12;
+  const tax = toNum(car.car_tax_year) / 12;
 
-  const runningPerMonth = energyFuelPerMonth + tiresPerMonth + insurance + repairs + tax;
+  const runningPerMonth =
+    energyFuelPerMonth + tiresPerMonth + insurance + repairs + tax;
   const runningTotal = runningPerMonth * months;
 
   return {
@@ -54,5 +59,5 @@ export function recalcRow(c, prices) {
 }
 
 export function recalcAll(list, prices) {
-  return list.map(c => recalcRow(c, prices));
+  return list.map((c) => recalcRow(c, prices));
 }

@@ -39,9 +39,12 @@ export default function Investments() {
     }
   };
 
-  const isCreditRow = (row) => (row.acc_number || "").toLowerCase().startsWith("kredit");
+  const isCreditRow = (row) =>
+    (row.acc_number || "").toLowerCase().startsWith("kredit");
   const labelForAccount = (a) => {
-    const base = `${a.person} ${a.bank ?? ""} (${a.country ?? ""})`.trim().replace(/\s+/g, " ");
+    const base = `${a.person} ${a.bank ?? ""} (${a.country ?? ""})`
+      .trim()
+      .replace(/\s+/g, " ");
     return isCreditRow(a) ? `${base} — Credit` : base;
   };
 
@@ -70,10 +73,14 @@ export default function Investments() {
     <div className="space-y-6">
       {/* 📥 Accounts & Balances (indigo) */}
       <section className={cardIndigo}>
-        <h2 className="text-lg font-semibold text-slate-900 mb-3">Accounts & Balances</h2>
+        <h2 className="text-lg font-semibold text-slate-900 mb-3">
+          Accounts & Balances
+        </h2>
         <CsvUpload onUpdateacc_info={refreshAccInfo} />
         {accInfo.length === 0 ? (
-          <div className="text-center text-red-600 mt-4">No acc_info data available.</div>
+          <div className="text-center text-red-600 mt-4">
+            No acc_info data available.
+          </div>
         ) : (
           <div className="mt-3 divide-y divide-slate-200">
             {accInfo.map((row) => {
@@ -83,14 +90,18 @@ export default function Investments() {
                   key={row.id ?? labelForAccount(row)}
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2"
                 >
-                  <span className="capitalize text-slate-900">{labelForAccount(row)}</span>
+                  <span className="capitalize text-slate-900">
+                    {labelForAccount(row)}
+                  </span>
                   {credit ? (
                     <input
                       type="number"
                       step="0.01"
                       className={`${inputCls} w-48 text-right`}
                       value={row.value}
-                      onChange={(e) => updateLocalCredit(row.id, e.target.value)}
+                      onChange={(e) =>
+                        updateLocalCredit(row.id, e.target.value)
+                      }
                       onBlur={(e) => saveCredit(row.id, e.target.value)}
                     />
                   ) : (
@@ -107,14 +118,20 @@ export default function Investments() {
 
       {/* 💼 Investments (amber instead of red) */}
       <section className={cardAmber}>
-        <h1 className="text-xl font-semibold mb-3 text-slate-900">💼 Investments</h1>
+        <h1 className="text-xl font-semibold mb-3 text-slate-900">
+          💼 Investments
+        </h1>
         {investments.length === 0 ? (
-          <div className="text-center text-red-600">No investments available.</div>
+          <div className="text-center text-red-600">
+            No investments available.
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {investments.map((inv, index) => (
               <div key={inv.id || `investment-${index}`} className={itemCard}>
-                <h2 className="text-base font-semibold text-slate-900 mb-2">{inv.name}</h2>
+                <h2 className="text-base font-semibold text-slate-900 mb-2">
+                  {inv.name}
+                </h2>
 
                 <div className="flex justify-between">
                   <span className="text-slate-700">Value:</span>

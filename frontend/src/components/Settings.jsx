@@ -1,47 +1,48 @@
 // src/components/Settings.jsx
-import { useEffect, useState } from 'react';
-import api from '../api/axios';
+import { useEffect, useState } from "react";
+import api from "../api/axios";
 
 export default function Settings() {
   const [months, setMonths] = useState([]);
-  const [currentMonthId, setCurrentMonthId] = useState('');
+  const [currentMonthId, setCurrentMonthId] = useState("");
   const [accounts, setAccounts] = useState([]);
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
     (async () => {
       try {
         // months
-        const monthsRes = await api.get('/months/all');
+        const monthsRes = await api.get("/months/all");
         const ms = monthsRes.data || [];
         setMonths(ms);
         const current = ms.find((m) => m.is_current);
         if (current) setCurrentMonthId(String(current.id));
 
         // accounts
-        const accountsRes = await api.get('/acc_info');
+        const accountsRes = await api.get("/acc_info");
         setAccounts(accountsRes.data || []);
       } catch (e) {
-        console.error('❌ Failed to load settings data', e);
-        flash('❌ Failed to load settings');
+        console.error("❌ Failed to load settings data", e);
+        flash("❌ Failed to load settings");
       }
     })();
-     
   }, []);
 
   const flash = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 2200);
+    setTimeout(() => setToast(""), 2200);
   };
 
   const handleSetCurrentMonth = async () => {
-    if (!currentMonthId) return flash('❌ Select a month first');
+    if (!currentMonthId) return flash("❌ Select a month first");
     try {
-      await api.post('/settings/current_month', { month_id: Number(currentMonthId) });
-      flash('✅ Current month updated');
+      await api.post("/settings/current_month", {
+        month_id: Number(currentMonthId),
+      });
+      flash("✅ Current month updated");
     } catch (err) {
-      console.error('❌ Error updating current month:', err);
-      flash('❌ Error updating current month');
+      console.error("❌ Error updating current month:", err);
+      flash("❌ Error updating current month");
     }
   };
 
@@ -55,22 +56,23 @@ export default function Settings() {
 
   const saveAccounts = async () => {
     try {
-      await api.post('/settings/accounts', accounts);
-      flash('✅ Accounts saved');
+      await api.post("/settings/accounts", accounts);
+      flash("✅ Accounts saved");
     } catch (err) {
-      console.error('❌ Failed to save accounts:', err);
-      flash('❌ Failed to save accounts');
+      console.error("❌ Failed to save accounts:", err);
+      flash("❌ Failed to save accounts");
     }
   };
 
   return (
     <div className="space-y-6 p-4">
-
       {/* Current Month */}
       <div>
         <h2 className="text-xl font-semibold">Set Current Month</h2>
         <div className="flex items-center gap-2">
-          <label htmlFor="current-month" className="sr-only">Current Month</label>
+          <label htmlFor="current-month" className="sr-only">
+            Current Month
+          </label>
           <select
             id="current-month"
             value={currentMonthId}
@@ -102,50 +104,72 @@ export default function Settings() {
           const aid = `acc-number-${index}`;
           const cid = `country-${index}`;
           return (
-            <div key={acc.id ?? index} className="space-x-2 mb-2 flex flex-wrap items-center gap-2">
-              <label htmlFor={pid} className="text-sm w-20">Person</label>
+            <div
+              key={acc.id ?? index}
+              className="space-x-2 mb-2 flex flex-wrap items-center gap-2"
+            >
+              <label htmlFor={pid} className="text-sm w-20">
+                Person
+              </label>
               <input
                 id={pid}
                 type="text"
-                value={acc.person ?? ''}
-                onChange={(e) => handleAccountChange(index, 'person', e.target.value)}
+                value={acc.person ?? ""}
+                onChange={(e) =>
+                  handleAccountChange(index, "person", e.target.value)
+                }
                 placeholder="Person"
                 className="border p-1 rounded"
               />
 
-              <label htmlFor={bid} className="text-sm w-14">Bank</label>
+              <label htmlFor={bid} className="text-sm w-14">
+                Bank
+              </label>
               <input
                 id={bid}
                 type="text"
-                value={acc.bank ?? ''}
-                onChange={(e) => handleAccountChange(index, 'bank', e.target.value)}
+                value={acc.bank ?? ""}
+                onChange={(e) =>
+                  handleAccountChange(index, "bank", e.target.value)
+                }
                 placeholder="Bank"
                 className="border p-1 rounded"
               />
 
-              <label htmlFor={aid} className="text-sm w-36">Account #</label>
+              <label htmlFor={aid} className="text-sm w-36">
+                Account #
+              </label>
               <input
                 id={aid}
                 type="text"
-                value={acc.acc_number ?? ''}
-                onChange={(e) => handleAccountChange(index, 'acc_number', e.target.value)}
+                value={acc.acc_number ?? ""}
+                onChange={(e) =>
+                  handleAccountChange(index, "acc_number", e.target.value)
+                }
                 placeholder="Account Number"
                 className="border p-1 rounded"
               />
 
-              <label htmlFor={cid} className="text-sm w-20">Country</label>
+              <label htmlFor={cid} className="text-sm w-20">
+                Country
+              </label>
               <input
                 id={cid}
                 type="text"
-                value={acc.country ?? ''}
-                onChange={(e) => handleAccountChange(index, 'country', e.target.value)}
+                value={acc.country ?? ""}
+                onChange={(e) =>
+                  handleAccountChange(index, "country", e.target.value)
+                }
                 placeholder="Country"
                 className="border p-1 rounded"
               />
             </div>
           );
         })}
-        <button onClick={saveAccounts} className="bg-green-500 text-white px-3 py-1 rounded">
+        <button
+          onClick={saveAccounts}
+          className="bg-green-500 text-white px-3 py-1 rounded"
+        >
           Save Accounts
         </button>
       </div>

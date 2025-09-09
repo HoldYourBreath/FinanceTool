@@ -4,8 +4,16 @@ import axios from "axios";
 export default function HouseCostsTab() {
   const [houseCosts, setHouseCosts] = useState([]);
   const [landCosts, setLandCosts] = useState([]);
-  const [newHouse, setNewHouse] = useState({ name: "", amount: "", status: "todo" });
-  const [newLand, setNewLand] = useState({ name: "", amount: "", status: "todo" });
+  const [newHouse, setNewHouse] = useState({
+    name: "",
+    amount: "",
+    status: "todo",
+  });
+  const [newLand, setNewLand] = useState({
+    name: "",
+    amount: "",
+    status: "todo",
+  });
 
   const fetchData = async () => {
     try {
@@ -31,7 +39,8 @@ export default function HouseCostsTab() {
 
   const handleAdd = async (type) => {
     const newItem = type === "house" ? newHouse : newLand;
-    if (!newItem.name || !newItem.amount) return alert("Please fill all fields");
+    if (!newItem.name || !newItem.amount)
+      return alert("Please fill all fields");
 
     try {
       await axios.post(`/api/${type}_costs`, {
@@ -113,7 +122,10 @@ export default function HouseCostsTab() {
   const renderSection = (title, data, form, variant = "house") => {
     const total = data.reduce((sum, item) => sum + Number(item.amount), 0);
     const doneItems = data.filter((item) => item.status === "done");
-    const doneTotal = doneItems.reduce((sum, item) => sum + Number(item.amount), 0);
+    const doneTotal = doneItems.reduce(
+      (sum, item) => sum + Number(item.amount),
+      0,
+    );
     const todoTotal = total - doneTotal;
 
     const isHouse = variant === "house";
@@ -141,12 +153,19 @@ export default function HouseCostsTab() {
               </thead>
               <tbody className="[&>tr:hover]:bg-white/60 [&>tr]:odd:bg-white/40">
                 {data.map((item) => (
-                  <tr key={item.id} className="group border-b border-gray-200 relative">
+                  <tr
+                    key={item.id}
+                    className="group border-b border-gray-200 relative"
+                  >
                     <td className="py-2 pr-2">{item.name}</td>
-                    <td className="py-2 text-right">{formatSEK(item.amount)}</td>
+                    <td className="py-2 text-right">
+                      {formatSEK(item.amount)}
+                    </td>
                     <td className="pl-2">
                       <div className="flex items-center justify-between min-w-[130px]">
-                        <span>{item.status === "done" ? "✅ Done" : "⏳ Todo"}</span>
+                        <span>
+                          {item.status === "done" ? "✅ Done" : "⏳ Todo"}
+                        </span>
                         <button
                           onClick={() => {
                             const confirmDelete = window.confirm(
@@ -172,8 +191,12 @@ export default function HouseCostsTab() {
             <div>
               <strong>Total:</strong> {formatSEK(total)}
             </div>
-            <div className="text-emerald-700">✅ Done: {formatSEK(doneTotal)}</div>
-            <div className="text-slate-600">⏳ Todo: {formatSEK(todoTotal)}</div>
+            <div className="text-emerald-700">
+              ✅ Done: {formatSEK(doneTotal)}
+            </div>
+            <div className="text-slate-600">
+              ⏳ Todo: {formatSEK(todoTotal)}
+            </div>
           </div>
 
           {form}
@@ -185,7 +208,10 @@ export default function HouseCostsTab() {
   const allCosts = [...houseCosts, ...landCosts];
   const totalItems = allCosts.length;
   const completedItems = allCosts.filter((i) => i.status === "done").length;
-  const totalAmount = allCosts.reduce((sum, item) => sum + Number(item.amount), 0);
+  const totalAmount = allCosts.reduce(
+    (sum, item) => sum + Number(item.amount),
+    0,
+  );
   const doneAmount = allCosts
     .filter((i) => i.status === "done")
     .reduce((sum, item) => sum + Number(item.amount), 0);
@@ -194,8 +220,18 @@ export default function HouseCostsTab() {
   return (
     <div className="p-2">
       <div className="flex flex-col md:flex-row">
-        {renderSection("🏠 House Payments", houseCosts, renderAddForm("house", newHouse, setNewHouse), "house")}
-        {renderSection("🌱 Land Payments", landCosts, renderAddForm("land", newLand, setNewLand), "land")}
+        {renderSection(
+          "🏠 House Payments",
+          houseCosts,
+          renderAddForm("house", newHouse, setNewHouse),
+          "house",
+        )}
+        {renderSection(
+          "🌱 Land Payments",
+          landCosts,
+          renderAddForm("land", newLand, setNewLand),
+          "land",
+        )}
       </div>
 
       <section className="mt-4 rounded-2xl bg-white/70 ring-1 ring-emerald-200 p-4 shadow-sm backdrop-blur-sm text-sm">

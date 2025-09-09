@@ -11,6 +11,7 @@ export function normType(t) {
   if (s === "bev" || s === "electric" || s === "ev") return "ev";
   if (s === "phev" || s.includes("plug")) return "phev";
   if (s.startsWith("d")) return "diesel";
-  if (s.startsWith("b") || s.includes("petrol") || s.includes("gasoline")) return "bensin";
+  if (s.startsWith("b") || s.includes("petrol") || s.includes("gasoline"))
+    return "bensin";
   return s || "ev";
 }

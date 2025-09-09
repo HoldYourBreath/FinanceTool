@@ -3,22 +3,22 @@
 
 const COLORS = {
   great: "bg-emerald-50 text-emerald-700",
-  good:  "bg-green-50 text-green-700",
-  ok:    "bg-yellow-50 text-yellow-700",
-  fair:  "bg-amber-50 text-amber-700",
-  bad:   "bg-red-50 text-red-700",
+  good: "bg-green-50 text-green-700",
+  ok: "bg-yellow-50 text-yellow-700",
+  fair: "bg-amber-50 text-amber-700",
+  bad: "bg-red-50 text-red-700",
 };
 
 export const fieldColor = (field, value) => {
   const v = Number(value) || 0;
   switch (field) {
     case "repairs_year":
-      if (v > 7000) return COLORS.bad; 
+      if (v > 7000) return COLORS.bad;
       if (v > 6000) return COLORS.fair;
       if (v > 5000) return COLORS.ok;
       if (v > 4000) return COLORS.good;
-      return COLORS.great;    
-      
+      return COLORS.great;
+
     case "trunk_size_litre":
       if (v > 500) return COLORS.good;
       if (v < 400) return COLORS.bad;
@@ -124,12 +124,12 @@ function normalizeSettings(settings) {
     yearlyKM: num(settings?.yearly_km ?? settings?.yearly_driving_km, 18000),
     dailyCommuteKM: Math.max(0, num(settings?.daily_commute_km, 30)),
     // overheads/assumptions
-    chargingLossPct: num(settings?.charging_loss_pct, 0.10), // +10% default
+    chargingLossPct: num(settings?.charging_loss_pct, 0.1), // +10% default
     tireLifespanYears: Math.max(1, num(settings?.tire_lifespan_years, 3)),
     phevElectricShare: undefined, // if provided, use; else derive from commute
     // depreciation (can be overridden from settings later if you add fields)
     dep3yPct: num(settings?.dep3yPct, 0.45),
-    dep5yPct: num(settings?.dep5yPct, 0.60),
+    dep5yPct: num(settings?.dep5yPct, 0.6),
     dep8yPct: num(settings?.dep8yPct, 0.75),
   };
 }
@@ -142,12 +142,13 @@ function seasonSplit(settings) {
 
 function wearMultiplier(car, settings) {
   const type = normType(car?.type_of_vehicle);
-  const evMult   = type === "ev"   ? num(settings?.tire_wear_ev_mult,   1.15) : 1.0;
-  const suvMult  = car?.suv_tier   ? num(settings?.tire_wear_suv_mult,  1.05) : 1.0;
-  const perfCut  = num(settings?.tire_wear_perf_mult_threshold_sec, 5.0);
-  const perfMult = (num(car?.acceleration_0_100, 9.0) <= perfCut)
-    ? num(settings?.tire_wear_perf_mult, 1.05)
-    : 1.0;
+  const evMult = type === "ev" ? num(settings?.tire_wear_ev_mult, 1.15) : 1.0;
+  const suvMult = car?.suv_tier ? num(settings?.tire_wear_suv_mult, 1.05) : 1.0;
+  const perfCut = num(settings?.tire_wear_perf_mult_threshold_sec, 5.0);
+  const perfMult =
+    num(car?.acceleration_0_100, 9.0) <= perfCut
+      ? num(settings?.tire_wear_perf_mult, 1.05)
+      : 1.0;
   return evMult * suvMult * perfMult;
 }
 
@@ -160,8 +161,14 @@ function yearlyTireCost(car, settings) {
   const priceSummer = num(car?.summer_tires_price, 0);
   const priceWinter = num(car?.winter_tires_price, 0);
 
-  const lifeSummer = num(car?.summer_tire_life_km ?? ps?.summer_tire_life_km, 40000);
-  const lifeWinter = num(car?.winter_tire_life_km ?? ps?.winter_tire_life_km, 30000);
+  const lifeSummer = num(
+    car?.summer_tire_life_km ?? ps?.summer_tire_life_km,
+    40000,
+  );
+  const lifeWinter = num(
+    car?.winter_tire_life_km ?? ps?.winter_tire_life_km,
+    30000,
+  );
 
   // Per-km cost per set (guard against 0)
   const cpkSummer = lifeSummer > 0 ? (priceSummer / lifeSummer) * wearMult : 0;
@@ -169,12 +176,11 @@ function yearlyTireCost(car, settings) {
 
   const costKm = kmYear * (summer * cpkSummer + winter * cpkWinter);
 
-  const swaps   = 2 * num(ps?.tire_swap_cost_per_change, 500); // spring + autumn
+  const swaps = 2 * num(ps?.tire_swap_cost_per_change, 500); // spring + autumn
   const storage = num(ps?.tire_storage_cost_year, 0);
 
   return costKm + swaps + storage;
 }
-
 
 // ------- cost calc --------
 
@@ -218,7 +224,9 @@ export function monthlyConsumptionCost(car, kmPerMonth, settings) {
     // derive electric-only range from battery/consumption (fallback 40 km)
     const assumedEvRange = 40;
     const evRange =
-      consKwh100 > 0 && battKwh > 0 ? (100 * battKwh) / consKwh100 : assumedEvRange;
+      consKwh100 > 0 && battKwh > 0
+        ? (100 * battKwh) / consKwh100
+        : assumedEvRange;
 
     // either use explicit share or compute from commute * working days
     const evKmPerDay = Math.min(ps.dailyCommuteKM, evRange);
@@ -246,7 +254,8 @@ export function monthlyConsumptionCost(car, kmPerMonth, settings) {
   const l100 = lPer100(car) ?? 0;
   if (!l100) return 0;
 
-  const sekPerLitre = type === "diesel" ? dieselSekL : bensinSekL || dieselSekL || 0;
+  const sekPerLitre =
+    type === "diesel" ? dieselSekL : bensinSekL || dieselSekL || 0;
   if (!sekPerLitre) return 0;
 
   return (km / 100) * l100 * sekPerLitre;
@@ -266,8 +275,7 @@ export function yearlyRecurringCost(car, settings) {
   const energyYear = yearlyConsumptionCost(car, ps);
 
   const insuranceYear =
-    num(car?.full_insurance_year, NaN) ??
-    num(car?.half_insurance_year, NaN);
+    num(car?.full_insurance_year, NaN) ?? num(car?.half_insurance_year, NaN);
   const insY = Number.isFinite(insuranceYear) ? insuranceYear : 0;
   const tiresYear = yearlyTireCost(car, ps);
   const taxYear = num(car?.car_tax_year, 0);
@@ -289,11 +297,11 @@ export function tco(car, settings, years = 3) {
     years <= 3
       ? ps.dep3yPct
       : years <= 5
-      ? ps.dep5yPct
-      : years <= 8
-      ? ps.dep8yPct
-      : // simple extrapolation for >8y: cap at 90%
-        Math.min(0.9, ps.dep8yPct + 0.03 * (years - 8));
+        ? ps.dep5yPct
+        : years <= 8
+          ? ps.dep8yPct
+          : // simple extrapolation for >8y: cap at 90%
+            Math.min(0.9, ps.dep8yPct + 0.03 * (years - 8));
 
   const dep = price * depPct;
   const recurring = yearlyRecurringCost(car, ps);

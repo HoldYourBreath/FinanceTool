@@ -11,4 +11,3 @@ export async function updateAccValue(id, value) {
   const res = await api.post("/acc_info/value", { id, value });
   return res.data;
 }
-

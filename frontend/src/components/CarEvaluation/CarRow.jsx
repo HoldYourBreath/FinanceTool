@@ -1,20 +1,34 @@
 // components/car-evaluation/CarRow.jsx
-import { rowBgFor } from '../../utils/vehicleTypeStyles';
-import { brandBgClass, canonicalBrand } from '../../utils/brandColors';
-import { priceBg } from '../../utils/priceStyles';
+import { rowBgFor } from "../../utils/vehicleTypeStyles";
+import { brandBgClass, canonicalBrand } from "../../utils/brandColors";
+import { priceBg } from "../../utils/priceStyles";
 import { toFixed1 } from "../../utils/format";
-import { normType, pickOfficialOrEst, TYPE_CHOICES } from "../../utils/normalizers";
+import {
+  normType,
+  pickOfficialOrEst,
+  TYPE_CHOICES,
+} from "../../utils/normalizers";
 import { energyFuelCostYear } from "../../utils/carCalc.jsx";
 
-export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) {
-  const type       = normType(car.type_of_vehicle);
-  const showKwh    = type === "ev" || type === "phev";
+export default function CarRow({
+  car,
+  onChange,
+  fmt0,
+  fieldColor,
+  NA,
+  prices,
+}) {
+  const type = normType(car.type_of_vehicle);
+  const showKwh = type === "ev" || type === "phev";
   const showLitres = type !== "ev";
-  const isEVlike   = type.includes("ev");
-  const rowBg      = rowBgFor(car.type_of_vehicle);
+  const isEVlike = type.includes("ev");
+  const rowBg = rowBgFor(car.type_of_vehicle);
 
   return (
-    <tr className={`${rowBg} transition-colors`} data-type={car.type_of_vehicle}>
+    <tr
+      className={`${rowBg} transition-colors`}
+      data-type={car.type_of_vehicle}
+    >
       {/* Model (frozen) */}
       <td
         className={`border px-2 py-1 sticky left-0 z-30 w-[18rem]
@@ -46,7 +60,9 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
           onChange={(e) => onChange("type_of_vehicle", e.target.value)}
         >
           {TYPE_CHOICES.map((t) => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t} value={t}>
+              {t}
+            </option>
           ))}
         </select>
       </td>
@@ -87,10 +103,14 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
             step="0.1"
             className="w-24 border px-1 text-right"
             value={car.consumption_kwh_per_100km ?? ""}
-            onChange={(e) => onChange("consumption_kwh_per_100km", e.target.value)}
+            onChange={(e) =>
+              onChange("consumption_kwh_per_100km", e.target.value)
+            }
             title="Electric consumption (kWh/100km)"
           />
-        ) : <NA hint="Not used for Diesel/Bensin" />}
+        ) : (
+          <NA hint="Not used for Diesel/Bensin" />
+        )}
       </td>
 
       {/* L/100km */}
@@ -101,10 +121,14 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
             step="0.1"
             className="w-24 border px-1 text-right"
             value={car.consumption_l_per_100km ?? ""}
-            onChange={(e) => onChange("consumption_l_per_100km", e.target.value)}
+            onChange={(e) =>
+              onChange("consumption_l_per_100km", e.target.value)
+            }
             title="Fuel consumption (L/100km)"
           />
-        ) : <NA hint="Not used for EV" />}
+        ) : (
+          <NA hint="Not used for EV" />
+        )}
       </td>
 
       {/* Battery */}
@@ -115,11 +139,17 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
             step="0.1"
             min="0"
             className="w-24 border px-1 text-right"
-            value={car.battery_capacity_kwh != null ? toFixed1(car.battery_capacity_kwh) : ""}
+            value={
+              car.battery_capacity_kwh != null
+                ? toFixed1(car.battery_capacity_kwh)
+                : ""
+            }
             onChange={(e) => onChange("battery_capacity_kwh", e.target.value)}
             title="Battery capacity (kWh)"
           />
-        ) : <NA hint="Not applicable for Diesel/Bensin" />}
+        ) : (
+          <NA hint="Not applicable for Diesel/Bensin" />
+        )}
       </td>
 
       {/* DC peak */}
@@ -133,7 +163,9 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
             onChange={(e) => onChange("dc_peak_kw", e.target.value)}
             title="Peak DC fast-charge power (kW)"
           />
-        ) : <NA hint="Not applicable for ICE" />}
+        ) : (
+          <NA hint="Not applicable for ICE" />
+        )}
       </td>
 
       {/* DC 10→80 */}
@@ -141,7 +173,10 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
         {isEVlike ? (
           <div className="flex items-center gap-2 justify-end">
             {(() => {
-              const p = pickOfficialOrEst(car.dc_time_min_10_80, car.dc_time_min_10_80_est);
+              const p = pickOfficialOrEst(
+                car.dc_time_min_10_80,
+                car.dc_time_min_10_80_est,
+              );
               return (
                 <>
                   <input
@@ -149,7 +184,9 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
                     step="0.1"
                     className="w-24 border px-1 text-right"
                     value={p.value ?? ""}
-                    onChange={(e) => onChange("dc_time_min_10_80", e.target.value)}
+                    onChange={(e) =>
+                      onChange("dc_time_min_10_80", e.target.value)
+                    }
                     title="DC 10→80% (minutes)"
                   />
                   {p.isEst && <span className="text-xs text-gray-500 italic" />}
@@ -157,7 +194,9 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
               );
             })()}
           </div>
-        ) : <NA hint="Not applicable for ICE" />}
+        ) : (
+          <NA hint="Not applicable for ICE" />
+        )}
       </td>
 
       {/* AC onboard */}
@@ -171,7 +210,9 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
             onChange={(e) => onChange("ac_onboard_kw", e.target.value)}
             title="Onboard AC charger (kW)"
           />
-        ) : <NA hint="Not applicable for ICE" />}
+        ) : (
+          <NA hint="Not applicable for ICE" />
+        )}
       </td>
 
       {/* AC 0→100 */}
@@ -179,7 +220,10 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
         {isEVlike ? (
           <div className="flex items-center gap-2 justify-end">
             {(() => {
-              const p = pickOfficialOrEst(car.ac_time_h_0_100, car.ac_time_h_0_100_est);
+              const p = pickOfficialOrEst(
+                car.ac_time_h_0_100,
+                car.ac_time_h_0_100_est,
+              );
               return (
                 <>
                   <input
@@ -187,7 +231,9 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
                     step="0.1"
                     className="w-24 border px-1 text-right"
                     value={p.value ?? ""}
-                    onChange={(e) => onChange("ac_time_h_0_100", e.target.value)}
+                    onChange={(e) =>
+                      onChange("ac_time_h_0_100", e.target.value)
+                    }
                     title="AC 0→100% (hours)"
                   />
                   {p.isEst && <span className="text-xs text-gray-500 italic" />}
@@ -195,7 +241,9 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
               );
             })()}
           </div>
-        ) : <NA hint="Not applicable for ICE" />}
+        ) : (
+          <NA hint="Not applicable for ICE" />
+        )}
       </td>
 
       {/* Energy & fuel / year */}
@@ -213,7 +261,9 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
             onChange={(e) => onChange("range", e.target.value)}
             title="WLTP electric range (km)"
           />
-        ) : <NA hint="Not applicable for ICE" />}
+        ) : (
+          <NA hint="Not applicable for ICE" />
+        )}
       </td>
 
       {/* Accel */}
@@ -273,15 +323,27 @@ export default function CarRow({ car, onChange, fmt0, fieldColor, NA, prices }) 
       </td>
 
       {/* Derived / TCO */}
-      <td className="border px-2 py-1 text-right">{fmt0(car.expected_value_after_3y)}</td>
-      <td className="border px-2 py-1 text-right">{fmt0(car.expected_value_after_5y)}</td>
-      <td className="border px-2 py-1 text-right">{fmt0(car.expected_value_after_8y)}</td>
+      <td className="border px-2 py-1 text-right">
+        {fmt0(car.expected_value_after_3y)}
+      </td>
+      <td className="border px-2 py-1 text-right">
+        {fmt0(car.expected_value_after_5y)}
+      </td>
+      <td className="border px-2 py-1 text-right">
+        {fmt0(car.expected_value_after_8y)}
+      </td>
       <td className="border px-2 py-1 text-right">{fmt0(car.tco_total_3y)}</td>
       <td className="border px-2 py-1 text-right">{fmt0(car.tco_total_5y)}</td>
       <td className="border px-2 py-1 text-right">{fmt0(car.tco_total_8y)}</td>
-      <td className="border px-2 py-1 text-right">{fmt0(car.tco_per_month_3y)}</td>
-      <td className="border px-2 py-1 text-right">{fmt0(car.tco_per_month_5y)}</td>
-      <td className="border px-2 py-1 text-right">{fmt0(car.tco_per_month_8y)}</td>
+      <td className="border px-2 py-1 text-right">
+        {fmt0(car.tco_per_month_3y)}
+      </td>
+      <td className="border px-2 py-1 text-right">
+        {fmt0(car.tco_per_month_5y)}
+      </td>
+      <td className="border px-2 py-1 text-right">
+        {fmt0(car.tco_per_month_8y)}
+      </td>
     </tr>
   );
 }

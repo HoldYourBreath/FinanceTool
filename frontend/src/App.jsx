@@ -19,8 +19,7 @@ const base =
   "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ring-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80";
 const idle =
   "bg-transparent text-white/90 ring-white/30 hover:bg-white/10 hover:text-white";
-const active =
-  "bg-white text-emerald-700 ring-white shadow-md font-semibold";
+const active = "bg-white text-emerald-700 ring-white shadow-md font-semibold";
 
 function TabLink({ to, end, label }) {
   return (

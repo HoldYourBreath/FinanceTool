@@ -1,10 +1,21 @@
 // src/components/TopNav.tsx
 import { NavLink } from "react-router-dom";
 import {
-  Home, CalendarDays, Wallet, BarChart3, Wrench, Settings, Car
+  Home,
+  CalendarDays,
+  Wallet,
+  BarChart3,
+  Wrench,
+  Settings,
+  Car,
 } from "lucide-react";
 
-type Tab = { to: string; label: string; icon: React.ElementType; end?: boolean };
+type Tab = {
+  to: string;
+  label: string;
+  icon: React.ElementType;
+  end?: boolean;
+};
 
 const TABS: Tab[] = [
   { to: "/", label: "Monthly", icon: Home, end: true },
@@ -20,8 +31,7 @@ const base =
   "group inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ring-1 transition";
 const idle =
   "bg-white/70 text-gray-700 ring-gray-200 hover:bg-white hover:shadow-sm";
-const active =
-  "bg-indigo-600 text-white ring-indigo-700 shadow-md";
+const active = "bg-indigo-600 text-white ring-indigo-700 shadow-md";
 
 export default function TopNav() {
   return (
@@ -33,7 +43,9 @@ export default function TopNav() {
               key={to}
               to={to}
               end={end}
-              className={({ isActive }) => `${base} ${isActive ? active : idle}`}
+              className={({ isActive }) =>
+                `${base} ${isActive ? active : idle}`
+              }
               title={label}
             >
               <Icon size={16} className="opacity-90" />

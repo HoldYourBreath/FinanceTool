@@ -17,16 +17,14 @@ const EV_ONLY_KEYS = [
 
 // Detect diesel/bensin ICE cars (PHEV/EV should NOT match)
 const isICE = (car) => {
-  const src = (
-    car.type_of_vehicle ??
-    car.fuel_type ??
-    car.fuel ??
-    ""
-  ).toString().toLowerCase();
+  const src = (car.type_of_vehicle ?? car.fuel_type ?? car.fuel ?? "")
+    .toString()
+    .toLowerCase();
   return ["diesel", "bensin", "petrol", "gasoline"].includes(src);
 };
 
-const pick = (obj, ...keys) => keys.map(k => obj?.[k]).find(v => v !== undefined && v !== null);
+const pick = (obj, ...keys) =>
+  keys.map((k) => obj?.[k]).find((v) => v !== undefined && v !== null);
 
 const asNum = (v) => {
   if (v === null || v === undefined || v === "") return null;
@@ -45,7 +43,11 @@ function Header({
 }) {
   const isActive = sortBy === sortKey;
   const arrow = isActive ? (sortDir === "asc" ? "▲" : "▼") : "";
-  const ariaSort = isActive ? (sortDir === "asc" ? "ascending" : "descending") : "none";
+  const ariaSort = isActive
+    ? sortDir === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
 
   return (
     <th
@@ -73,36 +75,44 @@ function Header({
   );
 }
 
-export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, prices }) {
+export default function CarsTable({
+  cars,
+  setCars,
+  sortBy,
+  sortDir,
+  onSort,
+  prices,
+}) {
   // --- value getter with unified consumption key ---
   const getVal = (car, key) => {
-  // EV-only fields are not applicable for ICE cars → sort as null (last)
-  if (EV_ONLY_KEYS.includes(key) && isICE(car)) return null;
+    // EV-only fields are not applicable for ICE cars → sort as null (last)
+    if (EV_ONLY_KEYS.includes(key) && isICE(car)) return null;
 
-  const isKwhKey =
-    key === "consumption_kwh_100km" || key === "consumption_kwh_per_100km";
-  const raw = isKwhKey
-    ? pick(car, "consumption_kwh_100km", "consumption_kwh_per_100km")
-    : car[key];
+    const isKwhKey =
+      key === "consumption_kwh_100km" || key === "consumption_kwh_per_100km";
+    const raw = isKwhKey
+      ? pick(car, "consumption_kwh_100km", "consumption_kwh_per_100km")
+      : car[key];
 
-  const n = asNum(raw);
+    const n = asNum(raw);
 
-  // Treat 0 in EV-only fields as "not applicable" for sorting
-  if (EV_ONLY_KEYS.includes(key) && (n === 0 || raw === 0 || raw === "0")) {
-    return null;
-  }
+    // Treat 0 in EV-only fields as "not applicable" for sorting
+    if (EV_ONLY_KEYS.includes(key) && (n === 0 || raw === 0 || raw === "0")) {
+      return null;
+    }
 
-  if (n !== null) return n;                       // numeric sort
-  if (typeof raw === "string") return raw.toLowerCase(); // alpha sort
-  return null;                                    // nulls sort last
-};
-
+    if (n !== null) return n; // numeric sort
+    if (typeof raw === "string") return raw.toLowerCase(); // alpha sort
+    return null; // nulls sort last
+  };
 
   // --- normalize both keys so downstream always has them ---
-  const normalizedCars = cars.map(c => ({
+  const normalizedCars = cars.map((c) => ({
     ...c,
-    consumption_kwh_100km: c.consumption_kwh_100km ?? c.consumption_kwh_per_100km ?? null,
-    consumption_kwh_per_100km: c.consumption_kwh_per_100km ?? c.consumption_kwh_100km ?? null,
+    consumption_kwh_100km:
+      c.consumption_kwh_100km ?? c.consumption_kwh_per_100km ?? null,
+    consumption_kwh_per_100km:
+      c.consumption_kwh_per_100km ?? c.consumption_kwh_100km ?? null,
   }));
 
   // --- sort with nulls last ---
@@ -115,7 +125,8 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
     if (va == null) return 1;
     if (vb == null) return -1;
 
-    if (typeof va === "number" && typeof vb === "number") return asc * (va - vb);
+    if (typeof va === "number" && typeof vb === "number")
+      return asc * (va - vb);
     return asc * (va < vb ? -1 : va > vb ? 1 : 0);
   });
 
@@ -123,17 +134,28 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
   const onChange = (carId, field, value) => {
     setCars((prev) => {
       const next = [...prev];
-      const i = next.findIndex(c => c.id === carId);
+      const i = next.findIndex((c) => c.id === carId);
       if (i === -1) return prev; // not found, no change
-      const isTextField = ["model","type_of_vehicle","dc_time_source","ac_time_source"].includes(field);
+      const isTextField = [
+        "model",
+        "type_of_vehicle",
+        "dc_time_source",
+        "ac_time_source",
+      ].includes(field);
       const parsed = isTextField ? value : toNum(value);
 
       let patch = { [field]: parsed };
       // keep the two consumption keys mirrored
       if (field === "consumption_kwh_100km") {
-        patch = { consumption_kwh_100km: parsed, consumption_kwh_per_100km: parsed };
+        patch = {
+          consumption_kwh_100km: parsed,
+          consumption_kwh_per_100km: parsed,
+        };
       } else if (field === "consumption_kwh_per_100km") {
-        patch = { consumption_kwh_per_100km: parsed, consumption_kwh_100km: parsed };
+        patch = {
+          consumption_kwh_per_100km: parsed,
+          consumption_kwh_100km: parsed,
+        };
       }
 
       next[i] = recalcRow({ ...next[i], ...patch }, prices);
@@ -160,7 +182,13 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
                   onSort={onSort}
                   extra="left-0 z-50 w-[22rem] min-w-[22rem] shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.06)]"
                 />
-                <Header label="Year" sortKey="year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+                <Header
+                  label="Year"
+                  sortKey="year"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
                 <Header
                   label="Type"
                   sortKey="type_of_vehicle"
@@ -169,9 +197,27 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
                   sortDir={sortDir}
                   onSort={onSort}
                 />
-                <Header label={"Price\n(SEK)"} sortKey="estimated_purchase_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Summer\nTires\n(SEK)"} sortKey="summer_tires_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Winter\nTires\n(SEK)"} sortKey="winter_tires_price" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+                <Header
+                  label={"Price\n(SEK)"}
+                  sortKey="estimated_purchase_price"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Summer\nTires\n(SEK)"}
+                  sortKey="summer_tires_price"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Winter\nTires\n(SEK)"}
+                  sortKey="winter_tires_price"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
 
                 {/* ✅ Use unified API key for sorting; getter supports both */}
                 <Header
@@ -182,44 +228,182 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
                   onSort={onSort}
                 />
 
-                <Header label={"Consumption\n(l/100km)"} sortKey="consumption_l_per_100km" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Battery\n(kWh)"} sortKey="battery_capacity_kwh" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"DC Peak\n(kW)"} sortKey="dc_peak_kw" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"DC 10→80\n(min)"} sortKey="dc_time_min_10_80" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"AC Onboard\n(kW)"} sortKey="ac_onboard_kw" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"AC 0→100\n(h)"} sortKey="ac_time_h_0_100" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Consumption\n(SEK) / year"} sortKey="energy_fuel_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"WLTP (EV)\nRange (km)"} sortKey="range" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Acceleration\n(0–100 km/h)"} sortKey="acceleration_0_100" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Trunk Size\n(l)"} sortKey="trunk_size_litre" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Full Insurance\n/ Year"} sortKey="full_insurance_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Half Insurance\n/ Year"} sortKey="half_insurance_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Car Tax\n/ Year"} sortKey="car_tax_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Repairs\n/ Year"} sortKey="repairs_year" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Value\n(3y)"} sortKey="expected_value_after_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Value\n(5y)"} sortKey="expected_value_after_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"Value\n(8y)"} sortKey="expected_value_after_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"TCO Total\n(3y)"} sortKey="tco_total_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"TCO Total\n(5y)"} sortKey="tco_total_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"TCO Total\n(8y)"} sortKey="tco_total_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"TCO / mo\n(3y)"} sortKey="tco_per_month_3y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"TCO / mo\n(5y)"} sortKey="tco_per_month_5y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-                <Header label={"TCO / mo\n(8y)"} sortKey="tco_per_month_8y" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+                <Header
+                  label={"Consumption\n(l/100km)"}
+                  sortKey="consumption_l_per_100km"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Battery\n(kWh)"}
+                  sortKey="battery_capacity_kwh"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"DC Peak\n(kW)"}
+                  sortKey="dc_peak_kw"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"DC 10→80\n(min)"}
+                  sortKey="dc_time_min_10_80"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"AC Onboard\n(kW)"}
+                  sortKey="ac_onboard_kw"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"AC 0→100\n(h)"}
+                  sortKey="ac_time_h_0_100"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Consumption\n(SEK) / year"}
+                  sortKey="energy_fuel_year"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"WLTP (EV)\nRange (km)"}
+                  sortKey="range"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Acceleration\n(0–100 km/h)"}
+                  sortKey="acceleration_0_100"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Trunk Size\n(l)"}
+                  sortKey="trunk_size_litre"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Full Insurance\n/ Year"}
+                  sortKey="full_insurance_year"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Half Insurance\n/ Year"}
+                  sortKey="half_insurance_year"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Car Tax\n/ Year"}
+                  sortKey="car_tax_year"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Repairs\n/ Year"}
+                  sortKey="repairs_year"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Value\n(3y)"}
+                  sortKey="expected_value_after_3y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Value\n(5y)"}
+                  sortKey="expected_value_after_5y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"Value\n(8y)"}
+                  sortKey="expected_value_after_8y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"TCO Total\n(3y)"}
+                  sortKey="tco_total_3y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"TCO Total\n(5y)"}
+                  sortKey="tco_total_5y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"TCO Total\n(8y)"}
+                  sortKey="tco_total_8y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"TCO / mo\n(3y)"}
+                  sortKey="tco_per_month_3y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"TCO / mo\n(5y)"}
+                  sortKey="tco_per_month_5y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
+                <Header
+                  label={"TCO / mo\n(8y)"}
+                  sortKey="tco_per_month_8y"
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                />
               </tr>
             </thead>
 
             <tbody className="[&>tr:hover]:bg-white/60 [&>tr]:odd:bg-white/40">
               {sortedCars.map((car) => (
-              <CarRow
-                key={car.id ?? `${car.model}-${car.year}`}
-                car={car}
-                onChange={(field, value) => onChange(car.id, field, value)}
-                fmt0={fmt0}
-                fieldColor={fieldColor}
-                NA={NA}
-                prices={prices}
-              />
-            ))}
+                <CarRow
+                  key={car.id ?? `${car.model}-${car.year}`}
+                  car={car}
+                  onChange={(field, value) => onChange(car.id, field, value)}
+                  fmt0={fmt0}
+                  fieldColor={fieldColor}
+                  NA={NA}
+                  prices={prices}
+                />
+              ))}
             </tbody>
           </table>
         </div>

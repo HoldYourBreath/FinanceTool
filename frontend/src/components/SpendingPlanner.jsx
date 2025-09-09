@@ -19,7 +19,7 @@ export default function SpendingPlanner() {
       try {
         const res = await api.get("/months");
         const sortedMonths = (res.data || []).sort(
-          (a, b) => new Date(a.name) - new Date(b.name)
+          (a, b) => new Date(a.name) - new Date(b.name),
         );
         setMonthsData(sortedMonths);
 
@@ -36,7 +36,7 @@ export default function SpendingPlanner() {
 
   const sumAmounts = useCallback(
     (items) => items.reduce((sum, item) => sum + Number(item.amount || 0), 0),
-    []
+    [],
   );
 
   const chartData = useMemo(() => {
@@ -49,7 +49,7 @@ export default function SpendingPlanner() {
         if (!p?.date) return false;
         const d = new Date(p.date);
         const monthKey = `${d.getFullYear()}-${String(
-          d.getMonth() + 1
+          d.getMonth() + 1,
         ).padStart(2, "0")}`;
         return m.name === monthKey;
       });
@@ -70,7 +70,11 @@ export default function SpendingPlanner() {
   const filteredPurchases = useMemo(() => {
     const f = String(filter || "").toLowerCase();
     return [...purchases]
-      .filter((p) => String(p.item || "").toLowerCase().includes(f))
+      .filter((p) =>
+        String(p.item || "")
+          .toLowerCase()
+          .includes(f),
+      )
       .sort((a, b) => {
         if (a.date && b.date) return new Date(a.date) - new Date(b.date);
         if (a.date) return -1;
@@ -81,13 +85,13 @@ export default function SpendingPlanner() {
 
   const total = useMemo(
     () => purchases.reduce((sum, p) => sum + Number(p.amount || 0), 0),
-    [purchases]
+    [purchases],
   );
 
   const handleEditChange = async (id, field, value) => {
     // optimistic UI update
     setPurchases((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)),
     );
 
     try {
@@ -127,7 +131,6 @@ export default function SpendingPlanner() {
 
   return (
     <div className="p-6 bg-white rounded-lg shadow space-y-6">
-
       <FinanceChart data={chartData} />
 
       {/* Filter */}
@@ -148,7 +151,9 @@ export default function SpendingPlanner() {
         <thead className="bg-gray-100">
           <tr>
             <th className="border border-gray-300 p-2 text-left">Item</th>
-            <th className="border border-gray-300 p-2 text-right">Amount (SEK)</th>
+            <th className="border border-gray-300 p-2 text-right">
+              Amount (SEK)
+            </th>
             <th className="border border-gray-300 p-2 text-center">Date</th>
           </tr>
         </thead>
@@ -159,7 +164,9 @@ export default function SpendingPlanner() {
                 <div className="flex justify-between items-center gap-2">
                   <input
                     value={p.item || ""}
-                    onChange={(e) => handleEditChange(p.id, "item", e.target.value)}
+                    onChange={(e) =>
+                      handleEditChange(p.id, "item", e.target.value)
+                    }
                     className="border p-1 rounded w-full"
                   />
                   <button
@@ -176,7 +183,9 @@ export default function SpendingPlanner() {
                 <input
                   type="number"
                   value={p.amount ?? ""}
-                  onChange={(e) => handleEditChange(p.id, "amount", e.target.value)}
+                  onChange={(e) =>
+                    handleEditChange(p.id, "amount", e.target.value)
+                  }
                   className="border p-1 rounded text-right w-full"
                 />
               </td>
@@ -185,7 +194,9 @@ export default function SpendingPlanner() {
                 <input
                   type="date"
                   value={toInputDate(p.date)}
-                  onChange={(e) => handleEditChange(p.id, "date", e.target.value)}
+                  onChange={(e) =>
+                    handleEditChange(p.id, "date", e.target.value)
+                  }
                   className="border p-1 rounded"
                 />
               </td>

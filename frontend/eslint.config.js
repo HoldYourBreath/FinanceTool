@@ -10,7 +10,14 @@ import globals from "globals";
 export default [
   // Ignore
   {
-    ignores: ["dist/**", "build/**", "node_modules/**", "**/*.min.*", "*.log", "**/site-packages/**"],
+    ignores: [
+      "dist/**",
+      "build/**",
+      "node_modules/**",
+      "**/*.min.*",
+      "*.log",
+      "**/site-packages/**",
+    ],
   },
 
   // Node config files (CJS/JS)
@@ -55,7 +62,10 @@ export default [
       ...a11y.configs.recommended.rules,
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
-      "import/no-unresolved": ["error", { commonjs: true, caseSensitive: true }],
+      "import/no-unresolved": [
+        "error",
+        { commonjs: true, caseSensitive: true },
+      ],
     },
   },
 
