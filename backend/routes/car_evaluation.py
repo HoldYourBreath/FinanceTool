@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, current_app, jsonify, request
 
 from ..models.models import Car, PriceSettings, db
 
@@ -149,8 +149,8 @@ def _estimate_repairs_year(type_: str, car_year: Optional[int]) -> float:
 
 def _get_model_range_val(c: Car) -> Optional[float]:
     """Support either `range` or legacy `range_km` on the model."""
-    if hasattr(c, "range") and getattr(c, "range") is not None:
-        return _as_float(getattr(c, "range"))
+    if hasattr(c, "range") and c.range is not None:
+        return _as_float(c.range)
     return _as_float(getattr(c, "range_km", None))
 
 

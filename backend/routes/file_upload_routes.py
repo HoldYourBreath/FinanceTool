@@ -5,7 +5,6 @@ from flask import Blueprint, jsonify, request
 
 from ..models.models import AccInfo, Month, db
 
-
 # 👇 add /api in the blueprint prefix so the final path is /api/upload/csv
 file_upload_bp = Blueprint('file_upload', __name__, url_prefix='/api/upload')
 

@@ -1,7 +1,8 @@
 # backend/routes/debug.py
 from flask import Blueprint, jsonify
-from sqlalchemy import text, inspect
-from backend.models.models import db, Month
+from sqlalchemy import inspect, text
+
+from backend.models.models import Month, db
 
 debug_bp = Blueprint("debug", __name__, url_prefix="/api/debug")
 

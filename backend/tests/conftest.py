@@ -1,5 +1,7 @@
 # backend/tests/conftest.py
-import sys, pathlib
+import pathlib
+import sys
+
 # repo root = two levels up from this file
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 p = str(ROOT)

@@ -3,7 +3,8 @@ from decimal import Decimal
 from typing import Optional
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Enum as SAEnum, Numeric, func
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import Numeric, func
 
 db = SQLAlchemy()
 

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import text
 
-from backend.models.models import db, Month, Income
+from backend.models.models import Income, Month, db
 
 """
 Demo-only seeder for net salary incomes.
@@ -70,9 +70,9 @@ def main() -> None:
 
             # Be schema-flexible: fill optional columns if they exist
             if hasattr(Income, "person"):
-                setattr(row, "person", person)
+                row.person = person
             if hasattr(Income, "name"):
-                setattr(row, "name", label)
+                row.name = label
 
             rows.append(row)
             total += 1

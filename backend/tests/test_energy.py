@@ -1,9 +1,11 @@
 # backend/tests/test_energy.py
 from types import SimpleNamespace
+
 import pytest
 
 # Import the module object so we can patch attributes directly
 import backend.utils.energy as energy
+
 
 # Helper for money comparisons (optional)
 def approx_money(x):

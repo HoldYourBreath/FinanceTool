@@ -1,10 +1,11 @@
 # backend/routes/months.py
 from __future__ import annotations
 
+from collections.abc import Iterable
 from decimal import Decimal
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, current_app, jsonify
 from sqlalchemy.orm import selectinload
 
 from backend.models.models import Financing, Month, db
@@ -105,7 +106,7 @@ def build_months_data(
         # ---- loan remaining (+ adjustments) ----
         if idx == 0:
             # seed from financing ("loans_taken") if present, fallback to month.loan_remaining
-            seed_loan = financing_data.get("loans_taken", None)
+            seed_loan = financing_data.get("loans_taken")
             loan_remaining = _f(seed_loan, _f(month.loan_remaining))
         else:
             loan_remaining = _f(prev_loan_remaining, _f(month.loan_remaining))

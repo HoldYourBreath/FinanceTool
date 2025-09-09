@@ -1,8 +1,11 @@
 # backend/utils/tco.py
 from __future__ import annotations
+
 from decimal import Decimal
-from typing import Optional, Dict
+from typing import Dict
+
 from backend.models.models import PriceSettings
+
 
 def _f(x):
     if x is None:

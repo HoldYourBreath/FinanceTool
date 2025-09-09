@@ -1,5 +1,6 @@
 # routes/investments.py
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, current_app, jsonify
+
 from backend.models.models import db
 
 # If you have these models, the imports will work; if not, we stay CI-safe.

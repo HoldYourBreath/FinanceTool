@@ -5,10 +5,11 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from sqlalchemy import delete as sa_delete
 

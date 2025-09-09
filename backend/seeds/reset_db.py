@@ -1,7 +1,8 @@
 # backend/seeds/reset_db.py
 from __future__ import annotations
+
+import sys
 from pathlib import Path
-import sys, os
 
 # Add repo root to sys.path so "import backend.*" works when running as a script
 REPO_ROOT = Path(__file__).resolve().parents[2]

@@ -1,10 +1,12 @@
 # routes/__init__.py
-from .health import health_bp
-from .file_upload_routes import file_upload_bp
+from backend.routes.debug import debug_bp
+
 from .acc_info import acc_info_bp
 from .car_evaluation import cars_bp
 from .expenses import expenses_bp
+from .file_upload_routes import file_upload_bp
 from .financing import financing_bp
+from .health import health_bp
 from .house import house_bp
 from .incomes import incomes_bp
 from .investments import investments_bp
@@ -12,7 +14,6 @@ from .loans import loans_bp
 from .months import months_bp
 from .planned_purchases import planned_purchases_bp
 from .settings import settings_bp
-from backend.routes.debug import debug_bp
 
 
 def register_routes(app):

@@ -1,7 +1,8 @@
 # backend/util/db_bootstrap.py
 import re
+
 import psycopg2
-from urllib.parse import urlparse
+
 
 def ensure_database_exists(pg_url: str):
     # Expect: postgresql+psycopg2://user:pass@host:port/dbname

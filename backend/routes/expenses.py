@@ -1,5 +1,6 @@
 # routes/expenses.py
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, current_app, jsonify, request
+
 from ..models.models import Expense, db
 
 expenses_bp = Blueprint("expenses", __name__, url_prefix="/api/expenses")

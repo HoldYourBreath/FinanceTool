@@ -1,5 +1,6 @@
 # routes/loan_adjustments.py
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, current_app, jsonify, request
+
 from backend.models.models import LoanAdjustment, db
 
 # Final paths:

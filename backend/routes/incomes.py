@@ -1,5 +1,6 @@
 # routes/incomes.py
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, current_app, jsonify, request
+
 from backend.models.models import Income, db
 
 incomes_bp = Blueprint("incomes", __name__, url_prefix="/api/incomes")

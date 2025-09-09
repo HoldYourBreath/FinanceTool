@@ -4,10 +4,11 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from dotenv import load_dotenv
+
 from backend.utils.db_bootstrap import ensure_database_exists
 
 # ------------------------------------------------------------

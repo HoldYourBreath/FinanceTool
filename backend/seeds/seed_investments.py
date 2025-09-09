@@ -5,10 +5,10 @@ import argparse
 import json
 import os
 import sys
-from pathlib import Path
-from typing import Any
 from collections.abc import Iterable
 from decimal import Decimal
+from pathlib import Path
+from typing import Any
 
 from sqlalchemy import delete as sa_delete
 
@@ -31,8 +31,9 @@ except Exception:
     pass
 
 # ---- Import from backend.* only (single module namespace!) ----
-from backend.app import create_app
 import backend.models.models as models
+from backend.app import create_app
+
 db = models.db
 Investment = models.Investment
 

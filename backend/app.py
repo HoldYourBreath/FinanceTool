@@ -1,10 +1,11 @@
 # backend/app.py
 import os
+
 from dotenv import load_dotenv
 from flask import Flask, request
 from flask_cors import CORS
 
-from backend.config import get_config, Config
+from backend.config import Config, get_config
 from backend.models.models import db
 from backend.routes import register_routes  # make sure this imports car_evaluation.cars_bp
 

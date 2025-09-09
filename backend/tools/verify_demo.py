@@ -1,6 +1,7 @@
-from backend.app import create_app
-from backend.models.models import db, Car
 from sqlalchemy import inspect, text
+
+from backend.app import create_app
+from backend.models.models import db
 
 app = create_app()
 with app.app_context():

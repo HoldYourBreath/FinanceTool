@@ -1,5 +1,6 @@
 # routes/financing.py
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, current_app, jsonify, request
+
 from ..models.models import db
 
 # Try model import; stay CI-safe if migrations/models aren't ready.

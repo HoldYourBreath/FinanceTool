@@ -1,6 +1,8 @@
+from sqlalchemy import inspect, text
+
 from backend.app import create_app
 from backend.models.models import db
-from sqlalchemy import inspect, text
+
 
 def main():
     app = create_app()
