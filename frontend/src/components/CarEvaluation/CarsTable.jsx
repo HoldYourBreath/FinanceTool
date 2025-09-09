@@ -120,22 +120,23 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
   });
 
   // --- editing: numeric fields via toNum; mirror unified consumption keys ---
-  const onChange = (idx, field, value) => {
+  const onChange = (carId, field, value) => {
     setCars((prev) => {
       const next = [...prev];
-      const isTextField = ["model", "type_of_vehicle", "dc_time_source", "ac_time_source"].includes(field);
+      const i = next.findIndex(c => c.id === carId);
+      if (i === -1) return prev; // not found, no change
+      const isTextField = ["model","type_of_vehicle","dc_time_source","ac_time_source"].includes(field);
       const parsed = isTextField ? value : toNum(value);
 
       let patch = { [field]: parsed };
-
-      // If user edits either consumption key, mirror to the other to keep state consistent
+      // keep the two consumption keys mirrored
       if (field === "consumption_kwh_100km") {
         patch = { consumption_kwh_100km: parsed, consumption_kwh_per_100km: parsed };
       } else if (field === "consumption_kwh_per_100km") {
         patch = { consumption_kwh_per_100km: parsed, consumption_kwh_100km: parsed };
       }
 
-      next[idx] = recalcRow({ ...next[idx], ...patch }, prices);
+      next[i] = recalcRow({ ...next[i], ...patch }, prices);
       return next;
     });
   };
@@ -208,20 +209,17 @@ export default function CarsTable({ cars, setCars, sortBy, sortDir, onSort, pric
             </thead>
 
             <tbody className="[&>tr:hover]:bg-white/60 [&>tr]:odd:bg-white/40">
-              {sortedCars.map((car, idx) => (
-                <CarRow
-                  key={car.id}
-                  car={car}
-                  idx={idx}
-                  onChange={onChange}
-                  fmt0={fmt0}
-                  fieldColor={fieldColor}
-                  NA={NA}
-                  prices={prices}
-                  isICE={isICE}
-                  EV_ONLY_KEYS={EV_ONLY_KEYS}
-                />
-              ))}
+              {sortedCars.map((car) => (
+              <CarRow
+                key={car.id ?? `${car.model}-${car.year}`}
+                car={car}
+                onChange={(field, value) => onChange(car.id, field, value)}
+                fmt0={fmt0}
+                fieldColor={fieldColor}
+                NA={NA}
+                prices={prices}
+              />
+            ))}
             </tbody>
           </table>
         </div>

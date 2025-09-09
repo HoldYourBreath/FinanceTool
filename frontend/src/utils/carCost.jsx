@@ -134,6 +134,48 @@ function normalizeSettings(settings) {
   };
 }
 
+function seasonSplit(settings) {
+  const winterMonths = num(settings?.winter_months, 5);
+  const m = Math.max(0, Math.min(12, winterMonths));
+  return { winter: m / 12, summer: 1 - m / 12 };
+}
+
+function wearMultiplier(car, settings) {
+  const type = normType(car?.type_of_vehicle);
+  const evMult   = type === "ev"   ? num(settings?.tire_wear_ev_mult,   1.15) : 1.0;
+  const suvMult  = car?.suv_tier   ? num(settings?.tire_wear_suv_mult,  1.05) : 1.0;
+  const perfCut  = num(settings?.tire_wear_perf_mult_threshold_sec, 5.0);
+  const perfMult = (num(car?.acceleration_0_100, 9.0) <= perfCut)
+    ? num(settings?.tire_wear_perf_mult, 1.05)
+    : 1.0;
+  return evMult * suvMult * perfMult;
+}
+
+function yearlyTireCost(car, settings) {
+  const ps = normalizeSettings(settings);
+  const kmYear = num(ps?.yearlyKM, 18000);
+  const { summer, winter } = seasonSplit(ps);
+  const wearMult = wearMultiplier(car, ps);
+
+  const priceSummer = num(car?.summer_tires_price, 0);
+  const priceWinter = num(car?.winter_tires_price, 0);
+
+  const lifeSummer = num(car?.summer_tire_life_km ?? ps?.summer_tire_life_km, 40000);
+  const lifeWinter = num(car?.winter_tire_life_km ?? ps?.winter_tire_life_km, 30000);
+
+  // Per-km cost per set (guard against 0)
+  const cpkSummer = lifeSummer > 0 ? (priceSummer / lifeSummer) * wearMult : 0;
+  const cpkWinter = lifeWinter > 0 ? (priceWinter / lifeWinter) * wearMult : 0;
+
+  const costKm = kmYear * (summer * cpkSummer + winter * cpkWinter);
+
+  const swaps   = 2 * num(ps?.tire_swap_cost_per_change, 500); // spring + autumn
+  const storage = num(ps?.tire_storage_cost_year, 0);
+
+  return costKm + swaps + storage;
+}
+
+
 // ------- cost calc --------
 
 /**
@@ -227,11 +269,7 @@ export function yearlyRecurringCost(car, settings) {
     num(car?.full_insurance_year, NaN) ??
     num(car?.half_insurance_year, NaN);
   const insY = Number.isFinite(insuranceYear) ? insuranceYear : 0;
-
-  const tiresYear =
-    (num(car?.summer_tires_price, 0) + num(car?.winter_tires_price, 0)) /
-    ps.tireLifespanYears;
-
+  const tiresYear = yearlyTireCost(car, ps);
   const taxYear = num(car?.car_tax_year, 0);
   const repairsYear = num(car?.repairs_year, 0);
 

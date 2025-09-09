@@ -196,6 +196,7 @@ def _coerce_for_column(attr: str, value: Any) -> Any:
             return value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
         return False
     return str(value).strip() if isinstance(value, str) else value
+    
 
 # ------------------------------------------------------------------------------
 # Normalization & setters

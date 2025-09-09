@@ -1,11 +1,12 @@
 # routes/car_evaluation.py
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from datetime import datetime
 
 from flask import Blueprint, jsonify, request, current_app
+
 from ..models.models import Car, PriceSettings, db
 
 cars_bp = Blueprint("cars", __name__, url_prefix="/api")
@@ -20,7 +21,8 @@ except Exception:  # pragma: no cover
             peak = float(peak_kw or 0)
             if batt <= 0 or peak <= 0:
                 return 0
-            return int(round((0.7 * batt) / (0.6 * peak) * 60))  # simple 10→80% heuristic
+            # simple 10→80% heuristic with avg ≈ 60% of peak
+            return int(round((0.7 * batt) / (0.6 * peak) * 60))
         except Exception:
             return 0
 
@@ -35,7 +37,7 @@ except Exception:  # pragma: no cover
 
 # -------------------- number helpers --------------------
 def _as_float(v, default: Optional[float] = None) -> Optional[float]:
-    """Decimal-safe float conversion. Returns default (None) instead of forcing 0."""
+    """Decimal-safe float conversion. Returns default instead of forcing 0."""
     if v is None:
         return default
     if isinstance(v, Decimal):
@@ -51,7 +53,8 @@ def _as_float(v, default: Optional[float] = None) -> Optional[float]:
 
 def _num(v, default: float = 0.0) -> float:
     out = _as_float(v, None)
-    return out if out is not None and out == out else default  # NaN guard
+    # NaN-safe defaulting
+    return out if out is not None and out == out else default
 
 
 def _safe(val, default=None):
@@ -144,6 +147,13 @@ def _estimate_repairs_year(type_: str, car_year: Optional[int]) -> float:
     return base + max(0, age - 5) * 300
 
 
+def _get_model_range_val(c: Car) -> Optional[float]:
+    """Support either `range` or legacy `range_km` on the model."""
+    if hasattr(c, "range") and getattr(c, "range") is not None:
+        return _as_float(getattr(c, "range"))
+    return _as_float(getattr(c, "range_km", None))
+
+
 def _compute_derived(car: Car, ps: Optional[PriceSettings]) -> dict:
     P = _normalize_prices(ps)
 
@@ -208,23 +218,23 @@ def _compute_derived(car: Car, ps: Optional[PriceSettings]) -> dict:
         "tco_total_3y": round(dep3 + 3 * recurring_year, 2),
         "tco_total_5y": round(dep5 + 5 * recurring_year, 2),
         "tco_total_8y": round(dep8 + 8 * recurring_year, 2),
-        # expose the effective yearly costs we just used (for the UI)
+        # expose the effective yearly costs we used (for UI coloring/tooltips)
+        "tires_year_effective": round(tires_year, 2),
         "full_insurance_year_effective": round(full_ins_eff, 2),
+        "half_insurance_year_effective": round(_estimate_half_from_full(full_ins_eff), 2),
         "car_tax_year_effective": round(tax_eff, 2),
         "repairs_year_effective": round(repairs_eff, 2),
-        "half_insurance_year_effective": round(_estimate_half_from_full(full_ins_eff), 2),
     }
 
 
 # -------------------- serialization --------------------
 def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
-    """Serialize with *effective* yearly cost fields (fallbacks applied) + raw mirrors."""
-    # compute derived first so we can reuse the effective yearly costs
+    """Serialize with effective yearly cost fields (fallbacks applied) + raw mirrors."""
     derived = {}
     try:
         derived = _compute_derived(c, ps)
     except Exception as e:
-        current_app.logger.debug("compute_derived failed for car %s: %s", c.id, e)
+        current_app.logger.debug("compute_derived failed for car %s: %s", getattr(c, "id", "?"), e)
 
     # RAW values from DB
     full_raw = _as_float(getattr(c, "full_insurance_year", None))
@@ -254,13 +264,14 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
         "summer_tires_price": _as_float(c.summer_tires_price),
         "winter_tires_price": _as_float(c.winter_tires_price),
 
-        # yearly running-cost fields — return EFFECTIVE (non-zero) values for display
-        "full_insurance_year": full_eff,
-        "half_insurance_year": half_eff,
-        "car_tax_year":        tax_eff,
-        "repairs_year":        repairs_eff,
+        # yearly running-cost fields — EFFECTIVE values for display
+        "tires_year":            derived.get("tires_year_effective"),
+        "full_insurance_year":   full_eff,
+        "half_insurance_year":   half_eff,
+        "car_tax_year":          tax_eff,
+        "repairs_year":          repairs_eff,
 
-        # also include RAW mirrors (if you need the exact DB content)
+        # also include RAW mirrors (exact DB content)
         "full_insurance_year_raw": full_raw,
         "half_insurance_year_raw": half_raw,
         "car_tax_year_raw":        tax_raw,
@@ -276,7 +287,7 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
         "consumption_kwh_100km":     _as_float(c.consumption_kwh_per_100km),
         "consumption_kwh_per_100km": _as_float(c.consumption_kwh_per_100km),
         "consumption_l_per_100km":   _as_float(getattr(c, "consumption_l_per_100km", None)),
-        "range":                     _as_float(getattr(c, "range_km", None)),
+        "range":                     _get_model_range_val(c),
         "acceleration_0_100":        _as_float(c.acceleration_0_100),
         "battery_capacity_kwh":      _as_float(c.battery_capacity_kwh),
         "trunk_size_litre":          _as_float(c.trunk_size_litre),
@@ -310,7 +321,6 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
             d.get("battery_capacity_kwh", 0), d.get("ac_onboard_kw", 0)
         )
 
-    # finally merge in the rest of the derived metrics (energy/tco/etc.)
     d.update(derived)
     return d
 
@@ -424,6 +434,7 @@ def update_cars():
                 if k in p:
                     setattr(car, k, p[k] or getattr(car, k))
 
+            # consumption (accept either key)
             if "consumption_kwh_100km" in p or "consumption_kwh_per_100km" in p:
                 raw = p.get("consumption_kwh_100km", p.get("consumption_kwh_per_100km"))
                 car.consumption_kwh_per_100km = _num(raw, car.consumption_kwh_per_100km or 0)
@@ -449,20 +460,29 @@ def update_cars():
                 if k in p:
                     setattr(car, k, _num(p[k], getattr(car, k) or 0))
 
+            # handle range (support both names)
             if "range" in p:
-                car.range_km = int(_num(p["range"], car.range_km or 0))
+                car.range_km = int(_num(p["range"], getattr(car, "range_km", 0)))
+            if "range_km" in p:
+                car.range_km = int(_num(p["range_km"], getattr(car, "range_km", 0)))
 
             if "dc_time_source" in p:
                 car.dc_time_source = p["dc_time_source"] or car.dc_time_source
             if "ac_time_source" in p:
                 car.ac_time_source = p["ac_time_source"] or car.ac_time_source
 
+            # refresh charging estimates
             try:
-                car.dc_time_min_10_80_est = estimate_dc_10_80_minutes(_num(car.battery_capacity_kwh), _num(car.dc_peak_kw))
-                car.ac_time_h_0_100_est = estimate_ac_0_100_hours(_num(car.battery_capacity_kwh), _num(car.ac_onboard_kw))
+                car.dc_time_min_10_80_est = estimate_dc_10_80_minutes(
+                    _num(car.battery_capacity_kwh), _num(car.dc_peak_kw)
+                )
+                car.ac_time_h_0_100_est = estimate_ac_0_100_hours(
+                    _num(car.battery_capacity_kwh), _num(car.ac_onboard_kw)
+                )
             except Exception:
                 pass
 
+            # persist TCO aggregates for convenience
             try:
                 d = _compute_derived(car, ps)
                 car.tco_3_years = d["tco_3_years"]
