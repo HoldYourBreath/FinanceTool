@@ -110,6 +110,54 @@ function Run-Npm {
   return $proc.ExitCode
 }
 
+function Ensure-SchemaBootstrap {
+  param([string]$DbUrl,[string]$RepoRoot)
+
+  Info "Bootstrapping schema (adding any missing columns)..."
+  Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+  from backend.app import create_app
+  from backend.models.models import db
+  from sqlalchemy import inspect, text
+
+  app = create_app()
+  with app.app_context():
+    insp = inspect(db.engine)
+
+    def ensure_col(table, name, ddl):
+        cols = {c['name'] for c in insp.get_columns(table)}
+        if name not in cols:
+            print(f' -> Adding {table}.{name}')
+            db.session.execute(text(f'ALTER TABLE {table} ADD COLUMN {ddl};'))
+            db.session.commit()
+        else:
+            print(f' OK {table}.{name} exists')
+
+    # --- Cars: ensure tire replacement interval (NUMERIC(4,2)) ---
+    ensure_col('cars', 'tire_replacement_interval_years',
+               'tire_replacement_interval_years NUMERIC(4,2)')
+    db.session.execute(text('UPDATE cars SET tire_replacement_interval_years = 3 WHERE tire_replacement_interval_years IS NULL;'))
+    db.session.commit()
+
+    # --- App settings: ensure global tire change price/year (NUMERIC(10,2)) ---
+    cols = {c['name'] for c in insp.get_columns('app_settings')}
+    if 'tire_change_price_year' not in cols:
+        print(' -> Adding app_settings.tire_change_price_year')
+        db.session.execute(text('ALTER TABLE app_settings ADD COLUMN tire_change_price_year NUMERIC(10,2) DEFAULT 2000;'))
+        db.session.commit()
+
+    # Ensure singleton row exists with sane defaults
+    db.session.execute(text(\"\"\"
+        INSERT INTO app_settings (id, electricity_price_ore_kwh, bensin_price_sek_litre, diesel_price_sek_litre,
+                                  yearly_driving_km, daily_commute_km, tire_change_price_year)
+        SELECT 1, 250, 14, 15, 18000, 30, COALESCE((SELECT tire_change_price_year FROM app_settings LIMIT 1),2000)
+        WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE id=1);
+    \"\"\"))  # no-op if exists
+    db.session.commit()
+
+    print(' ✅ Schema bootstrap done.')
+"@
+}
+
 function Invoke-BackendPython {
   param(
     [string]$Code,
@@ -135,24 +183,14 @@ function Invoke-BackendPython {
 
 function Ensure-PostgresDatabase {
   param([string]$DbUrl,[string]$RepoRoot)
-  # Reuse the helper tool if present; otherwise best-effort connect to create.
-  $tool = Join-Path $RepoRoot 'backend\tools\create_pg_db.py'
-  if (Test-Path $tool) {
-    $prevDemo = $env:DEMO_DATABASE_URL
-    $env:DEMO_DATABASE_URL = $DbUrl
-    try {
-      Info "Ensuring database exists (via backend.tools.create_pg_db)..."
-      Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
-from backend.tools.create_pg_db import main as _main
-_main()
+  Info "Ensuring database exists (backend.utils.db_bootstrap.ensure_database_exists)…"
+  Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+from backend.utils.db_bootstrap import ensure_database_exists
+ensure_database_exists('$DbUrl')
 "@
-    } finally {
-      $env:DEMO_DATABASE_URL = $prevDemo
-    }
-  } else {
-    Warn "create_pg_db.py not found. Skipping DB create check; assuming DB exists."
-  }
 }
+
+
 
 # ---------------- backend ----------------
 if (-not (Test-Path '.\backend')) { Fail 'backend folder not found'; exit 1 }
@@ -282,13 +320,20 @@ function Initialize-SeedEnvironment {
     [string]$RepoRoot
   )
 
-  # Ensure DB exists (best-effort)
+  # Ensure DB exists
   Ensure-PostgresDatabase -DbUrl $DbUrl -RepoRoot $RepoRoot
 
   # Configure env for backend
   $env:APP_ENV = $EnvName
   $env:DATABASE_URL = $DbUrl
   if ($EnvName -eq 'demo') { $env:DEMO_DATABASE_URL = $DbUrl }
+
+  # --- NEW: schema bootstrap (adds tires/repairs columns etc) ---
+  Info "Bootstrapping schema ($EnvName)…"
+  Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+from backend.tools.bootstrap_schema import main as _main
+_main()
+"@
 
   Info "Seeding ($EnvName) → $DbUrl"
   Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
@@ -301,35 +346,30 @@ seed_all.main() if hasattr(seed_all,'main') else None
 ctx.pop()
 "@
 
-  # Verify a few rows made it, and that repairs_year is non-null for EVs
-  Info "Verifying seed ($EnvName)..."
+  # Verify seed
+  Info "Verifying seed ($EnvName)…"
   Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
 from backend.app import create_app
 a=create_app(); ctx=a.app_context(); ctx.push()
 from backend.models.models import Car, db
 rows = db.session.query(Car.model, Car.repairs_year, Car.type_of_vehicle).order_by(Car.model).limit(8).all()
 print('Sample cars:', rows)
-nulls = db.session.query(Car).filter((Car.type_of_vehicle.in_(['EV','PHEV'])) & ((Car.repairs_year.is_(None)))).count()
+nulls = db.session.query(Car).filter((Car.type_of_vehicle.in_(['EV','PHEV'])) & (Car.repairs_year.is_(None))).count()
 print('EV/PHEV rows with NULL repairs_year:', nulls)
 ctx.pop()
 "@
   Ok "Seed verified for $EnvName"
 }
 
+
 Set-Location $repoRoot
+
 if ($SkipSeed) {
   Info 'Skipping seeding (flag set).'
 } else {
-  if ($SeedBoth) {
-    Initialize-SeedEnvironment -EnvName 'dev'  -DbUrl $DevDbUrl  -RepoRoot $repoRoot
-    Initialize-SeedEnvironment -EnvName 'demo' -DbUrl $DemoDbUrl -RepoRoot $repoRoot
-  } else {
-    if ($Env -eq 'demo') {
-      Initialize-SeedEnvironment -EnvName 'demo' -DbUrl $DemoDbUrl -RepoRoot $repoRoot
-    } else {
-      Initialize-SeedEnvironment -EnvName 'dev'  -DbUrl $DevDbUrl  -RepoRoot $repoRoot
-    }
-  }
+  # Always seed BOTH envs by default
+  Initialize-SeedEnvironment -EnvName 'dev'  -DbUrl $DevDbUrl  -RepoRoot $repoRoot
+  Initialize-SeedEnvironment -EnvName 'demo' -DbUrl $DemoDbUrl -RepoRoot $repoRoot
 }
 
 Ok "Setup complete.
@@ -340,3 +380,4 @@ Next:
   .\run_dev.ps1   # start dev API/UI
   .\run_demo.ps1  # start demo API/UI
 "
+
