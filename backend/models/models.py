@@ -187,7 +187,7 @@ class Car(db.Model):
     summer_tires_price = db.Column(db.Integer, default=0)  # SEK/set
     winter_tires_price = db.Column(db.Integer, default=0)  # SEK/set
 
-    # NEW: replacement interval in years (per car)
+    # Replacement interval in years (per car)
     tire_replacement_interval_years = db.Column(Numeric(4, 2), nullable=True, default=3)
 
     # Energy / consumption
@@ -197,7 +197,7 @@ class Car(db.Model):
     type_of_vehicle = db.Column(vehicle_type_enum, nullable=False, server_default='EV')
     battery_capacity_kwh = db.Column(db.Numeric(6, 2), default=0)
     acceleration_0_100   = db.Column(db.Float)
-    range_km             = db.Column(db.Integer, default=0)
+    range_km             = db.Column(db.Integer, nullable=True)
     driven_km            = db.Column(db.Integer, default=0)
     battery_aviloo_score = db.Column(db.Integer, default=0)
     trunk_size_litre     = db.Column(db.Integer, default=0)
@@ -214,11 +214,9 @@ class Car(db.Model):
     # Charging / timing
     dc_peak_kw           = db.Column(db.Float)
     dc_time_min_10_80    = db.Column(db.Float)
-    dc_time_min_10_80_est= db.Column(db.Float)
     dc_time_source       = db.Column(db.Text)
     ac_onboard_kw        = db.Column(db.Float)
     ac_time_h_0_100      = db.Column(db.Float)
-    ac_time_h_0_100_est  = db.Column(db.Float)
     ac_time_source       = db.Column(db.Text)
 
     # Derived totals (optional; can be recomputed on the fly)
@@ -280,11 +278,9 @@ class Car(db.Model):
 
             'dc_peak_kw': _as_float(self.dc_peak_kw),
             'dc_time_min_10_80': _as_float(self.dc_time_min_10_80),
-            'dc_time_min_10_80_est': _as_float(self.dc_time_min_10_80_est),
             'dc_time_source': self.dc_time_source,
             'ac_onboard_kw': _as_float(self.ac_onboard_kw),
             'ac_time_h_0_100': _as_float(self.ac_time_h_0_100),
-            'ac_time_h_0_100_est': _as_float(self.ac_time_h_0_100_est),
             'ac_time_source': self.ac_time_source,
 
             # Derived/legacy passthroughs (if still used elsewhere)

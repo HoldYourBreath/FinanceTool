@@ -295,11 +295,9 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
         # charging
         "dc_peak_kw":            _as_float(getattr(c, "dc_peak_kw", None)),
         "dc_time_min_10_80":     _as_float(getattr(c, "dc_time_min_10_80", None)),
-        "dc_time_min_10_80_est": _as_float(getattr(c, "dc_time_min_10_80_est", None)),
         "dc_time_source":        _safe(getattr(c, "dc_time_source", ""), "") or "",
         "ac_onboard_kw":         _as_float(getattr(c, "ac_onboard_kw", None)),
         "ac_time_h_0_100":       _as_float(getattr(c, "ac_time_h_0_100", None)),
-        "ac_time_h_0_100_est":   _as_float(getattr(c, "ac_time_h_0_100_est", None)),
         "ac_time_source":        _safe(getattr(c, "ac_time_source", ""), "") or "",
 
         # persisted totals if any (kept)
@@ -311,16 +309,6 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
         "tco_total_8y": _as_float(getattr(c, "tco_total_8y", None)),
     }
 
-    # ensure estimates are present when explicit times are missing
-    if _as_float(d.get("dc_time_min_10_80")) in (None, 0):
-        d["dc_time_min_10_80_est"] = d.get("dc_time_min_10_80_est") or estimate_dc_10_80_minutes(
-            d.get("battery_capacity_kwh", 0), d.get("dc_peak_kw", 0)
-        )
-    if _as_float(d.get("ac_time_h_0_100")) in (None, 0):
-        d["ac_time_h_0_100_est"] = d.get("ac_time_h_0_100_est") or estimate_ac_0_100_hours(
-            d.get("battery_capacity_kwh", 0), d.get("ac_onboard_kw", 0)
-        )
-
     d.update(derived)
     return d
 
@@ -331,53 +319,33 @@ def which_handler():
 
 
 # -------------------- GET /api/cars --------------------
+# routes/car_evaluation.py
+# routes/car_evaluation.py (cars endpoint)
+
+def first_non_null(*vals):
+    for v in vals:
+        if v is not None:
+            return v
+    return None
+
 @cars_bp.get("/cars")
-def get_cars():
-    try:
-        ps = PriceSettings.query.get(1)
-        if not ps:
-            ps = PriceSettings(id=1)
-            db.session.add(ps)
-            db.session.commit()
+def list_cars():
+    cars = Car.query.order_by(Car.id).all()
+    out = []
+    for c in cars:
+        d = c.to_dict() if hasattr(c, "to_dict") else {}
+        range_km = getattr(c, "range_km", None)
+        legacy = getattr(c, "range", None)
 
-        q = Car.query
+        # canonical (NO default 0!)
+        d["range_km"] = first_non_null(range_km, legacy)
 
-        body_styles = _parse_csv("body_style")
-        segments = _parse_csv("eu_segment")
-        suv_tiers = _parse_csv("suv_tier")
-        veh_types = _parse_csv("type_of_vehicle")
+        # keep raw fields too (for migration/debug)
+        d["range"]   = legacy
 
-        if body_styles:
-            q = q.filter(Car.body_style.in_(body_styles))
-        if segments:
-            q = q.filter(Car.eu_segment.in_(segments))
-        if suv_tiers:
-            q = q.filter(Car.suv_tier.in_(suv_tiers))
-        if veh_types:
-            q = q.filter(Car.type_of_vehicle.in_(veh_types))
+        out.append(d)
+    return jsonify(out), 200  # bare array is fine
 
-        term = request.args.get("q")
-        if term:
-            like = f"%{term}%"
-            q = q.filter(Car.model.ilike(like))
-
-        y_min = request.args.get("year_min", type=int)
-        y_max = request.args.get("year_max", type=int)
-        if y_min is not None:
-            q = q.filter(Car.year >= y_min)
-        if y_max is not None:
-            q = q.filter(Car.year <= y_max)
-
-        cars = q.order_by(Car.model.asc(), Car.year.desc()).all()
-        current_app.logger.info("/api/cars -> %d rows", len(cars))
-        resp = jsonify([_serialize_car(c, ps) for c in cars])
-        resp.headers["X-Cars-Handler"] = "car_evaluation"
-        return resp, 200
-    except Exception as e:
-        current_app.logger.warning("GET /api/cars failed, returning []: %s", e)
-        resp = jsonify([])
-        resp.headers["X-Cars-Handler"] = "car_evaluation"
-        return resp, 200
 
 
 # -------------------- GET /api/cars/categories --------------------
@@ -470,17 +438,6 @@ def update_cars():
                 car.dc_time_source = p["dc_time_source"] or car.dc_time_source
             if "ac_time_source" in p:
                 car.ac_time_source = p["ac_time_source"] or car.ac_time_source
-
-            # refresh charging estimates
-            try:
-                car.dc_time_min_10_80_est = estimate_dc_10_80_minutes(
-                    _num(car.battery_capacity_kwh), _num(car.dc_peak_kw)
-                )
-                car.ac_time_h_0_100_est = estimate_ac_0_100_hours(
-                    _num(car.battery_capacity_kwh), _num(car.ac_onboard_kw)
-                )
-            except Exception:
-                pass
 
             # persist TCO aggregates for convenience
             try:

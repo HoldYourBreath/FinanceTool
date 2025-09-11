@@ -9,29 +9,26 @@ const COLORS = {
   bad: "bg-red-50 text-red-700",
 };
 
-const FIELD_ALIASES = {
-  range: "range_km",
-  consumption_kwh_100km: "consumption_kwh_per_100km",
-  consumption_l_100km: "consumption_l_per_100km",
-
-  // charging time aliases
-  dc_time_min_10_80_est: "dc_time_min_10_80",
-  ac_time_h_0_100_est: "ac_time_h_0_100",
-
-  // peak power aliases
-  dc_peak: "dc_peak_kw",
-  ac_onboard: "ac_onboard_kw",
-};
-
-function canon(field) {
-  return FIELD_ALIASES[field] || field;
-}
-
-export const fieldColor = (rawField, value) => {
-  const field = canon(rawField);
+export const fieldColor = (field, value) => {
   const v = Number(value) || 0;
 
   switch (field) {
+    case "consumption_kwh_per_100km": // EV & PHEV
+      if (v === 0) return ""; // hide for blank values
+      if (v <= 15) return COLORS.great;
+      if (v <= 18) return COLORS.good;
+      if (v <= 22) return COLORS.ok;
+      if (v <= 26) return COLORS.fair;
+      return COLORS.bad;
+
+    case "consumption_l_per_100km": // Diesel / Bensin
+      if (v === 0) return "";
+      if (v <= 4) return COLORS.great;
+      if (v <= 5.5) return COLORS.good;
+      if (v <= 7) return COLORS.ok;
+      if (v <= 8.5) return COLORS.fair;
+      return COLORS.bad;
+
     case "repairs_year":
       if (v > 7000) return COLORS.bad;
       if (v > 6000) return COLORS.fair;
@@ -44,8 +41,8 @@ export const fieldColor = (rawField, value) => {
       if (v < 400) return COLORS.bad;
       return COLORS.ok;
 
-    case "range_km": // accepts "range" via alias
-      if (v >= 500) return COLORS.good;
+    case "range":
+      if (v > 500) return COLORS.good;
       if (v < 400) return COLORS.bad;
       return COLORS.ok;
 
@@ -69,42 +66,11 @@ export const fieldColor = (rawField, value) => {
       if (v > 2000) return COLORS.bad;
       return COLORS.ok;
 
-    // DC fast charge 10–80% (minutes) — lower = better
-    case "dc_time_min_10_80":
-      if (v <= 20) return COLORS.great;
-      if (v <= 30) return COLORS.good;
-      if (v <= 40) return COLORS.ok;
-      if (v <= 50) return COLORS.fair;
-      return COLORS.bad;
-
-    // AC charge 0–100% (hours) — lower = better
-    case "ac_time_h_0_100":
-      if (v <= 6) return COLORS.great;
-      if (v <= 8) return COLORS.good;
-      if (v <= 10) return COLORS.ok;
-      if (v <= 12) return COLORS.fair;
-      return COLORS.bad;
-
-    // DC peak power (kW) — higher = better
-    case "dc_peak_kw":
-      if (v >= 250) return COLORS.great;
-      if (v >= 200) return COLORS.good;
-      if (v >= 150) return COLORS.ok;
-      if (v >= 100) return COLORS.fair;
-      return COLORS.bad;
-
-    // AC onboard charger (kW) — higher = better
-    case "ac_onboard_kw":
-      if (v >= 22) return COLORS.great;
-      if (v >= 11) return COLORS.good;
-      if (v >= 7.4) return COLORS.ok;
-      if (v >= 3.6) return COLORS.fair;
-      return COLORS.bad;
-
     default:
       return "";
   }
 };
+
 
 export function NA({ hint }) {
   return (
@@ -131,11 +97,7 @@ export function NA({ hint }) {
 const COMMUTE_DAYS_PER_MONTH = 22;
 
 function num(x, d = 0) {
-  const n = Number(
-    String(x ?? "")
-      .replace(",", ".")
-      .trim(),
-  );
+  const n = Number(String(x ?? "").replace(",", ".").trim());
   return Number.isFinite(n) ? n : d;
 }
 
@@ -172,7 +134,7 @@ function lPer100(car) {
 function normalizeSettings(settings) {
   const elOre = num(
     settings?.el_price_ore_kwh ?? settings?.electricity_price_ore_kwh,
-    250,
+    250
   );
   const elecSEK = elOre / 100; // 250 öre => 2.50 SEK/kWh
   return {
@@ -221,14 +183,13 @@ function yearlyTireCost(car, settings) {
 
   const lifeSummer = num(
     car?.summer_tire_life_km ?? ps?.summer_tire_life_km,
-    40000,
+    40000
   );
   const lifeWinter = num(
     car?.winter_tire_life_km ?? ps?.winter_tire_life_km,
-    30000,
+    30000
   );
 
-  // Per-km cost per set (guard against 0)
   const cpkSummer = lifeSummer > 0 ? (priceSummer / lifeSummer) * wearMult : 0;
   const cpkWinter = lifeWinter > 0 ? (priceWinter / lifeWinter) * wearMult : 0;
 
@@ -242,36 +203,24 @@ function yearlyTireCost(car, settings) {
 
 // ------- cost calc --------
 
-/**
- * Monthly energy/fuel cost (SEK) given kmPerMonth and settings.
- * settings:
- *   - el_price_ore_kwh (öre)  → converted to SEK/kWh
- *   - diesel_price_sek_litre
- *   - bensin_price_sek_litre
- *   - daily_commute_km (for PHEV split)
- *   - charging_loss_pct (optional, default 0.10)
- */
 export function monthlyConsumptionCost(car, kmPerMonth, settings) {
   const ps = normalizeSettings(settings);
 
-  // Fall back to settings.yearly_km / 12 if caller passes nothing/0
   const fallbackKm = ps.yearlyKM / 12;
   const km = num(kmPerMonth, fallbackKm);
   if (!km) return 0;
 
   const type = normType(car?.type_of_vehicle);
-  const sekPerKwh = ps.elecSEK * (1 + ps.chargingLossPct); // include charging overhead
+  const sekPerKwh = ps.elecSEK * (1 + ps.chargingLossPct);
   const dieselSekL = ps.dieselSEK;
   const bensinSekL = ps.bensinSEK;
 
-  // EV: kWh only
   if (type === "ev") {
     const kwh100 = kwhPer100(car) ?? 0;
     if (!kwh100 || !sekPerKwh) return 0;
     return (km / 100) * kwh100 * sekPerKwh;
   }
 
-  // PHEV: split electricity vs petrol
   if (type === "phev") {
     const consKwh100 = kwhPer100(car) ?? 0;
     const consL100 = lPer100(car) ?? 0;
@@ -279,14 +228,12 @@ export function monthlyConsumptionCost(car, kmPerMonth, settings) {
 
     if ((!consKwh100 || !sekPerKwh) && (!consL100 || !bensinSekL)) return 0;
 
-    // derive electric-only range from battery/consumption (fallback 40 km)
     const assumedEvRange = 40;
     const evRange =
       consKwh100 > 0 && battKwh > 0
         ? (100 * battKwh) / consKwh100
         : assumedEvRange;
 
-    // either use explicit share or compute from commute * working days
     const evKmPerDay = Math.min(ps.dailyCommuteKM, evRange);
     const evKmMonth =
       ps.phevElectricShare != null
@@ -308,25 +255,22 @@ export function monthlyConsumptionCost(car, kmPerMonth, settings) {
     return elCost + fuelCost;
   }
 
-  // Diesel / Bensin: litres only
+  // Diesel/Bensin
   const l100 = lPer100(car) ?? 0;
   if (!l100) return 0;
 
-  const sekPerLitre =
-    type === "diesel" ? dieselSekL : bensinSekL || dieselSekL || 0;
+  const sekPerLitre = type === "diesel" ? dieselSekL : bensinSekL || dieselSekL || 0;
   if (!sekPerLitre) return 0;
 
   return (km / 100) * l100 * sekPerLitre;
 }
 
-/** Yearly energy/fuel cost, using monthlyConsumptionCost for consistency */
 export function yearlyConsumptionCost(car, settings, kmPerYearOverride) {
   const ps = normalizeSettings(settings);
   const kmYear = num(kmPerYearOverride, ps.yearlyKM);
   return monthlyConsumptionCost(car, kmYear / 12, ps) * 12;
 }
 
-/** Yearly recurring cost: energy + insurance + tires amortized + tax + repairs */
 export function yearlyRecurringCost(car, settings) {
   const ps = normalizeSettings(settings);
 
@@ -345,7 +289,6 @@ export function yearlyRecurringCost(car, settings) {
 /**
  * Total Cost of Ownership for N years.
  * Includes depreciation + N * recurring yearly costs.
- * Default depreciation rates: 45% (3y), 60% (5y), 75% (8y).
  */
 export function tco(car, settings, years = 3) {
   const ps = normalizeSettings(settings);
@@ -355,11 +298,10 @@ export function tco(car, settings, years = 3) {
     years <= 3
       ? ps.dep3yPct
       : years <= 5
-        ? ps.dep5yPct
-        : years <= 8
-          ? ps.dep8yPct
-          : // simple extrapolation for >8y: cap at 90%
-            Math.min(0.9, ps.dep8yPct + 0.03 * (years - 8));
+      ? ps.dep5yPct
+      : years <= 8
+      ? ps.dep8yPct
+      : Math.min(0.9, ps.dep8yPct + 0.03 * (years - 8));
 
   const dep = price * depPct;
   const recurring = yearlyRecurringCost(car, ps);

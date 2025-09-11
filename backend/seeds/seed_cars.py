@@ -77,11 +77,9 @@ FIELD_MAP: dict[str, str] = {
     # Charging
     "dc_peak_kw": "dc_peak_kw",
     "dc_time_min_10_80": "dc_time_min_10_80",
-    "dc_time_min_10_80_est": "dc_time_min_10_80_est",
     "dc_time_source": "dc_time_source",
     "ac_onboard_kw": "ac_onboard_kw",
     "ac_time_h_0_100": "ac_time_h_0_100",
-    "ac_time_h_0_100_est": "ac_time_h_0_100_est",
     "ac_time_source": "ac_time_source",
 }
 
@@ -233,29 +231,6 @@ def _set_if_present(row: dict, car: Car, key: str) -> bool:
         return True
     return False
 
-# ------------------------------------------------------------------------------
-# Simple estimators (fallbacks for EV/PHEV)
-# ------------------------------------------------------------------------------
-def _est_ac_hours(batt_kwh: float | None, ac_kw: float | None) -> float | None:
-    try:
-        b = float(batt_kwh or 0.0)
-        a = float(ac_kw or 0.0)
-        if b > 0 and a > 0:
-            return round(b / a, 2)
-    except Exception:
-        pass
-    return None
-
-def _est_dc_10_80_min(batt_kwh: float | None, dc_kw: float | None) -> float | None:
-    try:
-        b = float(batt_kwh or 0.0)
-        p = float(dc_kw or 0.0)
-        if b > 0 and p > 0:
-            # ~70% of pack from 10→80 at ~p kW average → minutes
-            return round(70.0 * b / p, 2)
-    except Exception:
-        pass
-    return None
 
 # ------------------------------------------------------------------------------
 # Seeding (upsert-by-(model,year))
@@ -324,20 +299,6 @@ def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
                 if not ac_kw or ac_kw == 0.0:
                     car.ac_onboard_kw = _coerce_for_column("ac_onboard_kw", 11.0)
                     changed = True
-
-                # estimate AC full-charge hours if missing
-                if getattr(car, "ac_time_h_0_100_est", None) in (None, ""):
-                    est_ac = _est_ac_hours(batt, _to_float(getattr(car, "ac_onboard_kw", None)))
-                    if est_ac is not None:
-                        car.ac_time_h_0_100_est = _coerce_for_column("ac_time_h_0_100_est", est_ac)
-                        changed = True
-
-                # estimate DC 10→80 if missing and dc_kw present
-                if getattr(car, "dc_time_min_10_80_est", None) in (None, "") and dc_kw:
-                    est_dc = _est_dc_10_80_min(batt, dc_kw)
-                    if est_dc is not None:
-                        car.dc_time_min_10_80_est = _coerce_for_column("dc_time_min_10_80_est", est_dc)
-                        changed = True
 
             if changed and not was_new:
                 updated += 1
