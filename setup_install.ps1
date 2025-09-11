@@ -148,11 +148,20 @@ function Invoke-BackendPython {
 function Ensure-PostgresDatabase {
   param([string]$DbUrl,[string]$RepoRoot)
   Info "Ensuring database exists (backend.utils.db_bootstrap.ensure_database_exists)…"
-  Invoke-BackendPython -RepoRoot $RepoRoot -Code @'
+
+  $old = $env:DATABASE_URL
+  $env:DATABASE_URL = $DbUrl
+  try {
+    Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+import os
 from backend.utils.db_bootstrap import ensure_database_exists
-ensure_database_exists("'"'"'$DbUrl'"'"'")
-'@
+ensure_database_exists(os.environ['DATABASE_URL'])
+"@
+  } finally {
+    if ($null -ne $old) { $env:DATABASE_URL = $old } else { Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue }
+  }
 }
+
 
 function Get-CarCount {
   param([string]$DbUrl,[string]$RepoRoot)
@@ -189,7 +198,6 @@ with app.app_context():
     print(f"Backfilled rows: {res.rowcount}")
 '@
 }
-
 
 # ---------------- backend ----------------
 if (-not (Test-Path '.\backend')) { Fail 'backend folder not found'; exit 1 }
@@ -373,6 +381,17 @@ print("EV/PHEV rows with missing/zero range_km:", ev_missing)
 ctx.pop()
 '@
 }
+
+  # Recompute TCO for this env (ensures non-zero values after setup)
+  Info "Recomputing TCO ($EnvName)…"
+  Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+from backend.app import create_app
+app = create_app()
+with app.test_client() as c:
+    r = c.post('/api/cars/update')
+    print('TCO recompute /api/cars/update ->', r.status_code)
+"@
+
 
 Set-Location $repoRoot
 
