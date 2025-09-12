@@ -15,6 +15,9 @@ def _f(v, default=0.0):
         return float(default)
 
 
+def _s(v, default="other"):
+    return v if isinstance(v, str) and v != "" else default
+
 @loans_bp.get("")
 @loans_bp.get("/")
 def list_loan_adjustments():
@@ -25,7 +28,8 @@ def list_loan_adjustments():
             {
                 "id": adj.id,
                 "month_id": adj.month_id,
-                "type": adj.type,
+                # If note == "Start Loan", label as opening balance; otherwise "other"
+                "type": _s(adj.type, "opening_balance" if (adj.note or "").strip() == "Start Loan" else "other"),
                 "amount": _f(adj.amount),
                 "note": adj.note,
             }
@@ -34,6 +38,7 @@ def list_loan_adjustments():
     except Exception as e:
         current_app.logger.warning("GET /api/loan_adjustments failed; returning []: %s", e)
         return jsonify([]), 200
+
 
 
 @loans_bp.post("")
