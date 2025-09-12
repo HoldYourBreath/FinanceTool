@@ -65,7 +65,8 @@ FIELD_MAP: dict[str, str] = {
     "consumption_kwh_per_100km": "consumption_kwh_per_100km",
     "consumption_l_per_100km": "consumption_l_per_100km",
     "battery_capacity_kwh": "battery_capacity_kwh",
-    "range": "range",  # <- normalized from range_km
+    "range_km": "range_km",
+    "range": "range_km",  # <- normalized from range_km
     "acceleration_0_100": "acceleration_0_100",
     "driven_km": "driven_km",
     "battery_aviloo_score": "battery_aviloo_score",
@@ -200,25 +201,21 @@ def _coerce_for_column(attr: str, value: Any) -> Any:
 # Normalization & setters
 # ------------------------------------------------------------------------------
 def _normalize_row(r: dict[str, Any]) -> dict[str, Any]:
-    """Normalize JSON keys so FIELD_MAP can be applied safely."""
     d = dict(r)
+    # If only 'range' is present, convert it to 'range_km'
+    if "range_km" not in d and "range" in d:
+        d["range_km"] = d.pop("range")
 
-    # range_km -> range
-    if "range_km" in d and "range" not in d:
-        d["range"] = d.pop("range_km")
+    # accept consumption_kwh_100km alias
+    if "consumption_kwh_per_100km" not in d and "consumption_kwh_100km" in d:
+        d["consumption_kwh_per_100km"] = d["consumption_kwh_100km"]
 
-    # accept either consumption_kwh_* key, unify to 'consumption_kwh_per_100km'
-    if "consumption_kwh_per_100km" not in d:
-        alt = d.get("consumption_kwh_100km")
-        if alt is not None:
-            d["consumption_kwh_per_100km"] = alt
-
-    # treat empty strings as nulls for numeric-ish fields
+    # empty strings → None
     for k in list(d.keys()):
         if isinstance(d[k], str) and d[k].strip() == "":
             d[k] = None
-
     return d
+
 
 def _set_if_present(row: dict, car: Car, key: str) -> bool:
     if key not in row:

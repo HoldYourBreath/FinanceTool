@@ -383,14 +383,19 @@ ctx.pop()
 }
 
   # Recompute TCO for this env (ensures non-zero values after setup)
-  Info "Recomputing TCO ($EnvName)…"
-  Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
+Info "Recomputing TCO ($EnvName)…"
+Invoke-BackendPython -RepoRoot $RepoRoot -Code @"
 from backend.app import create_app
+from backend.models.models import Car
 app = create_app()
+with app.app_context():
+    ids = [i for (i,) in app.db.session.query(Car.id).all()] if hasattr(app, 'db') else [c.id for c in Car.query.all()]
 with app.test_client() as c:
-    r = c.post('/api/cars/update')
-    print('TCO recompute /api/cars/update ->', r.status_code)
+    payload = [{ 'id': i } for i in ids]   # minimal objects trigger recompute/persist
+    r = c.post('/api/cars/update', json=payload)
+    print('TCO recompute /api/cars/update ->', r.status_code, r.json)
 "@
+
 
 
 Set-Location $repoRoot

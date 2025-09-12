@@ -330,23 +330,20 @@ def first_non_null(*vals):
 
 @cars_bp.get("/cars")
 def list_cars():
+    ps = None
+    try:
+        ps = PriceSettings.query.get(1)
+    except Exception:
+        pass
     cars = Car.query.order_by(Car.id).all()
     out = []
     for c in cars:
-        d = c.to_dict() if hasattr(c, "to_dict") else {}
-        range_km = getattr(c, "range_km", None)
-        legacy = getattr(c, "range", None)
-
-        # canonical (NO default 0!)
-        d["range_km"] = first_non_null(range_km, legacy)
-
-        # keep raw fields too (for migration/debug)
-        d["range"]   = legacy
-
+        d = _serialize_car(c, ps)   # <- compute + include effective yearly costs & TCO
+        # keep your range_km normalization if you want:
+        if not d.get("range_km"):
+            d["range_km"] = getattr(c, "range_km", None) or getattr(c, "range", None)
         out.append(d)
-    return jsonify(out), 200  # bare array is fine
-
-
+    return jsonify(out), 200
 
 # -------------------- GET /api/cars/categories --------------------
 @cars_bp.get("/cars/categories")
@@ -377,7 +374,9 @@ def update_cars():
     try:
         data = request.get_json(silent=True)
         if not isinstance(data, list):
-            return jsonify({"error": "Expected a JSON list"}), 400
+            # Default to recomputing ALL cars if body is missing/wrong
+            ids = [i for (i,) in db.session.query(Car.id).all()]
+            data = [{"id": i} for i in ids]
 
         ps = PriceSettings.query.get(1)
         if not ps:
