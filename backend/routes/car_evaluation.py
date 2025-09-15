@@ -37,6 +37,20 @@ except Exception:  # pragma: no cover
 
 
 # -------------------- number helpers --------------------
+
+def _as_text(v, default: Optional[str] = None) -> Optional[str]:
+    if v is None:
+        return default
+    try:
+        if isinstance(v, Enum):
+            v = getattr(v, "value", None) or getattr(v, "name", None)
+    except Exception:
+        pass
+    try:
+        return str(v)
+    except Exception:
+        return default
+    
 def _as_float(v, default: Optional[float] = None) -> Optional[float]:
     """Decimal-safe float conversion. Returns default instead of forcing 0."""
     if v is None:
@@ -159,7 +173,7 @@ def _compute_derived(car: Car, ps: Optional[PriceSettings]) -> dict:
     P = _normalize_prices(ps)
 
     yearly_km = P["yearly_km"]
-    type_ = _norm_type(_safe(car.type_of_vehicle, "EV"))
+    type_ = _norm_type(_as_text(_safe(car.type_of_vehicle, "EV")))
 
     kwh100 = _num(getattr(car, "consumption_kwh_per_100km", None), 0.0)
     l100 = _num(getattr(car, "consumption_l_per_100km", None), 0.0)
@@ -248,16 +262,6 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
     half_eff = derived.get("half_insurance_year_effective")
     tax_eff = derived.get("car_tax_year_effective")
     repairs_eff = derived.get("repairs_year_effective")
-
-    def _as_text(v, default=None):
-        if v is None:
-            return default
-        try:
-            if isinstance(v, Enum):
-                return str(getattr(v, "value", v.name))
-        except Exception:
-            pass
-        return str(v)
     
     d = {
         "id": c.id,
