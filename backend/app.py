@@ -7,7 +7,7 @@ from flask_cors import CORS
 
 from backend.config import Config, get_config
 from backend.models.models import db
-from backend.routes import register_routes  # make sure this imports car_evaluation.cars_bp
+from backend.routes import register_routes  # must register blueprints with url_prefix="/api"
 
 load_dotenv()
 
@@ -38,7 +38,10 @@ def create_app() -> Flask:
 
     # DB + routes
     db.init_app(app)
-    register_routes(app)  # ensure backend/routes/__init__.py wires car_evaluation.cars_bp
+
+    # NOTE: Each blueprint (incl. car_evaluation.cars_bp) should be defined WITHOUT url_prefix.
+    # register_routes(app) must attach them with url_prefix="/api".
+    register_routes(app)
 
     # Helpful startup log (password redacted)
     with app.app_context():
@@ -49,11 +52,8 @@ def create_app() -> Flask:
     @app.after_request
     def add_debug_headers(resp):
         try:
-            # dialect: sqlite / postgresql
             resp.headers["X-DB-DIALECT"] = db.engine.dialect.name
-            # safe URL (redacted in Config)
             resp.headers["X-DB-URL"] = Config.EFFECTIVE_DB_URL_SAFE
-            # which host served the request
             resp.headers["X-BACKEND"] = request.host
         except Exception:
             pass

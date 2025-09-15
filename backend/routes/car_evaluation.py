@@ -10,7 +10,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from ..models.models import Car, PriceSettings, db
 
-cars_bp = Blueprint("cars", __name__, url_prefix="/api")
+cars_bp = Blueprint("cars", __name__)
 
 # -------------------- Fallback estimators (safe if utils/* missing) --------------------
 try:
