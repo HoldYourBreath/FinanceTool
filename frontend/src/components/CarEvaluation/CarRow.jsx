@@ -42,6 +42,7 @@ export default function CarRow({
   const isEV = type === "ev";
   const isPHEV = type === "phev";
   const isEVlike = isEV || isPHEV;                      // only EV & PHEV count as “EV-like”
+  const showDC = isEV || (isPHEV && Number(car.dc_peak_kw || 0) > 0);
   const showKwh = isEVlike;                             // EV & PHEV
   const showLitres = !isEV;                             // everything except pure EV
   const rowBg = rowBgFor(car.type_of_vehicle);
@@ -188,7 +189,7 @@ export default function CarRow({
 
       {/* DC peak (kW) */}
       <td className="border px-2 py-1 text-right">
-        {isEVlike ? (
+        {showDC ? (
           <input
             type="number"
             step="0.1"
@@ -208,7 +209,7 @@ export default function CarRow({
 
       {/* DC 10→80 (min) */}
       <td className="border px-2 py-1 text-right">
-        {isEVlike ? (
+        {showDC ? (
           <input
             type="number"
             step="0.1"
