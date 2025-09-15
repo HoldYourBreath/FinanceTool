@@ -41,7 +41,7 @@ export const fieldColor = (field, value) => {
       if (v < 400) return COLORS.bad;
       return COLORS.ok;
 
-    case "range":
+    case "range_km":
       if (v > 500) return COLORS.good;
       if (v < 400) return COLORS.bad;
       return COLORS.ok;
