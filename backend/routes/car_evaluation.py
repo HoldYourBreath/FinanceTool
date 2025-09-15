@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
+from enum import Enum
 
 from flask import Blueprint, current_app, jsonify, request
 
@@ -248,11 +249,22 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
     tax_eff = derived.get("car_tax_year_effective")
     repairs_eff = derived.get("repairs_year_effective")
 
+    def _as_text(v, default=None):
+        if v is None:
+            return default
+        try:
+            if isinstance(v, Enum):
+                return str(getattr(v, "value", v.name))
+        except Exception:
+            pass
+        return str(v)
+    
     d = {
         "id": c.id,
         "model": c.model,
         "year": int(_num(c.year, 0)) if c.year is not None else None,
-        "type_of_vehicle": _safe(c.type_of_vehicle, "EV"),
+        # Normalize to a plain string so JSON is safe and filters work consistently
+        "type_of_vehicle": _norm_type(_as_text(_safe(c.type_of_vehicle, "EV"))),
 
         # categories
         "body_style": c.body_style,
@@ -295,10 +307,10 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
         # charging
         "dc_peak_kw":            _as_float(getattr(c, "dc_peak_kw", None)),
         "dc_time_min_10_80":     _as_float(getattr(c, "dc_time_min_10_80", None)),
-        "dc_time_source":        _safe(getattr(c, "dc_time_source", ""), "") or "",
+        "dc_time_source":        _as_text(_safe(getattr(c, "dc_time_source", ""), "")) or "",
         "ac_onboard_kw":         _as_float(getattr(c, "ac_onboard_kw", None)),
         "ac_time_h_0_100":       _as_float(getattr(c, "ac_time_h_0_100", None)),
-        "ac_time_source":        _safe(getattr(c, "ac_time_source", ""), "") or "",
+        "ac_time_source":        _as_text(_safe(getattr(c, "ac_time_source", ""), "")) or "",
 
         # persisted totals if any (kept)
         "tco_3_years":  _as_float(getattr(c, "tco_3_years", None)),
