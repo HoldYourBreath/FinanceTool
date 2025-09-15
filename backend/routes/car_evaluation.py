@@ -397,7 +397,7 @@ def car_categories():
 
 
 # -------------------- POST /api/cars/update --------------------
-@cars_bp.post("/api/cars/update")  # keep original path if needed; otherwise /cars/update is fine
+@cars_bp.post("/cars/update")  # keep original path if needed; otherwise /cars/update is fine
 def update_cars():
     try:
         data = request.get_json(silent=True)
