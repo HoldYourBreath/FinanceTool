@@ -36,9 +36,9 @@ except Exception:  # pragma: no cover
             return 0.0
 
 
-# -------------------- number helpers --------------------
-
+# -------------------- number / coercion helpers --------------------
 def _as_text(v, default: Optional[str] = None) -> Optional[str]:
+    """Coerce Enums/anything to a plain string (for filters/JSON)."""
     if v is None:
         return default
     try:
@@ -50,7 +50,15 @@ def _as_text(v, default: Optional[str] = None) -> Optional[str]:
         return str(v)
     except Exception:
         return default
-    
+
+def _plainify(v):
+    """Make values JSON-serializable (Enum->str, Decimal->float)."""
+    if isinstance(v, Decimal):
+        return float(v)
+    if isinstance(v, Enum):
+        return getattr(v, "value", None) or getattr(v, "name", None)
+    return v
+
 def _as_float(v, default: Optional[float] = None) -> Optional[float]:
     """Decimal-safe float conversion. Returns default instead of forcing 0."""
     if v is None:
@@ -65,23 +73,19 @@ def _as_float(v, default: Optional[float] = None) -> Optional[float]:
         except Exception:
             return default
 
-
 def _num(v, default: float = 0.0) -> float:
     out = _as_float(v, None)
     # NaN-safe defaulting
     return out if out is not None and out == out else default
 
-
 def _safe(val, default=None):
     return val if val is not None else default
-
 
 def _parse_csv(name: str):
     raw = request.args.get(name)
     if not raw:
         return None
     return [v.strip() for v in raw.split(",") if v.strip()]
-
 
 def _norm_type(t: str) -> str:
     s = (t or "").strip().lower()
@@ -100,7 +104,6 @@ def _norm_type(t: str) -> str:
 def _pos(v, fallback):
     x = _num(v, None)
     return x if (x is not None and x > 0) else fallback
-
 
 def _normalize_prices(ps: Optional[PriceSettings]) -> dict:
     DEFAULTS = {
@@ -146,14 +149,11 @@ def _estimate_full_insurance_year(car: Car, type_: str) -> float:
     full = base + rate * price
     return max(7000, min(15000, full))
 
-
 def _estimate_half_from_full(full: float) -> float:
     return round(full * 0.55)
 
-
 def _estimate_tax_year(type_: str) -> float:
     return 360 if type_ == "EV" else 1600
-
 
 def _estimate_repairs_year(type_: str, car_year: Optional[int]) -> float:
     year_now = datetime.utcnow().year
@@ -161,9 +161,8 @@ def _estimate_repairs_year(type_: str, car_year: Optional[int]) -> float:
     base = 3000 if type_ == "EV" else 5000
     return base + max(0, age - 5) * 300
 
-
 def _get_model_range_val(c: Car) -> Optional[float]:
-    """Support `range_km` on the model."""
+    """Support `range_km` on the model (no legacy `range`)."""
     if hasattr(c, "range_km") and c.range_km is not None:
         return _as_float(c.range_km)
     return _as_float(getattr(c, "range_km", None))
@@ -262,18 +261,18 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
     half_eff = derived.get("half_insurance_year_effective")
     tax_eff = derived.get("car_tax_year_effective")
     repairs_eff = derived.get("repairs_year_effective")
-    
+
     d = {
         "id": c.id,
-        "model": c.model,
+        "model": _as_text(c.model, ""),
         "year": int(_num(c.year, 0)) if c.year is not None else None,
         # Normalize to a plain string so JSON is safe and filters work consistently
         "type_of_vehicle": _norm_type(_as_text(_safe(c.type_of_vehicle, "EV"))),
 
-        # categories
-        "body_style": c.body_style,
-        "eu_segment": c.eu_segment,
-        "suv_tier": c.suv_tier,
+        # categories (coerce possible Enums -> strings)
+        "body_style": _as_text(getattr(c, "body_style", None)),
+        "eu_segment": _as_text(getattr(c, "eu_segment", None)),
+        "suv_tier": _as_text(getattr(c, "suv_tier", None)),
 
         # pricing/specs
         "estimated_purchase_price": _as_float(c.estimated_purchase_price),
@@ -326,6 +325,8 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
     }
 
     d.update(derived)
+    # Final safety pass: ensure values are JSON-serializable
+    d = {k: _plainify(v) for k, v in d.items()}
     return d
 
 
@@ -335,9 +336,6 @@ def which_handler():
 
 
 # -------------------- GET /api/cars --------------------
-# routes/car_evaluation.py
-# routes/car_evaluation.py (cars endpoint)
-
 def first_non_null(*vals):
     for v in vals:
         if v is not None:
@@ -351,27 +349,42 @@ def list_cars():
         ps = PriceSettings.query.get(1)
     except Exception:
         pass
+
     cars = Car.query.order_by(Car.id).all()
     out = []
     for c in cars:
-        d = _serialize_car(c, ps)   # <- compute + include effective yearly costs & TCO
-        if not d.get("range_km"):
-            d["range_km"] = getattr(c, "range_km", None)
-        out.append(d)
-    return jsonify(out), 200
+        try:
+            d = _serialize_car(c, ps)   # compute + include effective yearly costs & TCO
+            if not d.get("range_km"):
+                d["range_km"] = getattr(c, "range_km", None)
+            out.append(d)
+        except Exception:
+            current_app.logger.exception("Serialize failed for car id=%s", getattr(c, "id", "?"))
+            # skip bad row instead of failing whole endpoint
+
+    resp = jsonify(out)
+    resp.headers["X-Cars-Handler"] = "car_evaluation"
+    return resp, 200
+
 
 # -------------------- GET /api/cars/categories --------------------
 @cars_bp.get("/cars/categories")
 def car_categories():
     try:
-        body_styles = [r[0] for r in db.session.query(Car.body_style).distinct() if r[0]]
-        eu_segments = [r[0] for r in db.session.query(Car.eu_segment).distinct() if r[0]]
-        suv_tiers = [r[0] for r in db.session.query(Car.suv_tier).distinct() if r[0]]
+        body_styles = [
+            _as_text(r[0]) for r in db.session.query(Car.body_style).distinct() if r[0] is not None
+        ]
+        eu_segments = [
+            _as_text(r[0]) for r in db.session.query(Car.eu_segment).distinct() if r[0] is not None
+        ]
+        suv_tiers = [
+            _as_text(r[0]) for r in db.session.query(Car.suv_tier).distinct() if r[0] is not None
+        ]
         resp = jsonify(
             {
-                "body_styles": sorted(set(body_styles)),
-                "eu_segments": sorted(set(eu_segments)),
-                "suv_tiers": sorted(set(suv_tiers)),
+                "body_styles": sorted({b for b in body_styles if b}),
+                "eu_segments": sorted({s for s in eu_segments if s}),
+                "suv_tiers": sorted({t for t in suv_tiers if t}),
             }
         )
         resp.headers["X-Cars-Handler"] = "car_evaluation"
@@ -384,7 +397,7 @@ def car_categories():
 
 
 # -------------------- POST /api/cars/update --------------------
-@cars_bp.post("/cars/update")
+@cars_bp.post("/api/cars/update")  # keep original path if needed; otherwise /cars/update is fine
 def update_cars():
     try:
         data = request.get_json(silent=True)
@@ -442,6 +455,7 @@ def update_cars():
                 if k in p:
                     setattr(car, k, _num(p[k], getattr(car, k) or 0))
 
+            # range (only range_km)
             if "range_km" in p:
                 car.range_km = int(_num(p["range_km"], getattr(car, "range_km", 0)))
 
