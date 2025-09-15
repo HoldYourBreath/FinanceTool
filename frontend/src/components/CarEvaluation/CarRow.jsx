@@ -22,10 +22,28 @@ export default function CarRow({
   NA,
   prices,
 }) {
-  const type = normType(car.type_of_vehicle);
-  const showKwh = type === "ev" || type === "phev";
-  const showLitres = type !== "ev";
-  const isEVlike = type.includes("ev");
+  const normalized = normType(car.type_of_vehicle);     // preferred normalization
+  const rawType = String(car.type_of_vehicle || "").toLowerCase();
+  // Fallback heuristics if upstream normalization returns something unexpected:
+  const type =
+    normalized ||
+    (rawType.includes("plug-in") && rawType.includes("hybrid")
+      ? "phev"
+      : rawType.includes("plugin") && rawType.includes("hybrid")
+      ? "phev"
+      : rawType.includes("phev")
+      ? "phev"
+      : rawType.includes("bev") || rawType === "ev"
+      ? "ev"
+      : rawType.includes("electric") && !rawType.includes("hybrid")
+      ? "ev"
+      : rawType);
+
+  const isEV = type === "ev";
+  const isPHEV = type === "phev";
+  const isEVlike = isEV || isPHEV;                      // only EV & PHEV count as “EV-like”
+  const showKwh = isEVlike;                             // EV & PHEV
+  const showLitres = !isEV;                             // everything except pure EV
   const rowBg = rowBgFor(car.type_of_vehicle);
 
   // Canonical range read; always write to range_km
@@ -262,9 +280,9 @@ export default function CarRow({
               "range_km",
               rangeVal
             )}`}
-            value={rangeVal ?? ""}
+            value={displayNum(rangeVal)}
             onChange={(e) => onChange("range_km", e.target.value)}
-            title="WLTP electric range (km)"
+            title={isPHEV ? "WLTP electric range (PHEV) (km)" : "WLTP electric range (km)"}
             min="0"
             step="1"
           />

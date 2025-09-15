@@ -12,7 +12,7 @@ const EV_ONLY_KEYS = [
   "ac_time_h_0_100",
   "consumption_kwh_100km",
   "consumption_kwh_per_100km",
-  "range",
+  "range_km",
 ];
 
 // Detect diesel/bensin ICE cars (PHEV/EV should NOT match)
@@ -278,8 +278,8 @@ export default function CarsTable({
                   onSort={onSort}
                 />
                 <Header
-                  label={"WLTP (EV)\nRange (km)"}
-                  sortKey="range"
+                  label={"WLTP EV\nRange (km)"}
+                  sortKey="range_km"
                   sortBy={sortBy}
                   sortDir={sortDir}
                   onSort={onSort}

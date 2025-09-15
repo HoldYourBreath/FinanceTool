@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# --- Resolve imports so "backend.*" works from repo root or backend/ ---
 THIS_FILE = Path(__file__).resolve()
 SCRIPT_DIR = THIS_FILE.parent
 BACKEND_DIR = SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
@@ -16,7 +15,6 @@ REPO_ROOT = BACKEND_DIR.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-# --- Optional .env loading ---
 try:
     from dotenv import load_dotenv  # type: ignore
     for env in (REPO_ROOT / ".env", BACKEND_DIR / ".env",
@@ -26,11 +24,9 @@ try:
 except Exception:
     pass
 
-# --- Import shared app/db ---
 from backend.app import create_app
 from backend.models.models import Car, db
 
-# Best-effort SQLAlchemy type checks (optional)
 try:
     from sqlalchemy.sql.sqltypes import Boolean as SABoolean  # type: ignore
     from sqlalchemy.sql.sqltypes import Float as SAFloat
@@ -40,20 +36,16 @@ try:
 except Exception:  # pragma: no cover
     SANumeric = SAFloat = SAInteger = SAString = SABoolean = object  # type: ignore[misc,assignment]
 
-# ------------------------------------------------------------------------------
-# Config
-# ------------------------------------------------------------------------------
-ENV_FILE_VAR = "SEED_FILE_CARS"  # path override to a specific JSON
-ENV_DIR_VAR  = "SEED_DIR"        # base folder override for seeds
+ENV_FILE_VAR = "SEED_FILE_CARS"
+ENV_DIR_VAR  = "SEED_DIR"
 
-# common filenames we accept
 CAND_FILENAMES = (
     "seed_car_evaluation.json",
     "seed_cars.json",
     "cars.json",
 )
 
-# Map JSON keys -> Car model attributes (after normalization; see _normalize_row)
+# NOTE: `range` is intentionally NOT supported here anymore.
 FIELD_MAP: dict[str, str] = {
     "body_style": "body_style",
     "eu_segment": "eu_segment",
@@ -65,8 +57,7 @@ FIELD_MAP: dict[str, str] = {
     "consumption_kwh_per_100km": "consumption_kwh_per_100km",
     "consumption_l_per_100km": "consumption_l_per_100km",
     "battery_capacity_kwh": "battery_capacity_kwh",
-    "range_km": "range_km",
-    "range": "range_km",  # <- normalized from range_km
+    "range_km": "range_km",  # <- canonical only
     "acceleration_0_100": "acceleration_0_100",
     "driven_km": "driven_km",
     "battery_aviloo_score": "battery_aviloo_score",
@@ -84,11 +75,7 @@ FIELD_MAP: dict[str, str] = {
     "ac_time_source": "ac_time_source",
 }
 
-# ------------------------------------------------------------------------------
-# Seed file resolution (prefer APP_ENV dir, then common)
-# ------------------------------------------------------------------------------
 def _app_env(app) -> str:
-    # prefer Flask config APP_ENV; fallback to OS env; default 'dev'
     return (app.config.get("APP_ENV") or os.getenv("APP_ENV") or "dev").lower()
 
 def _search_roots(app) -> list[Path]:
@@ -97,13 +84,11 @@ def _search_roots(app) -> list[Path]:
     if env_dir:
         p = Path(env_dir)
         roots.append((REPO_ROOT / p) if not p.is_absolute() else p)
-
     env = _app_env(app)
-    # prefer env-specific dir first, then common, then generic fallbacks
     roots.extend([
-        BACKEND_DIR / "seeds" / env,          # backend/seeds/dev or demo
+        BACKEND_DIR / "seeds" / env,
         BACKEND_DIR / "seeds" / "private",
-        BACKEND_DIR / "seeds" / "common",     # shared for all envs
+        BACKEND_DIR / "seeds" / "common",
         BACKEND_DIR / "seeds",
         BACKEND_DIR / "data",
         REPO_ROOT   / "seeds" / env,
@@ -114,7 +99,6 @@ def _search_roots(app) -> list[Path]:
     return roots
 
 def _resolve_seed_path(app, cli_path: str | None) -> Path | None:
-    # 1) explicit CLI --file
     if cli_path:
         p = Path(cli_path)
         if not p.is_absolute():
@@ -124,7 +108,6 @@ def _resolve_seed_path(app, cli_path: str | None) -> Path | None:
                     return cand
         return p if p.exists() else None
 
-    # 2) environment override to a specific file
     env_file = os.getenv(ENV_FILE_VAR)
     if env_file:
         p = Path(env_file)
@@ -136,7 +119,6 @@ def _resolve_seed_path(app, cli_path: str | None) -> Path | None:
         if p.exists():
             return p
 
-    # 3) search in env folder, then common, then fallbacks
     for root in _search_roots(app):
         for name in CAND_FILENAMES:
             cand = root / name
@@ -144,9 +126,6 @@ def _resolve_seed_path(app, cli_path: str | None) -> Path | None:
                 return cand
     return None
 
-# ------------------------------------------------------------------------------
-# Coercion helpers
-# ------------------------------------------------------------------------------
 def _to_float(v: Any) -> float | None:
     if v is None:
         return None
@@ -175,7 +154,6 @@ def _to_int(v: Any) -> int | None:
         return None
 
 def _coerce_for_column(attr: str, value: Any) -> Any:
-    """Coerce value to the right Python type for Car.<attr> column."""
     if value is None:
         return None
     col = Car.__table__.columns.get(attr, None)  # type: ignore[attr-defined]
@@ -196,42 +174,39 @@ def _coerce_for_column(attr: str, value: Any) -> Any:
         return False
     return str(value).strip() if isinstance(value, str) else value
 
-
-# ------------------------------------------------------------------------------
-# Normalization & setters
-# ------------------------------------------------------------------------------
 def _normalize_row(r: dict[str, Any]) -> dict[str, Any]:
     d = dict(r)
-    # If only 'range' is present, convert it to 'range_km'
+    # Map any legacy JSON key 'range' -> 'range_km'
     if "range_km" not in d and "range" in d:
         d["range_km"] = d.pop("range")
 
-    # accept consumption_kwh_100km alias
+    # Allow alias: consumption_kwh_100km -> consumption_kwh_per_100km
     if "consumption_kwh_per_100km" not in d and "consumption_kwh_100km" in d:
         d["consumption_kwh_per_100km"] = d["consumption_kwh_100km"]
 
-    # empty strings → None
+    # Empty strings → None
     for k in list(d.keys()):
         if isinstance(d[k], str) and d[k].strip() == "":
             d[k] = None
     return d
 
-
 def _set_if_present(row: dict, car: Car, key: str) -> bool:
+    """Set only when the JSON contains the key; avoid wiping with None."""
     if key not in row:
         return False
     attr = FIELD_MAP[key]
     new_val = _coerce_for_column(attr, row[key])
+
+    # Safety: don't overwrite an existing DB value with None from JSON
+    if new_val is None:
+        return False
+
     old_val = getattr(car, attr, None)
     if new_val != old_val:
         setattr(car, attr, new_val)
         return True
     return False
 
-
-# ------------------------------------------------------------------------------
-# Seeding (upsert-by-(model,year))
-# ------------------------------------------------------------------------------
 def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
     app = create_app()
     with app.app_context():
@@ -285,14 +260,10 @@ def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
             for k in FIELD_MAP:
                 changed |= _set_if_present(r, car, k)
 
-            # EV/PHEV fallbacks
+            # Light EV/PHEV defaults (unchanged behavior)
             t = (car.type_of_vehicle or "").upper()
             if t in {"EV", "PHEV"}:
                 ac_kw = _to_float(getattr(car, "ac_onboard_kw", None))
-                batt  = _to_float(getattr(car, "battery_capacity_kwh", None))
-                dc_kw = _to_float(getattr(car, "dc_peak_kw", None))
-
-                # default AC onboard if missing/zero
                 if not ac_kw or ac_kw == 0.0:
                     car.ac_onboard_kw = _coerce_for_column("ac_onboard_kw", 11.0)
                     changed = True
@@ -307,9 +278,6 @@ def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
             db.session.commit()
             print(f"✅ Done: {inserted} inserted, {updated} updated, {skipped} skipped.")
 
-# ------------------------------------------------------------------------------
-# CLI
-# ------------------------------------------------------------------------------
 def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Seed/update Car rows from JSON (env-aware with common fallback).")
     ap.add_argument("--file", default=None, help=f"Path to seed JSON (overrides ${ENV_FILE_VAR}).")

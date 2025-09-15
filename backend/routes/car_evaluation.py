@@ -148,9 +148,9 @@ def _estimate_repairs_year(type_: str, car_year: Optional[int]) -> float:
 
 
 def _get_model_range_val(c: Car) -> Optional[float]:
-    """Support either `range` or legacy `range_km` on the model."""
-    if hasattr(c, "range") and c.range is not None:
-        return _as_float(c.range)
+    """Support `range_km` on the model."""
+    if hasattr(c, "range_km") and c.range_km is not None:
+        return _as_float(c.range_km)
     return _as_float(getattr(c, "range_km", None))
 
 
@@ -287,7 +287,7 @@ def _serialize_car(c: Car, ps: Optional[PriceSettings]) -> dict:
         "consumption_kwh_100km":     _as_float(c.consumption_kwh_per_100km),
         "consumption_kwh_per_100km": _as_float(c.consumption_kwh_per_100km),
         "consumption_l_per_100km":   _as_float(getattr(c, "consumption_l_per_100km", None)),
-        "range":                     _get_model_range_val(c),
+        "range_km":                  _get_model_range_val(c),
         "acceleration_0_100":        _as_float(c.acceleration_0_100),
         "battery_capacity_kwh":      _as_float(c.battery_capacity_kwh),
         "trunk_size_litre":          _as_float(c.trunk_size_litre),
@@ -339,9 +339,8 @@ def list_cars():
     out = []
     for c in cars:
         d = _serialize_car(c, ps)   # <- compute + include effective yearly costs & TCO
-        # keep your range_km normalization if you want:
         if not d.get("range_km"):
-            d["range_km"] = getattr(c, "range_km", None) or getattr(c, "range", None)
+            d["range_km"] = getattr(c, "range_km", None)
         out.append(d)
     return jsonify(out), 200
 
@@ -427,9 +426,6 @@ def update_cars():
                 if k in p:
                     setattr(car, k, _num(p[k], getattr(car, k) or 0))
 
-            # handle range (support both names)
-            if "range" in p:
-                car.range_km = int(_num(p["range"], getattr(car, "range_km", 0)))
             if "range_km" in p:
                 car.range_km = int(_num(p["range_km"], getattr(car, "range_km", 0)))
 
