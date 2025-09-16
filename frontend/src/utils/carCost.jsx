@@ -13,6 +13,24 @@ export const fieldColor = (field, value) => {
   const v = Number(value) || 0;
 
   switch (field) {
+    // Battery capacity (kWh) — higher is better
+    case "battery_capacity_kwh":
+      if (v > 80) return COLORS.great;
+      if (v > 70) return COLORS.good;
+      if (v > 60) return COLORS.ok;
+      if (v > 45) return COLORS.fair;
+      return COLORS.bad;
+
+    // DC charge time 10→80 min — lower is better
+    case "dc_time_min_10_80":
+      if (v === 0) return "";         // no value → no color
+      if (v <= 20) return COLORS.great;
+      if (v <= 30) return COLORS.good;
+      if (v <= 40) return COLORS.ok;
+      if (v <= 50) return COLORS.fair;
+      if (v <= 60) return COLORS.bad;
+      return COLORS.bad;
+
     case "consumption_kwh_per_100km": // EV & PHEV
       if (v === 0) return ""; // hide for blank values
       if (v <= 15) return COLORS.great;
