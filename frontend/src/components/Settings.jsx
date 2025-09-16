@@ -8,6 +8,12 @@ export default function Settings() {
   const [accounts, setAccounts] = useState([]);
   const [toast, setToast] = useState("");
 
+  const flash = (msg) => {
+  setToast(msg);
+  setTimeout(() => setToast(""), 2200);
+  };
+
+
   useEffect(() => {
     (async () => {
       try {
@@ -27,11 +33,6 @@ export default function Settings() {
       }
     })();
   }, []);
-
-  const flash = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 2200);
-  };
 
   const handleSetCurrentMonth = async () => {
     if (!currentMonthId) return flash("❌ Select a month first");
