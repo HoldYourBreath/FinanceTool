@@ -49,12 +49,16 @@ export default function MonthlyOverview() {
   }, []);
 
   if (loading) {
-    return <div className="text-center p-4">Loading Monthly Data...</div>;
+    return <div 
+                data-testid="page-home"
+                className="text-center p-4">Loading Monthly Data...</div>;
   }
 
   if (!Array.isArray(monthsData) || monthsData.length === 0) {
     return (
-      <div className="text-center p-4 text-red-600">
+      <div 
+        data-testid="page-home"
+        className="text-center p-4 text-red-600">
         No Monthly Data Available.
       </div>
     );
