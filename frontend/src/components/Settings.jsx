@@ -178,10 +178,15 @@ export default function Settings() {
       </div>
 
       {toast && (
-        <div className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded shadow">
-          {toast}
-        </div>
-      )}
+      <div
+        role="status"
+        aria-live="polite"
+        data-testid="toast"
+        className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded shadow"
+      >
+        {toast}
+      </div>
+    )}
     </div>
   );
 }
