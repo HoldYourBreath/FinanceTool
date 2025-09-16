@@ -168,15 +168,47 @@ jobs:
           name: frontend-dist
           path: frontend/dist
 
-      - name: Serve static build (SPA via sirv)
+      - name: Serve static build (SPA)
         run: |
-          # sirv --single rewrites unknown routes to index.html (needed for React Router)
-          npx --yes sirv-cli frontend/dist --single --port 5173 --quiet > vite.log 2>&1 &
+          set -euo pipefail
+          PORT=5173
+          ROOT="frontend/dist"
+
+          echo "Starting SPA server with sirv..."
+          # Try sirv (SPA rewrite via --single). Don't silence logs.
+          (npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 &) || true
+
+          # Wait for it
           for i in {1..60}; do
-            curl -fsS http://127.0.0.1:5173/ >/dev/null && { echo "Frontend is up!"; break; }
+            if curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+              echo "Frontend is up with sirv!"
+              break
+            fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:5173/ >/dev/null || { echo "---- vite.log ----"; tail -n +1 vite.log || true; exit 1; }
+
+          if ! curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+            echo "sirv didn't come up. Falling back to 'serve -s'…"
+            # Use vercel/serve with SPA mode
+            (npx --yes serve -s "$ROOT" -l "127.0.0.1:${PORT}" > vite.log 2>&1 &) || true
+
+            for i in {1..60}; do
+              if curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+                echo "Frontend is up with serve!"
+                break
+              fi
+              sleep 1
+            done
+          fi
+
+          # Final check (dump logs if still not up)
+          curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1 || { 
+            echo "---- vite.log ----"; 
+            cat vite.log || true; 
+            echo "---- node processes ----"; 
+            ps -ef | grep -E "sirv|serve" | grep -v grep || true;
+            exit 1; 
+          }
 
       # ---------- Playwright ----------
       - uses: actions/setup-node@v4
