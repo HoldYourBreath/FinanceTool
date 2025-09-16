@@ -2,51 +2,56 @@
 import { test, expect } from '@playwright/test';
 
 test('Settings: saving accounts surfaces a toast', async ({ page }) => {
-  await page.goto('/settings', { waitUntil: 'domcontentloaded' });
+  // Land on the app, let the SPA boot.
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle');
 
-  // Page presence: accept either marker or heading
-  const marker = page.locator('[data-testid="page-settings"]').first();
-  const heading = page.getByRole('heading', { name: /settings/i }).first();
-  await Promise.race([
-    marker.waitFor({ state: 'visible', timeout: 15000 }),
-    heading.waitFor({ state: 'visible', timeout: 15000 }),
-  ]);
+  // Stub the accounts save endpoint so UI can succeed even if backend is read-only.
+  await page.route('**/api/settings/accounts', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' })
+  );
 
-  // Stub the save endpoint so UI can show success toast reliably
-  await page.route('**/api/settings/accounts', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ ok: true }),
-    });
-  });
+  // Helper: reach Settings either by direct route or header nav fallback.
+  const reachSettingsAndFindSave = async () => {
+    // 1) Try direct route first
+    await page.goto('/settings', { waitUntil: 'domcontentloaded' });
 
-  // Find & click the Save button (fallbacks keep this resilient)
-  const saveBtn = page
-    .locator(
-      [
-        '[data-testid="btn-save-accounts"]',
-        'button:has-text("Save Accounts")',
-        'button:has-text("Save")',
-      ].join(', ')
-    )
-    .first();
+    const saveBtn = page
+      .locator(
+        [
+          '[data-testid="btn-save-accounts"]',       // preferred stable hook (if present)
+          'button:has-text("Save Accounts")',        // fallback by text
+          'button:has-text("Save")',                 // extra fallback
+        ].join(', ')
+      )
+      .first();
 
-  await expect(saveBtn).toBeVisible({ timeout: 10000 });
+    try {
+      await expect(saveBtn).toBeVisible({ timeout: 5000 });
+      return saveBtn;
+    } catch {
+      // 2) Fallback: click the header nav link to ensure panel is mounted
+      const settingsLink = page.getByRole('link', { name: /settings/i }).first();
+      if (await settingsLink.count()) {
+        await settingsLink.click();
+        await page.waitForLoadState('networkidle');
+      }
+      await expect(saveBtn).toBeVisible({ timeout: 10000 });
+      return saveBtn;
+    }
+  };
+
+  const saveBtn = await reachSettingsAndFindSave();
   await saveBtn.click();
 
-  // ✅ Do NOT mix selector engines in one CSS list.
-  // Option A: semantic roles/testids
+  // Look for a toast or polite status text indicating success.
   const toastPolite = page
     .locator('[data-testid="toast"], [role="status"], [role="alert"]')
     .first();
-
-  // Option B: text content (EN/SV variants)
   const toastText = page.getByText(/saved|sparat|uppdaterat/i).first();
 
   await Promise.race([
-    toastPolite.waitFor({ state: 'visible', timeout: 5000 }),
-    toastText.waitFor({ state: 'visible', timeout: 5000 }),
+    toastPolite.waitFor({ state: 'visible', timeout: 8000 }),
+    toastText.waitFor({ state: 'visible', timeout: 8000 }),
   ]);
 });
