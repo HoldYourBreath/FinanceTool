@@ -85,7 +85,9 @@ export default function Settings() {
   };
 
   return (
-    <div data-testid="page-settings" className="space-y-6 p-4">
+    <div 
+      data-testid="page-settings"
+      className="space-y-6 p-4">
       {/* Current Month */}
       <div>
         <h2 className="text-xl font-semibold">Set Current Month</h2>
@@ -202,10 +204,10 @@ export default function Settings() {
         </div>
 
         <button
+          data-testid="btn-save-accounts"
           onClick={saveAccounts}
           className="bg-green-500 text-white px-3 py-1 rounded disabled:opacity-60"
           disabled={loading || savingAccounts}
-          data-testid="btn-save-accounts"
           aria-busy={savingAccounts ? "true" : "false"}
         >
           {savingAccounts ? "Saving…" : "Save Accounts"}
