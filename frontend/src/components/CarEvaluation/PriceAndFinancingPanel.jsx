@@ -1,4 +1,6 @@
-export default function EnergyFuelPanel({ prices, updatePrice }) {
+// EnergyFuelPanel.jsx
+
+export default function PriceAndFinancingPanel({ prices, updatePrice }) {
   const labelCls = "block mb-1 text-sm font-semibold text-slate-700";
   const inputCls =
     "w-full rounded-lg border border-sky-200 bg-white/70 px-3 py-2 text-sm shadow-inner " +
@@ -7,7 +9,7 @@ export default function EnergyFuelPanel({ prices, updatePrice }) {
   return (
     <section className="rounded-2xl bg-sky-50/70 ring-1 ring-sky-200 p-4 shadow-sm backdrop-blur-sm">
       <h3 className="mb-3 text-sm font-semibold text-slate-700">
-        Energy &amp; Fuel
+        Energy, Fuel &amp; Financing
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -70,6 +72,29 @@ export default function EnergyFuelPanel({ prices, updatePrice }) {
           onChange={(v) => updatePrice({ daily_commute_km: v })}
           min={0}
           step="1"
+          inputCls={inputCls}
+          labelCls={labelCls}
+        />
+
+        {/* --- Financing --- */}
+        <LabeledNumber
+          id="loan_downpayment_sek"
+          label="Downpayment (SEK)"
+          value={prices.loan_downpayment_sek ?? 0}
+          onChange={(v) => updatePrice({ loan_downpayment_sek: v })}
+          min={0}
+          step="1"
+          inputCls={inputCls}
+          labelCls={labelCls}
+        />
+
+        <LabeledNumber
+          id="loan_interest_rate_percent"
+          label="Interest rate (%)"
+          value={prices.loan_interest_rate_percent ?? 0}
+          onChange={(v) => updatePrice({ loan_interest_rate_percent: v })}
+          min={0}
+          step="0.01"
           inputCls={inputCls}
           labelCls={labelCls}
         />

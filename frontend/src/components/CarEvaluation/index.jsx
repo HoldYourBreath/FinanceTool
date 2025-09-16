@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import EnergyFuelPanel from "./EnergyFuelPanel";
+import PriceAndFinancingPanel from "./PriceAndFinancingPanel";
 import Filters from "./Filters";
 import CarsTable from "./CarsTable";
 import usePrices from "../../hooks/usePrices";
@@ -70,7 +70,7 @@ export default function CarEvaluationPage() {
     <div 
       data-testid="page-car-evaluation"
       className="p-4 space-y-4">
-      <EnergyFuelPanel
+      <PriceAndFinancingPanel
         prices={prices}
         updatePrice={updatePrice}
         saving={savingPrices}
