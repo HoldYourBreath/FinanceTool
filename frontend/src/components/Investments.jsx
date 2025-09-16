@@ -70,7 +70,9 @@ export default function Investments() {
     "rounded-xl bg-white/90 ring-1 ring-amber-200 p-4 shadow-sm hover:shadow-md transition-transform hover:scale-[1.01] border-l-4 border-amber-300";
 
   return (
-    <div className="space-y-6">
+    <div 
+      data-testid="page-investments"
+      className="space-y-6">
       {/* 📥 Accounts & Balances (indigo) */}
       <section className={cardIndigo}>
         <h2 className="text-lg font-semibold text-slate-900 mb-3">

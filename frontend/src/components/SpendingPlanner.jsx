@@ -130,7 +130,9 @@ export default function SpendingPlanner() {
   if (loading) return <div className="text-center p-4">Loading data...</div>;
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow space-y-6">
+    <div 
+      data-testid="page-spending"
+      className="p-6 bg-white rounded-lg shadow space-y-6">
       <FinanceChart data={chartData} />
 
       {/* Filter */}

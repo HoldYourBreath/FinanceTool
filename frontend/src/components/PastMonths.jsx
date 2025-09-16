@@ -115,7 +115,9 @@ export default function PastMonths() {
   };
 
   return (
-    <div className="space-y-8">
+    <div 
+    data-testid="page-past-months"
+    className="space-y-8">
       {Array.from(
         { length: Math.ceil(monthsData.length / 4) },
         (_, rowIndex) => {

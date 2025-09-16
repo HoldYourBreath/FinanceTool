@@ -202,7 +202,9 @@ export default function MonthlyOverview() {
   });
 
   return (
-    <div className="space-y-8">
+    <div 
+      data-testid="page-home"
+      className="space-y-8">
       <FinanceChart data={chartData} />
       {Array.from(
         { length: Math.ceil(monthsData.length / 4) },

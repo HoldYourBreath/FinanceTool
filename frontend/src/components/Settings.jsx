@@ -65,7 +65,9 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6 p-4">
+    <div 
+    data-testid="page-settings"
+    className="space-y-6 p-4">
       {/* Current Month */}
       <div>
         <h2 className="text-xl font-semibold">Set Current Month</h2>

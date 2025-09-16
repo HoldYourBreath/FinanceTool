@@ -67,7 +67,9 @@ export default function CarEvaluationPage() {
   }, [filteredCars, sortBy, sortDir]);
 
   return (
-    <div className="p-4 space-y-4">
+    <div 
+      data-testid="page-car-evaluation"
+      className="p-4 space-y-4">
       <EnergyFuelPanel
         prices={prices}
         updatePrice={updatePrice}

@@ -218,7 +218,9 @@ export default function HouseCostsTab() {
   const percentage = totalAmount > 0 ? (doneAmount / totalAmount) * 100 : 0;
 
   return (
-    <div className="p-2">
+    <div 
+      data-testid="page-house-costs"
+      className="p-2">
       <div className="flex flex-col md:flex-row">
         {renderSection(
           "🏠 House Payments",
