@@ -6,20 +6,23 @@ const FRONTEND =
   'http://127.0.0.1:5173';
 
 test('Settings: saving accounts surfaces a toast', async ({ page }) => {
-  await page.goto(new URL('/settings', FRONTEND).toString(), { waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('page-settings')).toBeVisible();
+  // Navigate to settings and wait for full load to avoid racing React mount
+  await page.goto(new URL('/settings', FRONTEND).toString(), { waitUntil: 'load' });
 
-  // Click and wait for the POST to /api/settings/accounts (backend returns 200/405 -> UI still shows a toast)
-  const clickAndWait = Promise.all([
+  // Be explicit: wait for the settings page marker to attach & be visible
+  await page.waitForSelector('[data-testid="page-settings"]', { state: 'visible', timeout: 15000 });
+
+  // Click "Save Accounts" and (optionally) wait for the POST; tolerate envs where it may be blocked
+  await Promise.all([
     page.waitForResponse(r =>
       r.url().includes('/api/settings/accounts') && r.request().method() === 'POST'
-    ).catch(() => {}), // tolerate environments where the route might be stubbed
+    ).catch(() => {}),
     page.getByRole('button', { name: 'Save Accounts' }).click(),
   ]);
-  await clickAndWait;
 
-  // Assert the toast appears (either success or failure message)
+  // Assert the toast appears (success or failure)
   const toast = page.getByTestId('toast');
-  await expect(toast).toBeVisible();
+  await expect(toast).toBeVisible({ timeout: 5000 });
   await expect(toast).toHaveText(/Accounts (saved|Failed)/);
 });
+
