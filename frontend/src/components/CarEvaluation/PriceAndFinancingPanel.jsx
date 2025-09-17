@@ -1,120 +1,115 @@
-// EnergyFuelPanel.jsx
+// EnergyFuelFinancingRow.jsx
+import React from "react";
 
-export default function PriceAndFinancingPanel({ prices, updatePrice }) {
-  const labelCls = "block mb-1 text-sm font-semibold text-slate-700";
+export default function EnergyFuelFinancingRow({ prices, updatePrice }) {
+  // Small, readable labels
+  const labelCls = "block mb-1 text-[11px] font-medium text-slate-600";
+  // Compact input styling
   const inputCls =
-    "w-full rounded-lg border border-sky-200 bg-white/70 px-3 py-2 text-sm shadow-inner " +
-    "focus:outline-none focus:ring-2 focus:ring-sky-400";
+    "h-9 w-full rounded-md border border-sky-200 bg-white/70 " +
+    "px-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-sky-400";
 
   return (
-    <section className="rounded-2xl bg-sky-50/70 ring-1 ring-sky-200 p-4 shadow-sm backdrop-blur-sm">
-      <h3 className="mb-3 text-sm font-semibold text-slate-700">
-        Energy, Fuel &amp; Financing
-      </h3>
+    <section className="-mx-4 px-4 mb-3" data-testid="energy-bar">
+      {/* Responsive grid: one line on xl, wraps gracefully below xl */}
+      <div className="grid gap-4 items-end
+                      grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <Field
+          id="el_price_ore_kwh"
+          label="Electricity Price (öre/kWh)"
+          value={prices.el_price_ore_kwh}
+          onChange={(v) => updatePrice({ el_price_ore_kwh: v })}
+          inputCls={inputCls}
+          labelCls={labelCls}
+          min={0}
+          step="any"
+        />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div>
-          <label htmlFor="el_price_ore_kwh" className={labelCls}>
-            Electricity Price (öre/kWh)
-          </label>
-          <input
-            id="el_price_ore_kwh"
-            type="number"
-            inputMode="decimal"
-            step="any"
-            min={0}
-            autoComplete="off"
-            className={inputCls}
-            value={prices.el_price_ore_kwh}
-            onChange={(e) =>
-              updatePrice({ el_price_ore_kwh: Number(e.target.value) || 0 })
-            }
-          />
-        </div>
-
-        <LabeledNumber
+        <Field
           id="bensin_price_sek_litre"
           label="Bensin (SEK/litre)"
           value={prices.bensin_price_sek_litre}
           onChange={(v) => updatePrice({ bensin_price_sek_litre: v })}
-          min={0}
-          step="0.01"
           inputCls={inputCls}
           labelCls={labelCls}
+          min={0}
+          step="0.01"
         />
 
-        <LabeledNumber
+        <Field
           id="diesel_price_sek_litre"
           label="Diesel (SEK/litre)"
           value={prices.diesel_price_sek_litre}
           onChange={(v) => updatePrice({ diesel_price_sek_litre: v })}
-          min={0}
-          step="0.01"
           inputCls={inputCls}
           labelCls={labelCls}
+          min={0}
+          step="0.01"
         />
 
-        <LabeledNumber
+        <Field
           id="yearly_km"
           label="Yearly driving (km)"
           value={prices.yearly_km}
           onChange={(v) => updatePrice({ yearly_km: v })}
-          min={0}
-          step="1"
           inputCls={inputCls}
           labelCls={labelCls}
+          min={0}
+          step="1"
         />
 
-        <LabeledNumber
+        <Field
           id="daily_commute_km"
           label="Daily commute (km)"
           value={prices.daily_commute_km}
           onChange={(v) => updatePrice({ daily_commute_km: v })}
-          min={0}
-          step="1"
           inputCls={inputCls}
           labelCls={labelCls}
-        />
-
-        {/* --- Financing --- */}
-        <LabeledNumber
-          id="loan_downpayment_sek"
-          label="Downpayment (SEK)"
-          value={prices.loan_downpayment_sek ?? 0}
-          onChange={(v) => updatePrice({ loan_downpayment_sek: v })}
           min={0}
           step="1"
-          inputCls={inputCls}
-          labelCls={labelCls}
         />
 
-        <LabeledNumber
-          id="loan_interest_rate_percent"
-          label="Interest rate (%)"
-          value={prices.loan_interest_rate_percent ?? 0}
-          onChange={(v) => updatePrice({ loan_interest_rate_percent: v })}
+        {/* Financing */}
+        <Field
+          id="downpayment_pct"
+          label="Downpayment (%)"
+          value={prices.downpayment_pct ?? 0}
+          onChange={(v) => updatePrice({ downpayment_pct: v })}
+          inputCls={inputCls}
+          labelCls={labelCls}
+          min={0}
+          max={100}
+          step="1"
+        />
+
+        <Field
+          id="interest_rate_pct"
+          label="Interest rate (% / year)"
+          value={prices.interest_rate_pct ?? 0}
+          onChange={(v) => updatePrice({ interest_rate_pct: v })}
+          inputCls={inputCls}
+          labelCls={labelCls}
           min={0}
           step="0.01"
-          inputCls={inputCls}
-          labelCls={labelCls}
         />
       </div>
     </section>
   );
 }
 
-function LabeledNumber({
+function Field({
   id,
   label,
   value,
   onChange,
   min = 0,
+  max,
   step = "any",
   inputCls = "",
   labelCls = "",
 }) {
   return (
-    <div>
+    <div className="min-w-[11rem]">
       <label htmlFor={id} className={labelCls}>
         {label}
       </label>
@@ -126,6 +121,7 @@ function LabeledNumber({
         className={inputCls}
         value={value}
         min={min}
+        max={max}
         step={step}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
       />
