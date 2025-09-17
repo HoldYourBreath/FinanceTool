@@ -311,13 +311,25 @@ class Car(db.Model):
 # ============================ Settings =============================
 class PriceSettings(db.Model):
     __tablename__ = 'price_settings'
-    id = db.Column(db.Integer, primary_key=True)  # singleton row (id=1)
-    el_price_ore_kwh = db.Column(db.Integer, nullable=False, default=250)  # öre/kWh
-    diesel_price_sek_litre = db.Column(db.Float, nullable=False, default=15)
-    bensin_price_sek_litre = db.Column(db.Float, nullable=False, default=14)
-    yearly_km = db.Column(db.Integer, nullable=False, default=18000)
-    daily_commute_km = db.Column(db.Integer, nullable=True, default=30)
+    id = db.Column(db.Integer, primary_key=True)
+    el_price_ore_kwh      = db.Column(db.Float,  nullable=False, default=250.0)
+    diesel_price_sek_litre= db.Column(db.Float,  nullable=False, default=15.0)
+    bensin_price_sek_litre= db.Column(db.Float,  nullable=False, default=14.0)
+    yearly_km             = db.Column(db.Integer, nullable=False, default=18000)
+    daily_commute_km      = db.Column(db.Integer, nullable=False, default=30)
+    downpayment_sek       = db.Column(db.Float,  nullable=False, default=0.0)   # absolute SEK
+    interest_rate_pct     = db.Column(db.Float,  nullable=False, default=5.0)   # APR %
 
+    def to_dict(self):
+        return {
+            "el_price_ore_kwh": self.el_price_ore_kwh,
+            "diesel_price_sek_litre": self.diesel_price_sek_litre,
+            "bensin_price_sek_litre": self.bensin_price_sek_litre,
+            "yearly_km": self.yearly_km,
+            "daily_commute_km": self.daily_commute_km,
+            "downpayment_sek": self.downpayment_sek,
+            "interest_rate_pct": self.interest_rate_pct,
+        }
 
 class AppSettings(db.Model):
     __tablename__ = 'app_settings'
@@ -328,7 +340,7 @@ class AppSettings(db.Model):
     yearly_driving_km = db.Column(db.Integer, nullable=False, default=18000)
     daily_commute_km = db.Column(db.Integer, nullable=False, default=30)
 
-    # NEW: global yearly tire change fee (mount/balance/storage if included)
+    # global yearly tire change fee (mount/balance/storage if included)
     tire_change_price_year = db.Column(db.Numeric(10, 2), nullable=False, default=2000)
 
     @staticmethod

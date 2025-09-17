@@ -40,6 +40,8 @@ def _default_prices() -> dict[str, Any]:
         "bensin_price_sek_litre": 14.0,
         "yearly_km": 18000,
         "daily_commute_km": 30,
+        "downpayment_sek": 0.0,           # absolute SEK amount
+        "interest_rate_pct": 5.0,         # APR %
     }
 
 def _prices_row_or_none() -> PriceSettings | None:
@@ -59,6 +61,12 @@ def _prices_row_or_none() -> PriceSettings | None:
                 yearly_km=d["yearly_km"],
                 daily_commute_km=d["daily_commute_km"],
             )
+            # populate new fields if model has them (keeps compatibility if old model is still in use)
+            try:
+                row.downpayment_sek = d["downpayment_sek"]
+                row.interest_rate_pct = d["interest_rate_pct"]
+            except Exception:
+                pass
             db.session.add(row)
             db.session.commit()
         return row
@@ -76,6 +84,8 @@ def _serialize_prices(row: PriceSettings | None) -> dict[str, Any]:
         "bensin_price_sek_litre": _to_float(getattr(row, "bensin_price_sek_litre", 0.0), 0.0),
         "yearly_km": _to_int(getattr(row, "yearly_km", 18000), 18000),
         "daily_commute_km": _to_int(getattr(row, "daily_commute_km", 30), 30),
+        "downpayment_sek": _to_float(getattr(row, "downpayment_sek", 0.0), 0.0),
+        "interest_rate_pct": _to_float(getattr(row, "interest_rate_pct", 5.0), 5.0),
     }
 
 # ----------------- Accounts -----------------
@@ -138,7 +148,7 @@ def set_current_month():
         if month_id is None:
             return jsonify({"error": "No month_id provided"}), 400
 
-        month_id = _to_int(month_id, None)
+        month_id = _to_int(month_id, None)  # type: ignore[arg-type]
         if month_id is None:
             return jsonify({"error": "month_id must be an integer"}), 400
 
@@ -172,36 +182,59 @@ def get_prices():
 def save_prices():
     """
     Upsert any subset of price fields.
-    Body keys: el_price_ore_kwh, bensin_price_sek_litre, diesel_price_sek_litre, yearly_km, daily_commute_km
+
+    Body keys (all optional):
+      - el_price_ore_kwh (int ore/kWh)
+      - diesel_price_sek_litre (float)
+      - bensin_price_sek_litre (float)
+      - yearly_km (int)
+      - daily_commute_km (int)
+      - downpayment_sek (float)        # absolute SEK
+      - interest_rate_pct (float)      # APR %
     Returns canonical saved values or a merged default if DB is unavailable (still 200).
     """
     data = request.get_json(silent=True) or {}
+
+    def _merge_defaults(dst: dict[str, Any], src: dict[str, Any]) -> dict[str, Any]:
+        merged = dict(dst)
+        for k in merged.keys():
+            if k in src:
+                if "km" in k or "ore" in k:
+                    merged[k] = _to_int(src[k], merged[k])
+                else:
+                    merged[k] = _to_float(src[k], merged[k])
+        return merged
+
     try:
         row = _prices_row_or_none()
         if row is None:
-            merged = _default_prices()
-            for k in merged.keys():
-                if k in data:
-                    if "km" in k or "ore" in k:
-                        merged[k] = _to_int(data[k], merged[k])
-                    else:
-                        merged[k] = _to_float(data[k], merged[k])
-            return jsonify(merged), 200
+            # DB/table not available: respond with merged defaults
+            return jsonify(_merge_defaults(_default_prices(), data)), 200
 
+        # ints
         if "el_price_ore_kwh" in data:
             row.el_price_ore_kwh = _to_int(data["el_price_ore_kwh"], row.el_price_ore_kwh or 0)
-        if "diesel_price_sek_litre" in data:
-            row.diesel_price_sek_litre = _to_float(
-                data["diesel_price_sek_litre"], row.diesel_price_sek_litre or 0.0
-            )
-        if "bensin_price_sek_litre" in data:
-            row.bensin_price_sek_litre = _to_float(
-                data["bensin_price_sek_litre"], row.bensin_price_sek_litre or 0.0
-            )
         if "yearly_km" in data:
             row.yearly_km = _to_int(data["yearly_km"], row.yearly_km or 0)
         if "daily_commute_km" in data:
             row.daily_commute_km = _to_int(data["daily_commute_km"], row.daily_commute_km or 0)
+
+        # floats
+        if "diesel_price_sek_litre" in data:
+            row.diesel_price_sek_litre = _to_float(data["diesel_price_sek_litre"], row.diesel_price_sek_litre or 0.0)
+        if "bensin_price_sek_litre" in data:
+            row.bensin_price_sek_litre = _to_float(data["bensin_price_sek_litre"], row.bensin_price_sek_litre or 0.0)
+        if "downpayment_sek" in data:
+            try:
+                row.downpayment_sek = _to_float(data["downpayment_sek"], getattr(row, "downpayment_sek", 0.0) or 0.0)
+            except Exception:
+                # keep going if model is older
+                pass
+        if "interest_rate_pct" in data:
+            try:
+                row.interest_rate_pct = _to_float(data["interest_rate_pct"], getattr(row, "interest_rate_pct", 5.0) or 5.0)
+            except Exception:
+                pass
 
         db.session.commit()
         return jsonify(_serialize_prices(row)), 200
@@ -210,11 +243,4 @@ def save_prices():
         current_app.logger.exception("save_prices error: %s", e)
         db.session.rollback()
         # CI-safe fallback: defaults merged with request
-        merged = _default_prices()
-        for k in merged.keys():
-            if k in data:
-                if "km" in k or "ore" in k:
-                    merged[k] = _to_int(data[k], merged[k])
-                else:
-                    merged[k] = _to_float(data[k], merged[k])
-        return jsonify(merged), 200
+        return jsonify(_merge_defaults(_default_prices(), data)), 200

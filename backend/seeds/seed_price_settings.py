@@ -49,6 +49,8 @@ DEFAULTS: dict[str, Any] = {
     "bensin_price_sek_litre": 14.0,   # SEK/litre
     "yearly_km": 18000,               # km/year
     "daily_commute_km": 30,           # km/day
+    "downpayment_sek": 0,             # SEK amount
+    "interest_rate_pct": 5            # %
 }
 
 # Allow overriding single values via env vars
@@ -58,6 +60,8 @@ ENV_VALUE_MAP: dict[str, tuple[str, ...]] = {
     "bensin_price_sek_litre": ("BENSIN_PRICE_SEK_LITRE", "GAS_PRICE_SEK_LITRE"),
     "yearly_km": ("YEARLY_KM", "YEARLY_DRIVING_KM"),
     "daily_commute_km": ("DAILY_COMMUTE_KM",),
+    "downpayment_sek": ("DOWNPAYMENT_SEK",),
+    "interest_rate_pct": ("INTEREST_RATE_PCT",)
 }
 
 # ------------------------------------------------------------------------------
@@ -175,8 +179,13 @@ def _sanitize(values: dict[str, Any]) -> dict[str, Any]:
         "bensin_price_sek_litre": _to_float(
             values.get("bensin_price_sek_litre", DEFAULTS["bensin_price_sek_litre"])
         ),
-        "yearly_km": _to_int(values.get("yearly_km", DEFAULTS["yearly_km"])),
-        "daily_commute_km": _to_int(values.get("daily_commute_km", DEFAULTS["daily_commute_km"])),
+        "yearly_km": _to_int(values.get("yearly_km", DEFAULTS["yearly_km"])
+        ),
+        "daily_commute_km": _to_int(values.get("daily_commute_km", DEFAULTS["daily_commute_km"])
+        ),
+        "downpayment_sek": _to_int(values.get("downpayment_sek", DEFAULTS["downpayment_sek"])
+        ),
+        "interest_rate_pct": _to_int(values.get("interest_rate_pct", DEFAULTS["interest_rate_pct"])),
     }
 
 # ------------------------------------------------------------------------------
@@ -222,6 +231,8 @@ def seed(
             "bensin_price_sek_litre": row.bensin_price_sek_litre,
             "yearly_km": row.yearly_km,
             "daily_commute_km": row.daily_commute_km,
+            "downpayment_sek": row.downpayment_sek,
+            "interest_rate_pct": row.interest_rate_pct,
         }
 
         # Only fill Nones unless --overwrite is set
@@ -236,6 +247,8 @@ def seed(
             "bensin_price_sek_litre": row.bensin_price_sek_litre,
             "yearly_km": row.yearly_km,
             "daily_commute_km": row.daily_commute_km,
+            "downpayment_sek": row.downpayment_sek,
+            "interest_rate_pct": row.interest_rate_pct,
         }
 
         if dry_run:
