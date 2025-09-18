@@ -61,7 +61,6 @@ def _prices_row_or_none() -> PriceSettings | None:
                 bensin_price_sek_litre=d["bensin_price_sek_litre"],
                 yearly_km=d["yearly_km"],
                 daily_commute_km=d["daily_commute_km"],
-                # NEW
                 downpayment_sek=d["downpayment_sek"],
                 interest_rate_pct=d["interest_rate_pct"],
             )
@@ -82,7 +81,6 @@ def _serialize_prices(row: PriceSettings | None) -> dict[str, Any]:
         "bensin_price_sek_litre": _to_float(getattr(row, "bensin_price_sek_litre", 0.0), 0.0),
         "yearly_km": _to_int(getattr(row, "yearly_km", 18000), 18000),
         "daily_commute_km": _to_int(getattr(row, "daily_commute_km", 30), 30),
-        # NEW: include in API response
         "downpayment_sek": _to_float(getattr(row, "downpayment_sek", 0.0), 0.0),
         "interest_rate_pct": _to_float(getattr(row, "interest_rate_pct", 5.0), 5.0),
     }
@@ -201,7 +199,6 @@ def save_prices():
             row.yearly_km = _to_int(data["yearly_km"], row.yearly_km or 0) or 0
         if "daily_commute_km" in data:
             row.daily_commute_km = _to_int(data["daily_commute_km"], row.daily_commute_km or 0) or 0
-        # NEW
         if "downpayment_sek" in data:
             row.downpayment_sek = _to_float(data["downpayment_sek"], row.downpayment_sek or 0.0)
         if "interest_rate_pct" in data:
