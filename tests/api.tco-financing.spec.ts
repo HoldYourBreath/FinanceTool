@@ -1,99 +1,99 @@
-import { test, expect } from "@playwright/test";
+// tests/api.tco-financing.spec.ts
+import { test, expect, request as pwRequest } from "@playwright/test";
 
-/**
- * Helper: pick an 8-year TOTAL TCO number from a car row, regardless
- * of which field name your backend currently provides.
- */
-function pickTco8(car: any): number {
-  if (!car) return NaN;
-  if (isFiniteNum(car.tco_total_8y)) return car.tco_total_8y;  // preferred
-  if (isFiniteNum(car.tco_8_years)) return car.tco_8_years;    // legacy
-  // If only per-month is available, convert back to total.
-  if (isFiniteNum(car.tco_per_month_8y)) return car.tco_per_month_8y * 96;
-  return NaN;
+// Always talk directly to Flask in these API-only tests.
+const BACKEND = process.env.BACKEND_ORIGIN || "http://127.0.0.1:5000";
+
+async function expectJson(resp: any) {
+  const ct = (resp.headers()["content-type"] || "").toLowerCase();
+  if (!ct.includes("application/json")) {
+    const txt = await resp.text();
+    throw new Error(
+      `Expected JSON from ${resp.url()} but got ${ct || "unknown"}.\n` +
+      `Body starts with:\n${txt.slice(0, 200)}`
+    );
+  }
 }
-const isFiniteNum = (v: any) => typeof v === "number" && Number.isFinite(v);
 
 test.describe("TCO reacts to financing settings", () => {
-  test("raising interest rate increases 8y TCO", async ({ request }) => {
-    // Ensure we have at least one car to assert on
-    const first = await request.get("/api/cars");
+  test("raising interest rate increases 8y TCO", async () => {
+    const api = await pwRequest.newContext({ baseURL: BACKEND });
+
+    const first = await api.get("/api/cars");
     expect(first.ok()).toBeTruthy();
+    await expectJson(first);
     const cars0 = await first.json();
     if (!cars0?.length) test.skip(true, "No cars available to test against.");
 
-    // Prefer a car with a non-zero price (financing matters then)
-    const car = cars0.find((c: any) => (c.estimated_purchase_price ?? 0) > 0) ?? cars0[0];
-    const carId = car.id;
+    // Prefer a car with a price so financing matters
+    const baseCar = cars0.find((c: any) => (c.estimated_purchase_price ?? 0) > 0) ?? cars0[0];
+    const carId = baseCar.id;
 
-    // Set LOW interest, zero downpayment
-    {
-      const r = await request.post("/api/settings/prices", {
-        data: { interest_rate_pct: 1, downpayment_sek: 0 },
-      });
-      expect(r.ok()).toBeTruthy();
-    }
-    const lowResp = await request.get("/api/cars");
-    const lowCars = await lowResp.json();
-    const lowCar = lowCars.find((c: any) => c.id === carId);
-    const tco8_low = pickTco8(lowCar);
-    expect(isFiniteNum(tco8_low)).toBeTruthy();
+    // low interest
+    let resp = await api.post("/api/settings/prices", { data: { interest_rate_pct: 1, downpayment_sek: 0 } });
+    expect(resp.ok()).toBeTruthy();
 
-    // Crank interest way up
-    {
-      const r = await request.post("/api/settings/prices", {
-        data: { interest_rate_pct: 40 }, // a clearly higher rate
-      });
-      expect(r.ok()).toBeTruthy();
-    }
-    const hiResp = await request.get("/api/cars");
-    const hiCars = await hiResp.json();
-    const hiCar = hiCars.find((c: any) => c.id === carId);
-    const tco8_hi = pickTco8(hiCar);
-    expect(isFiniteNum(tco8_hi)).toBeTruthy();
+    // fetch cars fresh (cache-buster)
+    resp = await api.get(`/api/cars?ts=${Date.now()}`);
+    expect(resp.ok()).toBeTruthy();
+    await expectJson(resp);
+    let cars = await resp.json();
+    let low = (cars.find((c: any) => c.id === carId)?.tco_total_8y)
+           ?? (cars.find((c: any) => c.id === carId)?.tco_8_years);
 
-    // Assert TCO increased
-    expect(tco8_hi).toBeGreaterThan(tco8_low);
+    // high interest
+    resp = await api.post("/api/settings/prices", { data: { interest_rate_pct: 15, downpayment_sek: 0 } });
+    expect(resp.ok()).toBeTruthy();
+
+    resp = await api.get(`/api/cars?ts=${Date.now()}`);
+    expect(resp.ok()).toBeTruthy();
+    await expectJson(resp);
+    cars = await resp.json();
+    const hi = (cars.find((c: any) => c.id === carId)?.tco_total_8y)
+            ?? (cars.find((c: any) => c.id === carId)?.tco_8_years);
+
+    expect(typeof low).toBe("number");
+    expect(typeof hi).toBe("number");
+    expect(hi!).toBeGreaterThan(low!);
   });
 
-  test("large downpayment reduces 8y TCO (less interest)", async ({ request }) => {
-    // Ensure we have a priced car
-    const baseResp = await request.get("/api/cars");
-    expect(baseResp.ok()).toBeTruthy();
-    const cars = await baseResp.json();
-    if (!cars?.length) test.skip(true, "No cars available to test against.");
+  test("large downpayment reduces 8y TCO (less interest)", async () => {
+    const api = await pwRequest.newContext({ baseURL: BACKEND });
 
-    const car = cars.find((c: any) => (c.estimated_purchase_price ?? 0) > 0) ?? cars[0];
-    const carId = car.id;
-    const price = Number(car.estimated_purchase_price || 0);
+    let resp = await api.get("/api/cars");
+    expect(resp.ok()).toBeTruthy();
+    await expectJson(resp);
+    const cars0 = await resp.json();
+    if (!cars0?.length) test.skip(true, "No cars available to test against.");
 
-    // Baseline: 10% interest, zero down
-    {
-      const r = await request.post("/api/settings/prices", {
-        data: { interest_rate_pct: 10, downpayment_sek: 0 },
-      });
-      expect(r.ok()).toBeTruthy();
-    }
-    const noneResp = await request.get("/api/cars");
-    const noneCars = await noneResp.json();
-    const noneCar = noneCars.find((c: any) => c.id === carId);
-    const tco8_none = pickTco8(noneCar);
-    expect(isFiniteNum(tco8_none)).toBeTruthy();
+    const baseCar = cars0.find((c: any) => (c.estimated_purchase_price ?? 0) > 0) ?? cars0[0];
+    const carId = baseCar.id;
 
-    // Big downpayment (e.g., 80% of price)
-    {
-      const r = await request.post("/api/settings/prices", {
-        data: { interest_rate_pct: 10, downpayment_sek: Math.max(0, price * 0.8) },
-      });
-      expect(r.ok()).toBeTruthy();
-    }
-    const bigResp = await request.get("/api/cars");
-    const bigCars = await bigResp.json();
-    const bigCar = bigCars.find((c: any) => c.id === carId);
-    const tco8_big = pickTco8(bigCar);
-    expect(isFiniteNum(tco8_big)).toBeTruthy();
+    // no downpayment baseline
+    resp = await api.post("/api/settings/prices", { data: { downpayment_sek: 0, interest_rate_pct: 5 } });
+    expect(resp.ok()).toBeTruthy();
 
-    // Assert TCO decreased thanks to less interest
-    expect(tco8_big).toBeLessThan(tco8_none);
+    resp = await api.get(`/api/cars?ts=${Date.now()}`);
+    expect(resp.ok()).toBeTruthy();
+    await expectJson(resp);
+    let cars = await resp.json();
+    const base = (cars.find((c: any) => c.id === carId)?.tco_total_8y)
+              ?? (cars.find((c: any) => c.id === carId)?.tco_8_years);
+
+    // 50% downpayment
+    const half = Math.floor((baseCar.estimated_purchase_price ?? 0) / 2);
+    resp = await api.post("/api/settings/prices", { data: { downpayment_sek: half } });
+    expect(resp.ok()).toBeTruthy();
+
+    resp = await api.get(`/api/cars?ts=${Date.now()}`);
+    expect(resp.ok()).toBeTruthy();
+    await expectJson(resp);
+    cars = await resp.json();
+    const withDown = (cars.find((c: any) => c.id === carId)?.tco_total_8y)
+                  ?? (cars.find((c: any) => c.id === carId)?.tco_8_years);
+
+    expect(typeof base).toBe("number");
+    expect(typeof withDown).toBe("number");
+    expect(withDown!).toBeLessThan(base!);
   });
 });
