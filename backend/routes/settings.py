@@ -44,6 +44,7 @@ def _default_prices() -> dict[str, Any]:
         "interest_rate_pct": 5.0,         # APR %
     }
 
+
 def _prices_row_or_none() -> PriceSettings | None:
     """
     Get/create singleton PriceSettings(id=1). If table/migrations are missing,
@@ -53,7 +54,8 @@ def _prices_row_or_none() -> PriceSettings | None:
         row = PriceSettings.query.get(1)
         if not row:
             d = _default_prices()
-            row = PriceSettings(
+            # only pass attrs that exist on the model (safe for CI)
+            params = dict(
                 id=1,
                 el_price_ore_kwh=d["el_price_ore_kwh"],
                 diesel_price_sek_litre=d["diesel_price_sek_litre"],
@@ -61,21 +63,32 @@ def _prices_row_or_none() -> PriceSettings | None:
                 yearly_km=d["yearly_km"],
                 daily_commute_km=d["daily_commute_km"],
             )
-            # populate new fields if model has them (keeps compatibility if old model is still in use)
-            try:
-                row.downpayment_sek = d["downpayment_sek"]
-                row.interest_rate_pct = d["interest_rate_pct"]
-            except Exception:
-                pass
+            if hasattr(PriceSettings, "downpayment_sek"):
+                params["downpayment_sek"] = d["downpayment_sek"]
+            if hasattr(PriceSettings, "interest_rate_pct"):
+                params["interest_rate_pct"] = d["interest_rate_pct"]
+
+            row = PriceSettings(**params)
             db.session.add(row)
             db.session.commit()
+        else:
+            # backfill missing/NULL values (e.g. after adding columns)
+            d = _default_prices()
+            changed = False
+            if hasattr(row, "downpayment_sek") and row.downpayment_sek is None:
+                row.downpayment_sek = d["downpayment_sek"]; changed = True
+            if hasattr(row, "interest_rate_pct") and row.interest_rate_pct is None:
+                row.interest_rate_pct = d["interest_rate_pct"]; changed = True
+            if changed:
+                db.session.commit()
         return row
     except Exception as e:
         current_app.logger.warning("PriceSettings unavailable (CI-safe fallback): %s", e)
         return None
 
+
+
 def _serialize_prices(row: PriceSettings | None) -> dict[str, Any]:
-    """Normalize to JSON primitives; fall back to defaults if row is None."""
     if row is None:
         return _default_prices()
     return {
@@ -87,6 +100,7 @@ def _serialize_prices(row: PriceSettings | None) -> dict[str, Any]:
         "downpayment_sek": _to_float(getattr(row, "downpayment_sek", 0.0), 0.0),
         "interest_rate_pct": _to_float(getattr(row, "interest_rate_pct", 5.0), 5.0),
     }
+
 
 # ----------------- Accounts -----------------
 @settings_bp.post("/accounts")
@@ -180,61 +194,35 @@ def get_prices():
 
 @settings_bp.route("/prices", methods=["POST", "PATCH"])
 def save_prices():
-    """
-    Upsert any subset of price fields.
-
-    Body keys (all optional):
-      - el_price_ore_kwh (int ore/kWh)
-      - diesel_price_sek_litre (float)
-      - bensin_price_sek_litre (float)
-      - yearly_km (int)
-      - daily_commute_km (int)
-      - downpayment_sek (float)        # absolute SEK
-      - interest_rate_pct (float)      # APR %
-    Returns canonical saved values or a merged default if DB is unavailable (still 200).
-    """
     data = request.get_json(silent=True) or {}
-
-    def _merge_defaults(dst: dict[str, Any], src: dict[str, Any]) -> dict[str, Any]:
-        merged = dict(dst)
-        for k in merged.keys():
-            if k in src:
-                if "km" in k or "ore" in k:
-                    merged[k] = _to_int(src[k], merged[k])
-                else:
-                    merged[k] = _to_float(src[k], merged[k])
-        return merged
-
     try:
         row = _prices_row_or_none()
         if row is None:
-            # DB/table not available: respond with merged defaults
-            return jsonify(_merge_defaults(_default_prices(), data)), 200
+            # CI-safe merge path (works already)
+            merged = _default_prices()
+            for k in merged.keys():
+                if k in data:
+                    if "km" in k or "ore" in k:
+                        merged[k] = _to_int(data[k], merged[k])
+                    else:
+                        merged[k] = _to_float(data[k], merged[k])
+            return jsonify(merged), 200
 
-        # ints
+        # existing fields...
         if "el_price_ore_kwh" in data:
             row.el_price_ore_kwh = _to_int(data["el_price_ore_kwh"], row.el_price_ore_kwh or 0)
-        if "yearly_km" in data:
-            row.yearly_km = _to_int(data["yearly_km"], row.yearly_km or 0)
-        if "daily_commute_km" in data:
-            row.daily_commute_km = _to_int(data["daily_commute_km"], row.daily_commute_km or 0)
-
-        # floats
         if "diesel_price_sek_litre" in data:
             row.diesel_price_sek_litre = _to_float(data["diesel_price_sek_litre"], row.diesel_price_sek_litre or 0.0)
         if "bensin_price_sek_litre" in data:
             row.bensin_price_sek_litre = _to_float(data["bensin_price_sek_litre"], row.bensin_price_sek_litre or 0.0)
-        if "downpayment_sek" in data:
-            try:
-                row.downpayment_sek = _to_float(data["downpayment_sek"], getattr(row, "downpayment_sek", 0.0) or 0.0)
-            except Exception:
-                # keep going if model is older
-                pass
-        if "interest_rate_pct" in data:
-            try:
-                row.interest_rate_pct = _to_float(data["interest_rate_pct"], getattr(row, "interest_rate_pct", 5.0) or 5.0)
-            except Exception:
-                pass
+        if "yearly_km" in data:
+            row.yearly_km = _to_int(data["yearly_km"], row.yearly_km or 0)
+        if "daily_commute_km" in data:
+            row.daily_commute_km = _to_int(data["daily_commute_km"], row.daily_commute_km or 0)
+        if hasattr(row, "downpayment_sek") and "downpayment_sek" in data:
+            row.downpayment_sek = _to_float(data["downpayment_sek"], row.downpayment_sek or 0.0)
+        if hasattr(row, "interest_rate_pct") and "interest_rate_pct" in data:
+            row.interest_rate_pct = _to_float(data["interest_rate_pct"], row.interest_rate_pct or 0.0)
 
         db.session.commit()
         return jsonify(_serialize_prices(row)), 200
@@ -242,5 +230,12 @@ def save_prices():
     except Exception as e:
         current_app.logger.exception("save_prices error: %s", e)
         db.session.rollback()
-        # CI-safe fallback: defaults merged with request
-        return jsonify(_merge_defaults(_default_prices(), data)), 200
+        merged = _default_prices()
+        for k in merged.keys():
+            if k in data:
+                if "km" in k or "ore" in k:
+                    merged[k] = _to_int(data[k], merged[k])
+                else:
+                    merged[k] = _to_float(data[k], merged[k])
+        return jsonify(merged), 200
+
