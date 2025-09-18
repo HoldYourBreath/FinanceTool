@@ -7,7 +7,9 @@ const DEFAULTS = {
   bensin_price_sek_litre: 14,
   diesel_price_sek_litre: 15,
   yearly_km: 18000,
-  daily_commute_km: undefined,
+  daily_commute_km: 30,
+  downpayment_sek: 0,
+  interest_rate_pct: 5,
 };
 
 const toNum = (v) =>
@@ -17,22 +19,33 @@ const toNum = (v) =>
 
 // Accept multiple possible server key styles
 const normalizeServer = (d = {}) => ({
-  // also accept 'electricity_price_ore_kwh'
-  el_price_ore_kwh: toNum(
-    d.el_price_ore_kwh ??
-      d.electricity_price_ore_kwh ??
-      d.elPriceOreKwh ??
-      d.elOre,
-  ),
-  bensin_price_sek_litre: toNum(
-    d.bensin_price_sek_litre ?? d.petrol ?? d.bensin,
-  ),
-  diesel_price_sek_litre: toNum(d.diesel_price_sek_litre ?? d.diesel),
-  // also accept 'yearly_driving_km'
-  yearly_km: toNum(d.yearly_km ?? d.yearlyKm ?? d.yearly_driving_km),
-  daily_commute_km: toNum(
-    d.daily_commute_km ?? d.daily_commute ?? d.dailyCommuteKm,
-  ),
+  // electricity
+  el_price_ore_kwh:
+    toNum(d.el_price_ore_kwh) ??
+    toNum(d.electricity_price_ore_kwh) ??
+    toNum(d.elPriceOreKwh) ??
+    toNum(d.elOre),
+
+  // fuels
+  bensin_price_sek_litre:
+    toNum(d.bensin_price_sek_litre) ?? toNum(d.petrol) ?? toNum(d.bensin),
+  diesel_price_sek_litre: toNum(d.diesel_price_sek_litre) ?? toNum(d.diesel),
+
+  // driving
+  yearly_km: toNum(d.yearly_km) ?? toNum(d.yearlyKm) ?? toNum(d.yearly_driving_km),
+  daily_commute_km:
+    toNum(d.daily_commute_km) ?? toNum(d.daily_commute) ?? toNum(d.dailyCommuteKm),
+
+  // financing
+  downpayment_sek:
+    toNum(d.downpayment_sek) ??
+    toNum(d.downPaymentSek) ??
+    toNum(d.downpayment) ??
+    toNum(d.downPayment),
+  interest_rate_pct:
+    toNum(d.interest_rate_pct) ??
+    toNum(d.interestRatePct) ??
+    toNum(d.interest),
 });
 
 const coerceNumbers = (obj = {}) => ({
@@ -41,14 +54,16 @@ const coerceNumbers = (obj = {}) => ({
   diesel_price_sek_litre: toNum(obj.diesel_price_sek_litre),
   yearly_km: toNum(obj.yearly_km),
   daily_commute_km: toNum(obj.daily_commute_km),
+  downpayment_sek: toNum(obj.downpayment_sek),
+  interest_rate_pct: toNum(obj.interest_rate_pct),
 });
 
 // defaults < saved < db
 const mergeSettings = ({ saved = {}, db = {} } = {}) =>
   coerceNumbers({ ...DEFAULTS, ...saved, ...db });
 
-export default function usePrices(debounceMs = 600) {
-  // One-time cleanup: if a stale 140 is persisted, drop it once.
+export default function usePrices(debounceMs = 500) {
+  // one-time cleanup of any ancient persisted values
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("price_settings") || "{}");
@@ -56,7 +71,7 @@ export default function usePrices(debounceMs = 600) {
         localStorage.removeItem("price_settings");
       }
     } catch {
-      void 0; // no-op to satisfy no-empty
+      /* noop */
     }
   }, []);
 
@@ -64,23 +79,18 @@ export default function usePrices(debounceMs = 600) {
     try {
       return JSON.parse(localStorage.getItem("price_settings") || "{}");
     } catch {
-      void 0; // no-op to satisfy no-empty
       return {};
     }
   })();
 
-  const [prices, setPrices] = useState(() =>
-    mergeSettings({ saved: initialSaved }),
-  );
+  const [prices, setPrices] = useState(() => mergeSettings({ saved: initialSaved }));
   const [savingPrices, setSavingPrices] = useState(false);
   const timerRef = useRef(null);
 
   const loadPrices = useCallback(async () => {
     try {
-      // Ensure this path matches your backend route
       const { data } = await api.get("/settings/prices");
       const db = normalizeServer(data);
-      // Use functional setState to avoid stale 'prices' dependency
       setPrices((prev) => {
         const merged = mergeSettings({ saved: prev, db });
         localStorage.setItem("price_settings", JSON.stringify(merged));
@@ -91,15 +101,17 @@ export default function usePrices(debounceMs = 600) {
     }
   }, []);
 
+  // Debounced commit: send the whole merged object (server ignores unknowns)
   const commit = useCallback(async (payload) => {
     setSavingPrices(true);
     try {
-      await api.post("/settings/prices", payload);
+      await api.patch("/settings/prices", payload);
     } finally {
       setSavingPrices(false);
     }
   }, []);
 
+  // Optimistic local update so UI (TCO) reacts immediately
   const updatePrice = useCallback(
     (patch) => {
       setPrices((prev) => {
@@ -113,12 +125,7 @@ export default function usePrices(debounceMs = 600) {
     [commit, debounceMs],
   );
 
-  // Cleanup any pending debounce timer
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  useEffect(() => () => timerRef.current && clearTimeout(timerRef.current), []);
 
   return { prices, updatePrice, savingPrices, loadPrices };
 }

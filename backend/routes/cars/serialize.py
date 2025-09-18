@@ -1,196 +1,199 @@
+# serialize.py
 from __future__ import annotations
-from typing import Optional, Dict, Any
+from typing import Dict, Any, Optional
+from decimal import Decimal
+from flask import current_app
 
 from backend.models.models import Car, PriceSettings
-from .util import (
-    as_text, plainify, as_float, num, safe, norm_type,
-    estimate_full_insurance_year, estimate_half_from_full,
-    estimate_tax_year, estimate_repairs_year,
-    estimate_ac_0_100_hours, estimate_dc_10_80_minutes
-)
 from .pricing import normalize_prices, amortized_totals
 
 
-def _get_model_range_val(c: Car) -> Optional[float]:
-    if hasattr(c, "range_km") and c.range_km is not None:
-        return as_float(c.range_km)
-    return as_float(getattr(c, "range_km", None))
+def _f(x) -> float:
+    if x is None:
+        return 0.0
+    if isinstance(x, Decimal):
+        return float(x)
+    try:
+        return float(x)
+    except Exception:
+        try:
+            return float(str(x).replace(",", "."))
+        except Exception:
+            return 0.0
 
 
-def _yearly_energy_cost(car: Car, P: Dict[str, Any]) -> float:
-    yearly_km = P["yearly_km"]
-    kwh100 = num(getattr(car, "consumption_kwh_per_100km", None), 0.0)
-    l100 = num(getattr(car, "consumption_l_per_100km", None), 0.0)
-    t = norm_type(as_text(safe(car.type_of_vehicle, "EV")))
+def _text(x) -> Optional[str]:
+    if x is None:
+        return None
+    try:
+        # enums -> string
+        v = getattr(x, "value", None) or getattr(x, "name", None)
+        return str(v) if v is not None else str(x)
+    except Exception:
+        return str(x)
 
-    if t == "EV":
-        return (yearly_km / 100.0) * kwh100 * P["elec_sek_kwh"]
-    if t == "Diesel":
-        return (yearly_km / 100.0) * l100 * P["diesel_sek_l"]
-    if t == "Bensin":
-        return (yearly_km / 100.0) * l100 * P["bensin_sek_l"]
-    if t == "PHEV":
-        batt_kwh = num(getattr(car, "battery_capacity_kwh", None), 0.0)
-        ev_range = (100.0 * batt_kwh / kwh100) if (batt_kwh > 0 and kwh100 > 0) else 40.0
-        ev_km_day = min(P["daily_commute_km"], ev_range)
-        ev_share = min(1.0, max(0.0, (ev_km_day * 22.0) / yearly_km)) if yearly_km > 0 else 0.6
-        ev_part = ev_share * kwh100 * P["elec_sek_kwh"]
-        ice_part = (1.0 - ev_share) * l100 * P["bensin_sek_l"]
-        return (yearly_km / 100.0) * (ev_part + ice_part)
 
+# -------- energy / running cost helpers --------
+def _energy_year(car: Car, P: Dict[str, Any]) -> float:
+    tv = (_text(getattr(car, "type_of_vehicle", None)) or "EV").strip()
+    kwh100 = _f(getattr(car, "consumption_kwh_per_100km", None))
+    l100   = _f(getattr(car, "consumption_l_per_100km", None))
+    km     = int(P.get("yearly_km", 18000))
+
+    if tv == "EV":
+        return (km / 100.0) * kwh100 * P["elec_sek_kwh"]
+    if tv == "Diesel":
+        return (km / 100.0) * l100 * P["diesel_sek_l"]
+    if tv == "Bensin":
+        return (km / 100.0) * l100 * P["bensin_sek_l"]
+    if tv == "PHEV":
+        # simple blended model (improve later if you like)
+        return (km / 100.0) * (l100 * P["bensin_sek_l"] + kwh100 * P["elec_sek_kwh"])
     return 0.0
 
 
-def _yearly_fixed_costs(car: Car, P: Dict[str, Any]) -> Dict[str, float]:
-    tires_year = (num(car.summer_tires_price, 0) + num(car.winter_tires_price, 0)) / float(P["tire_lifespan_years"])
-
-    t = norm_type(as_text(safe(car.type_of_vehicle, "EV")))
-    price = num(getattr(car, "estimated_purchase_price", None), 0)
-
-    full_raw = num(getattr(car, "full_insurance_year", None), 0)
-    half_raw = num(getattr(car, "half_insurance_year", None), 0)
-    if full_raw > 0:
-        full_eff = full_raw
-    elif half_raw > 0:
-        full_eff = half_raw / 0.55
-    else:
-        full_eff = estimate_full_insurance_year(price, t)
-
-    tax_raw = num(getattr(car, "car_tax_year", None), 0)
-    tax_eff = tax_raw if tax_raw > 0 else estimate_tax_year(t)
-
-    repairs_raw = num(getattr(car, "repairs_year", None), 0)
-    repairs_eff = repairs_raw if repairs_raw > 0 else estimate_repairs_year(t, getattr(car, "year", None))
-
-    return {
-        "tires_year_effective": round(tires_year, 2),
-        "full_insurance_year_effective": round(full_eff, 2),
-        "half_insurance_year_effective": round(estimate_half_from_full(full_eff), 2),
-        "car_tax_year_effective": round(tax_eff, 2),
-        "repairs_year_effective": round(repairs_eff, 2),
-        "recurring_per_year": round(tires_year + full_eff + tax_eff + repairs_eff, 2),
-    }
+def _tires_year(car: Car, P: Dict[str, Any]) -> float:
+    total = _f(getattr(car, "summer_tires_price", 0)) + _f(getattr(car, "winter_tires_price", 0))
+    # prefer car-specific interval if present, else global from settings
+    life = int(getattr(car, "tire_replacement_interval_years", 0) or 0)
+    if life <= 0:
+        life = int(P.get("tire_lifespan_years", 3)) or 3
+    return (total / float(life)) if (total > 0 and life > 0) else 0.0
 
 
-def _tco_financed(car: Car, P: Dict[str, Any], years: int) -> float:
+def _insurance_year(car: Car) -> float:
+    full = _f(getattr(car, "full_insurance_year", 0))
+    half = _f(getattr(car, "half_insurance_year", 0))
+    return full if full > 0 else (half if half > 0 else 0.0)
+
+
+def _recurring_year(car: Car, P: Dict[str, Any]) -> float:
+    return (
+        _energy_year(car, P)
+        + _insurance_year(car)
+        + _f(getattr(car, "car_tax_year", 0))
+        + _f(getattr(car, "repairs_year", 0))
+        + _tires_year(car, P)
+    )
+
+
+def _residuals(car: Car, purchase: float) -> Dict[str, float]:
+    v3 = getattr(car, "expected_value_after_3y", None)
+    v5 = getattr(car, "expected_value_after_5y", None)
+    v8 = getattr(car, "expected_value_after_8y", None)
+
+    # fallbacks: 45/60/75% depreciation
+    if v3 is None: v3 = purchase * 0.55
+    if v5 is None: v5 = purchase * 0.40
+    if v8 is None: v8 = purchase * 0.25
+
+    return dict(v3=_f(v3), v5=_f(v5), v8=_f(v8))
+
+
+# -------- public: compute + serialize --------
+def compute_derived(car: Car, ps: Optional[PriceSettings]) -> Dict[str, float]:
     """
-    TCO = downpayment (cash) + sum(monthly loan payments over horizon)
-          + (yearly energy + yearly fixed) * years
+    TCO model = Depreciation + Recurring + FinancingInterest
+    (Downpayment is not added separately; it cancels with principal
+    when you model total outflows vs residual. It *does* reduce interest.)
     """
-    purchase_price = num(getattr(car, "estimated_purchase_price", None), 0.0)
-    downpayment = float(P.get("downpayment_sek", 0.0) or 0.0)
-    rate_pct = float(P.get("interest_rate_pct", 0.0) or 0.0)
-
-    total_paid, _interest = amortized_totals(purchase_price, downpayment, rate_pct, years)
-    cash_for_car = min(downpayment, purchase_price) + total_paid
-
-    energy_year = _yearly_energy_cost(car, P)
-    fixed = _yearly_fixed_costs(car, P)
-    recurring_year = energy_year + fixed["recurring_per_year"]
-
-    return round(cash_for_car + years * recurring_year, 2)
-
-
-def compute_derived(car: Car, ps: Optional[PriceSettings]) -> Dict[str, Any]:
     P = normalize_prices(ps)
 
-    energy_year = _yearly_energy_cost(car, P)
-    fixed = _yearly_fixed_costs(car, P)
+    purchase = _f(getattr(car, "estimated_purchase_price", 0))
+    energy_y = _energy_year(car, P)
+    recurring_y = _recurring_year(car, P)
+    res = _residuals(car, purchase)
 
-    d = {
-        "energy_cost_month": round(energy_year / 12.0, 2),
-        "recurring_per_year": round(fixed["recurring_per_year"] + energy_year, 2),
-        "tco_3_years": _tco_financed(car, P, 3),
-        "tco_5_years": _tco_financed(car, P, 5),
-        "tco_8_years": _tco_financed(car, P, 8),
-        # legacy aliases kept
-        "tco_total_3y": _tco_financed(car, P, 3),
-        "tco_total_5y": _tco_financed(car, P, 5),
-        "tco_total_8y": _tco_financed(car, P, 8),
-        # expose effective components
-        **fixed,
+    dep3 = max(0.0, purchase - res["v3"])
+    dep5 = max(0.0, purchase - res["v5"])
+    dep8 = max(0.0, purchase - res["v8"])
+
+    # interest component over each horizon
+    _, interest3 = amortized_totals(purchase, P["downpayment_sek"], P["interest_rate_pct"], 3)
+    _, interest5 = amortized_totals(purchase, P["downpayment_sek"], P["interest_rate_pct"], 5)
+    _, interest8 = amortized_totals(purchase, P["downpayment_sek"], P["interest_rate_pct"], 8)
+
+    tco3 = dep3 + 3 * recurring_y + interest3
+    tco5 = dep5 + 5 * recurring_y + interest5
+    tco8 = dep8 + 8 * recurring_y + interest8
+
+    return {
+        "energy_fuel_year": round(energy_y, 2),
+        "recurring_year": round(recurring_y, 2),
+
+        "expected_value_after_3y": round(res["v3"], 2),
+        "expected_value_after_5y": round(res["v5"], 2),
+        "expected_value_after_8y": round(res["v8"], 2),
+
+        "interest_3y": round(interest3, 2),
+        "interest_5y": round(interest5, 2),
+        "interest_8y": round(interest8, 2),
+
+        "tco_total_3y": round(tco3, 2),
+        "tco_total_5y": round(tco5, 2),
+        "tco_total_8y": round(tco8, 2),
+
+        # for back-compat with any old fields:
+        "tco_3_years": round(tco3, 2),
+        "tco_5_years": round(tco5, 2),
+        "tco_8_years": round(tco8, 2),
+
+        "tco_per_month_3y": round(tco3 / 36.0, 2),
+        "tco_per_month_5y": round(tco5 / 60.0, 2),
+        "tco_per_month_8y": round(tco8 / 96.0, 2),
     }
-
-    # Optional charge-time derivations if you want to ensure presence
-    batt = num(getattr(car, "battery_capacity_kwh", None), 0.0)
-    ac_kw = num(getattr(car, "ac_onboard_kw", None), 0.0)
-    dc_kw = num(getattr(car, "dc_peak_kw", None), 0.0)
-
-    d.setdefault("ac_time_h_0_100", num(getattr(car, "ac_time_h_0_100", None), estimate_ac_0_100_hours(batt, ac_kw)))
-    d.setdefault("dc_time_min_10_80", num(getattr(car, "dc_time_min_10_80", None), estimate_dc_10_80_minutes(batt, dc_kw)))
-
-    return d
 
 
 def serialize_car(c: Car, ps: Optional[PriceSettings]) -> Dict[str, Any]:
-    derived = {}
+    """
+    Raw car fields + derived numbers (financing-aware).
+    """
+    derived: Dict[str, Any] = {}
     try:
         derived = compute_derived(c, ps)
-    except Exception:
-        derived = {}
+    except Exception as e:
+        current_app.logger.debug("compute_derived failed for car %s: %s", getattr(c, "id", "?"), e)
 
-    full_raw = as_float(getattr(c, "full_insurance_year", None))
-    half_raw = as_float(getattr(c, "half_insurance_year", None))
-    tax_raw = as_float(getattr(c, "car_tax_year", None))
-    repairs_raw = as_float(getattr(c, "repairs_year", None))
-
-    d = {
+    out: Dict[str, Any] = {
         "id": c.id,
-        "model": as_text(c.model, ""),
-        "year": int(num(c.year, 0)) if c.year is not None else None,
-        "type_of_vehicle": norm_type(as_text(safe(c.type_of_vehicle, "EV"))),
-        "body_style": as_text(getattr(c, "body_style", None)),
-        "eu_segment": as_text(getattr(c, "eu_segment", None)),
-        "suv_tier": as_text(getattr(c, "suv_tier", None)),
-        "estimated_purchase_price": as_float(c.estimated_purchase_price),
+        "model": _text(c.model) or "",
+        "year": int(_f(c.year)) if c.year is not None else None,
 
-        "summer_tires_price": as_float(c.summer_tires_price),
-        "winter_tires_price": as_float(c.winter_tires_price),
+        "type_of_vehicle": _text(getattr(c, "type_of_vehicle", None)) or "EV",
+        "body_style": _text(getattr(c, "body_style", None)),
+        "eu_segment": _text(getattr(c, "eu_segment", None)),
+        "suv_tier": _text(getattr(c, "suv_tier", None)),
 
-        # EFFECTIVE display values merged in from derived
-        "full_insurance_year": derived.get("full_insurance_year_effective"),
-        "half_insurance_year": derived.get("half_insurance_year_effective"),
-        "car_tax_year": derived.get("car_tax_year_effective"),
-        "repairs_year": derived.get("repairs_year_effective"),
+        "estimated_purchase_price": _f(getattr(c, "estimated_purchase_price", 0)),
+        "summer_tires_price": _f(getattr(c, "summer_tires_price", 0)),
+        "winter_tires_price": _f(getattr(c, "winter_tires_price", 0)),
 
-        # raw mirrors
-        "full_insurance_year_raw": full_raw,
-        "half_insurance_year_raw": half_raw,
-        "car_tax_year_raw": tax_raw,
-        "repairs_year_raw": repairs_raw,
+        "full_insurance_year": _f(getattr(c, "full_insurance_year", 0)),
+        "half_insurance_year": _f(getattr(c, "half_insurance_year", 0)),
+        "car_tax_year": _f(getattr(c, "car_tax_year", 0)),
+        "repairs_year": _f(getattr(c, "repairs_year", 0)),
 
-        # aliases
-        "fullInsuranceYear": derived.get("full_insurance_year_effective"),
-        "halfInsuranceYear": derived.get("half_insurance_year_effective"),
-        "carTaxYear": derived.get("car_tax_year_effective"),
-        "repairsYear": derived.get("repairs_year_effective"),
+        "consumption_kwh_per_100km": _f(getattr(c, "consumption_kwh_per_100km", 0)),
+        "consumption_l_per_100km": _f(getattr(c, "consumption_l_per_100km", 0)),
+        "battery_capacity_kwh": _f(getattr(c, "battery_capacity_kwh", 0)),
+        "acceleration_0_100": _f(getattr(c, "acceleration_0_100", 0)),
+        "range_km": int(_f(getattr(c, "range_km", 0))),
+        "driven_km": int(_f(getattr(c, "driven_km", 0))),
+        "battery_aviloo_score": int(_f(getattr(c, "battery_aviloo_score", 0))),
+        "trunk_size_litre": int(_f(getattr(c, "trunk_size_litre", 0))),
 
-        # consumption/spec
-        "consumption_kwh_100km": as_float(c.consumption_kwh_per_100km),
-        "consumption_kwh_per_100km": as_float(c.consumption_kwh_per_100km),
-        "consumption_l_per_100km": as_float(getattr(c, "consumption_l_per_100km", None)),
-        "range_km": _get_model_range_val(c),
-        "acceleration_0_100": as_float(c.acceleration_0_100),
-        "battery_capacity_kwh": as_float(c.battery_capacity_kwh),
-        "trunk_size_litre": as_float(c.trunk_size_litre),
+        "dc_peak_kw": _f(getattr(c, "dc_peak_kw", 0)),
+        "dc_time_min_10_80": int(_f(getattr(c, "dc_time_min_10_80", 0))),
+        "dc_time_source": _text(getattr(c, "dc_time_source", None)),
+        "ac_onboard_kw": _f(getattr(c, "ac_onboard_kw", 0)),
+        "ac_time_h_0_100": _f(getattr(c, "ac_time_h_0_100", 0)),
+        "ac_time_source": _text(getattr(c, "ac_time_source", None)),
 
-        # charging
-        "dc_peak_kw": as_float(getattr(c, "dc_peak_kw", None)),
-        "dc_time_min_10_80": as_float(getattr(c, "dc_time_min_10_80", None)),
-        "dc_time_source": as_text(safe(getattr(c, "dc_time_source", ""), "")) or "",
-        "ac_onboard_kw": as_float(getattr(c, "ac_onboard_kw", None)),
-        "ac_time_h_0_100": as_float(getattr(c, "ac_time_h_0_100", None)),
-        "ac_time_source": as_text(safe(getattr(c, "ac_time_source", ""), "")) or "",
-
-        # persisted totals if any (before override by derived)
-        "tco_3_years": as_float(getattr(c, "tco_3_years", None)),
-        "tco_5_years": as_float(getattr(c, "tco_5_years", None)),
-        "tco_8_years": as_float(getattr(c, "tco_8_years", None)),
-        "tco_total_3y": as_float(getattr(c, "tco_total_3y", None)),
-        "tco_total_5y": as_float(getattr(c, "tco_total_5y", None)),
-        "tco_total_8y": as_float(getattr(c, "tco_total_8y", None)),
+        # keep persisted TCOs if you have them, but derived will overwrite
+        "tco_3_years": _f(getattr(c, "tco_3_years", 0)),
+        "tco_5_years": _f(getattr(c, "tco_5_years", 0)),
+        "tco_8_years": _f(getattr(c, "tco_8_years", 0)),
     }
 
-    # merge derived (overrides TCO etc.)
-    d.update(derived)
-    return {k: plainify(v) for k, v in d.items()}
+    out.update(derived)
+    return out

@@ -6,15 +6,6 @@ export default function Settings() {
   const [months, setMonths] = useState([]);
   const [currentMonthId, setCurrentMonthId] = useState("");
   const [accounts, setAccounts] = useState([]);
-  const [prices, setPrices] = useState({
-    el_price_ore_kwh: 250,
-    diesel_price_sek_litre: 15,
-    bensin_price_sek_litre: 14,
-    yearly_km: 18000,
-    daily_commute_km: 30,
-    downpayment_sek: 0,
-    interest_rate_pct: 5,
-  });
   const [toast, setToast] = useState("");
 
   const flash = (msg) => {
@@ -43,17 +34,6 @@ export default function Settings() {
       } catch (e) {
         console.error("❌ Failed to load accounts", e);
         flash("❌ Failed to load accounts");
-      }
-
-      try {
-        // price settings (now includes downpayment_sek & interest_rate_pct)
-        const priceRes = await api.get("/settings/prices");
-        if (priceRes?.data && typeof priceRes.data === "object") {
-          setPrices((prev) => ({ ...prev, ...priceRes.data }));
-        }
-      } catch (e) {
-        console.error("❌ Failed to load price settings", e);
-        // fall back to defaults already in state
       }
     })();
   }, []);
@@ -89,89 +69,12 @@ export default function Settings() {
     }
   };
 
-  // PATCH just the changed field; update local state first for snappy UI
-  const updatePrice = async (partial) => {
-    setPrices((prev) => ({ ...prev, ...partial }));
-    try {
-      await api.patch("/settings/prices", partial);
-      // no toast spam for every keystroke; only show on blur or after deliberate change if you want
-    } catch (err) {
-      console.error("❌ Failed to save prices:", err);
-      flash("❌ Failed to save prices");
-    }
-  };
-
   return (
     <div data-testid="page-settings" className="space-y-6 p-4">
-      {/* Energy, Fuel & Financing */}
-      <section aria-label="Energy, Fuel & Financing" className="-mx-4 px-4 mb-3">
-        <h2 className="text-xl font-semibold mb-2">Energy, Fuel &amp; Financing</h2>
-        <div
-          className="grid gap-4 items-end
-                     grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7"
-        >
-          <Field
-            id="el_price_ore_kwh"
-            label="Electricity (öre/kWh)"
-            value={num(prices.el_price_ore_kwh)}
-            onChange={(v) => updatePrice({ el_price_ore_kwh: v })}
-            min={0}
-          />
-          <Field
-            id="bensin_price_sek_litre"
-            label="Bensin (SEK/litre)"
-            value={num(prices.bensin_price_sek_litre)}
-            onChange={(v) => updatePrice({ bensin_price_sek_litre: v })}
-            min={0}
-            step="0.01"
-          />
-          <Field
-            id="diesel_price_sek_litre"
-            label="Diesel (SEK/litre)"
-            value={num(prices.diesel_price_sek_litre)}
-            onChange={(v) => updatePrice({ diesel_price_sek_litre: v })}
-            min={0}
-            step="0.01"
-          />
-          <Field
-            id="yearly_km"
-            label="Yearly driving (km)"
-            value={num(prices.yearly_km)}
-            onChange={(v) => updatePrice({ yearly_km: v })}
-            min={0}
-            step="1"
-          />
-          <Field
-            id="daily_commute_km"
-            label="Daily commute (km)"
-            value={num(prices.daily_commute_km)}
-            onChange={(v) => updatePrice({ daily_commute_km: v })}
-            min={0}
-            step="1"
-          />
-          <Field
-            id="downpayment_sek"
-            label="Downpayment (SEK)"
-            value={num(prices.downpayment_sek)}
-            onChange={(v) => updatePrice({ downpayment_sek: v })}
-            min={0}
-            step="1"
-          />
-          <Field
-            id="interest_rate_pct"
-            label="Interest rate (% / year)"
-            value={num(prices.interest_rate_pct, 5)}
-            onChange={(v) => updatePrice({ interest_rate_pct: v })}
-            min={0}
-            step="0.01"
-          />
-        </div>
-      </section>
-
       {/* Current Month */}
-      <div>
+      <section>
         <h2 className="text-xl font-semibold">Set Current Month</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-2">
           <label htmlFor="current-month" className="sr-only">
             Current Month
           </label>
@@ -195,87 +98,90 @@ export default function Settings() {
             Save
           </button>
         </div>
-      </div>
+      </section>
 
       {/* Accounts */}
-      <div>
+      <section>
         <h2 className="text-xl font-semibold">Account Information</h2>
-        {accounts.map((acc, index) => {
-          const pid = `person-${index}`;
-          const bid = `bank-${index}`;
-          const aid = `acc-number-${index}`;
-          const cid = `country-${index}`;
-          return (
-            <div
-              key={acc.id ?? index}
-              className="space-x-2 mb-2 flex flex-wrap items-center gap-2"
-            >
-              <label htmlFor={pid} className="text-sm w-20">
-                Person
-              </label>
-              <input
-                id={pid}
-                type="text"
-                value={acc.person ?? ""}
-                onChange={(e) =>
-                  handleAccountChange(index, "person", e.target.value)
-                }
-                placeholder="Person"
-                className="border p-1 rounded"
-              />
+        <div className="mt-2 space-y-2">
+          {accounts.map((acc, index) => {
+            const pid = `person-${index}`;
+            const bid = `bank-${index}`;
+            const aid = `acc-number-${index}`;
+            const cid = `country-${index}`;
+            return (
+              <div
+                key={acc.id ?? index}
+                className="space-x-2 flex flex-wrap items-center gap-2"
+              >
+                <label htmlFor={pid} className="text-sm w-20">
+                  Person
+                </label>
+                <input
+                  id={pid}
+                  type="text"
+                  value={acc.person ?? ""}
+                  onChange={(e) =>
+                    handleAccountChange(index, "person", e.target.value)
+                  }
+                  placeholder="Person"
+                  className="border p-1 rounded"
+                />
 
-              <label htmlFor={bid} className="text-sm w-14">
-                Bank
-              </label>
-              <input
-                id={bid}
-                type="text"
-                value={acc.bank ?? ""}
-                onChange={(e) =>
-                  handleAccountChange(index, "bank", e.target.value)
-                }
-                placeholder="Bank"
-                className="border p-1 rounded"
-              />
+                <label htmlFor={bid} className="text-sm w-14">
+                  Bank
+                </label>
+                <input
+                  id={bid}
+                  type="text"
+                  value={acc.bank ?? ""}
+                  onChange={(e) =>
+                    handleAccountChange(index, "bank", e.target.value)
+                  }
+                  placeholder="Bank"
+                  className="border p-1 rounded"
+                />
 
-              <label htmlFor={aid} className="text-sm w-36">
-                Account #
-              </label>
-              <input
-                id={aid}
-                type="text"
-                value={acc.acc_number ?? ""}
-                onChange={(e) =>
-                  handleAccountChange(index, "acc_number", e.target.value)
-                }
-                placeholder="Account Number"
-                className="border p-1 rounded"
-              />
+                <label htmlFor={aid} className="text-sm w-36">
+                  Account #
+                </label>
+                <input
+                  id={aid}
+                  type="text"
+                  value={acc.acc_number ?? ""}
+                  onChange={(e) =>
+                    handleAccountChange(index, "acc_number", e.target.value)
+                  }
+                  placeholder="Account Number"
+                  className="border p-1 rounded"
+                />
 
-              <label htmlFor={cid} className="text-sm w-20">
-                Country
-              </label>
-              <input
-                id={cid}
-                type="text"
-                value={acc.country ?? ""}
-                onChange={(e) =>
-                  handleAccountChange(index, "country", e.target.value)
-                }
-                placeholder="Country"
-                className="border p-1 rounded"
-              />
-            </div>
-          );
-        })}
+                <label htmlFor={cid} className="text-sm w-20">
+                  Country
+                </label>
+                <input
+                  id={cid}
+                  type="text"
+                  value={acc.country ?? ""}
+                  onChange={(e) =>
+                    handleAccountChange(index, "country", e.target.value)
+                  }
+                  placeholder="Country"
+                  className="border p-1 rounded"
+                />
+              </div>
+            );
+          })}
+        </div>
+
         <button
           data-testid="btn-save-accounts"
           onClick={saveAccounts}
-          className="bg-green-500 text-white px-3 py-1 rounded"
+          className="mt-2 bg-green-500 text-white px-3 py-1 rounded"
         >
           Save Accounts
         </button>
-      </div>
+      </section>
 
       {toast && (
         <div
@@ -287,46 +193,6 @@ export default function Settings() {
           {toast}
         </div>
       )}
-    </div>
-  );
-}
-
-// small helpers
-const num = (v, fallback = 0) =>
-  typeof v === "number" && !Number.isNaN(v) ? v : fallback;
-
-function Field({
-  id,
-  label,
-  value,
-  onChange,
-  min = 0,
-  max,
-  step = "any",
-}) {
-  const labelCls = "block mb-1 text-[11px] font-medium text-slate-600";
-  const inputCls =
-    "h-9 w-full rounded-md border border-sky-200 bg-white/70 " +
-    "px-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-sky-400";
-
-  return (
-    <div className="min-w-[11rem]">
-      <label htmlFor={id} className={labelCls}>
-        {label}
-      </label>
-      <input
-        id={id}
-        type="number"
-        inputMode="decimal"
-        autoComplete="off"
-        className={inputCls}
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => onChange(Number(e.target.value || 0))}
-        onBlur={(e) => onChange(Number(e.target.value || 0))} // persist final value
-      />
     </div>
   );
 }
