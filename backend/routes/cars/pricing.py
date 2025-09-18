@@ -18,7 +18,7 @@ DEFAULTS: Dict[str, Any] = {
     # tire replacement
     "tire_lifespan_years": 3,
     # financing
-    "downpayment_sek": 0.0,
+    "downpayment_sek": 100000.0,
     "interest_rate_pct": 5.0,
 }
 

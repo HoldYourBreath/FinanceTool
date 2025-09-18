@@ -8,7 +8,7 @@ const DEFAULTS = {
   diesel_price_sek_litre: 15,
   yearly_km: 18000,
   daily_commute_km: 30,
-  downpayment_sek: 0,
+  downpayment_sek: 100000,
   interest_rate_pct: 5,
 };
 

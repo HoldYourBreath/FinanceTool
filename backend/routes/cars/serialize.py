@@ -40,9 +40,24 @@ def _text(x) -> Optional[str]:
         return str(x)
 
 
+def _norm_type(v: Optional[str]) -> str:
+    """Canonicalize vehicle type to one of: EV, PHEV, Diesel, Bensin."""
+    s = (v or "").strip().lower()
+    if s in {"ev", "bev", "electric"}:
+        return "EV"
+    if s == "phev" or "plug" in s:
+        return "PHEV"
+    if s.startswith("d"):
+        return "Diesel"
+    if s.startswith("b") or "petrol" in s or "gasoline" in s:
+        return "Bensin"
+    # default to EV if unknown
+    return "EV"
+
+
 # ---------- energy / running cost helpers ----------
 def _energy_year(car: Car, P: Dict[str, Any]) -> float:
-    tv = (_text(getattr(car, "type_of_vehicle", None)) or "EV").strip()
+    tv = _norm_type(_text(getattr(car, "type_of_vehicle", None)))
     kwh100 = _f(getattr(car, "consumption_kwh_per_100km", None))
     l100   = _f(getattr(car, "consumption_l_per_100km", None))
     km     = int(P.get("yearly_km", 18000))
@@ -106,7 +121,9 @@ def compute_derived(car: Car, ps: Optional[PriceSettings]) -> Dict[str, float]:
     - Downpayment is NOT added to TCO; it only reduces interest (principal).
     - Depreciation uses explicit expected values if present, else sensible defaults.
     """
-    P = normalize_prices(ps)  # must contain: elec_sek_kwh, diesel_sek_l, bensin_sek_l, yearly_km, tire_lifespan_years, downpayment_sek, interest_rate_pct
+    # normalize_prices provides: elec_sek_kwh, diesel_sek_l, bensin_sek_l,
+    # yearly_km, tire_lifespan_years, downpayment_sek, interest_rate_pct, ...
+    P = normalize_prices(ps)
 
     purchase = _f(getattr(car, "estimated_purchase_price", 0))
     energy_y = _energy_year(car, P)
@@ -173,7 +190,7 @@ def serialize_car(c: Car, ps: Optional[PriceSettings]) -> Dict[str, Any]:
         "model": _text(c.model) or "",
         "year": int(_f(c.year)) if c.year is not None else None,
 
-        "type_of_vehicle": _text(getattr(c, "type_of_vehicle", None)) or "EV",
+        "type_of_vehicle": _norm_type(_text(getattr(c, "type_of_vehicle", None))),
         "body_style": _text(getattr(c, "body_style", None)),
         "eu_segment": _text(getattr(c, "eu_segment", None)),
         "suv_tier": _text(getattr(c, "suv_tier", None)),

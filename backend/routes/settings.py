@@ -41,7 +41,7 @@ def _default_prices() -> dict[str, Any]:
         "yearly_km": 18000,
         "daily_commute_km": 30,
         # NEW
-        "downpayment_sek": 0.0,
+        "downpayment_sek": 100000.0,
         "interest_rate_pct": 5.0,
     }
 
@@ -81,7 +81,7 @@ def _serialize_prices(row: PriceSettings | None) -> dict[str, Any]:
         "bensin_price_sek_litre": _to_float(getattr(row, "bensin_price_sek_litre", 0.0), 0.0),
         "yearly_km": _to_int(getattr(row, "yearly_km", 18000), 18000),
         "daily_commute_km": _to_int(getattr(row, "daily_commute_km", 30), 30),
-        "downpayment_sek": _to_float(getattr(row, "downpayment_sek", 0.0), 0.0),
+        "downpayment_sek": _to_float(getattr(row, "downpayment_sek", 100000.0), 100000.0),
         "interest_rate_pct": _to_float(getattr(row, "interest_rate_pct", 5.0), 5.0),
     }
 
