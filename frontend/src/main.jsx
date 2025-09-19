@@ -1,4 +1,5 @@
 // src/main.jsx
+import "./api/intercept-all-axios";
 import "./index.css";
 import React from "react";
 import ReactDOM from "react-dom/client";

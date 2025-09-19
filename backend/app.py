@@ -7,7 +7,7 @@ from flask_cors import CORS
 
 from backend.config import Config, get_config
 from backend.models.models import db
-from backend.routes import register_routes  # must register blueprints with url_prefix="/api"
+from backend.routes import register_routes  # blueprints mounted under "/api"
 
 load_dotenv()
 
@@ -26,8 +26,22 @@ def _print_routes(app: Flask) -> None:
 
 
 def create_app() -> Flask:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
     app = Flask(__name__)
+
+    # 1) Avoid auto “/” redirects (these caused absolute URLs to 5000 before)
+    app.url_map.strict_slashes = False
+
+    # 2) Load config (env-specific)
     app.config.from_object(get_config())
+
+    # 3) Ensure Flask still has the SERVER_NAME key but we don't force one
+    #    (popping it leads to KeyError; setting None is safe)
+    app.config["SERVER_NAME"] = None
+
+    # 4) Trust x-forwarded headers from Vite proxy so absolute URLs use the right host:port
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     # CORS (accept comma-separated origins via Config)
     CORS(
@@ -38,10 +52,7 @@ def create_app() -> Flask:
 
     # DB + routes
     db.init_app(app)
-
-    # NOTE: Each blueprint (incl. car_evaluation.cars_bp) should be defined WITHOUT url_prefix.
-    # register_routes(app) must attach them with url_prefix="/api".
-    register_routes(app)
+    register_routes(app)  # blueprints should be defined without url_prefix; mounted here under "/api"
 
     # Helpful startup log (password redacted)
     with app.app_context():
@@ -73,6 +84,6 @@ if __name__ == "__main__":
 
     app.run(
         host=os.getenv("FLASK_RUN_HOST", "127.0.0.1"),
-        port=int(os.getenv("FLASK_RUN_PORT", "5000")),
+        port=int(os.getenv("FLASK_RUN_PORT", "5000")),  # demo script sets this to 5001
         debug=os.getenv("FLASK_DEBUG", "0").lower() in {"1", "true", "yes", "on"},
     )

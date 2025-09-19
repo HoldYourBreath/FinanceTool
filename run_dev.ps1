@@ -31,7 +31,7 @@ $env:DATABASE_URL = 'postgresql+psycopg2://postgres:admin@localhost:5432/financi
 
 # Flask dev server settings
 $env:FLASK_APP      = 'backend.app:create_app'
-$env:FLASK_ENV      = 'development'
+$env:FLASK_ENV      = 'dev'
 $env:FLASK_RUN_HOST = '127.0.0.1'
 $env:FLASK_RUN_PORT = '5000'
 

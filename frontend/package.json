@@ -19,9 +19,11 @@
   },
   "packageManager": "npm@11.5.2",
   "scripts": {
-    "dev": "vite --host --open",
+    "dev": "vite",
+    "demo": "vite --mode demo", 
     "build": "vite build",
-    "preview": "vite preview --host --open",
+    "preview": "vite preview",
+    "preview:demo": "vite preview --mode demo",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "lint": "eslint .",

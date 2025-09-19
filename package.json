@@ -187,8 +187,10 @@
   
   "scripts": {
     "dev": "npm --prefix frontend run dev",
+    "demo": "npm --prefix frontend run demo",
     "build": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
+    "preview:demo": "npm --prefix frontend run preview:demo",
     "test:e2e": "playwright test",
     "e2e:chrome": "playwright test --project=chromium"
   },

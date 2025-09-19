@@ -45,7 +45,7 @@ cd FinanceTool
 Create .env in the backend directory:
 
 # Flask settings
-FLASK_ENV=development
+FLASK_ENV=dev
 FLASK_DEBUG=True
 CORS_ORIGIN=http://localhost:5173
 

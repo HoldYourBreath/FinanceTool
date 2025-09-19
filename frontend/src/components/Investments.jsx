@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
-import { fetchaccinfo, updateAccValue } from "../api/acc_info";
+import { updateAccValue } from "../api/acc_info";
 import CsvUpload from "./CsvUpload";
 
 export default function Investments() {
@@ -8,49 +8,51 @@ export default function Investments() {
   const [accInfo, setAccInfo] = useState([]);
 
   useEffect(() => {
-    async function fetchInvestments() {
-      try {
-        const res = await api.get("/investments");
-        setInvestments(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error("❌ Failed to fetch investments:", err);
-        setInvestments([]);
-      }
-    }
-    async function loadAccInfo() {
-      try {
-        const data = await fetchaccinfo();
-        setAccInfo(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("❌ Failed to fetch acc_info:", err);
-        setAccInfo([]);
-      }
-    }
-    fetchInvestments();
-    loadAccInfo();
+    (async () => {
+      await Promise.all([fetchInvestments(), loadAccInfo()]);
+    })();
   }, []);
 
-  const refreshAccInfo = async () => {
+  async function fetchInvestments() {
     try {
-      const data = await fetchaccinfo();
+      const { data } = await api.get("/investments");
+      setInvestments(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("❌ Failed to fetch investments:", err);
+      setInvestments([]);
+    }
+  }
+
+  async function loadAccInfo() {
+    try {
+      // Use the shared axios instance so Vite proxy handles /api
+      const { data } = await api.get("/acc_info");
       setAccInfo(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("❌ Failed to refresh acc_info:", err);
+      console.error("❌ Failed to fetch acc_info:", err);
+      setAccInfo([]);
     }
-  };
+  }
+
+  const refreshAccInfo = loadAccInfo;
 
   const isCreditRow = (row) =>
     (row.acc_number || "").toLowerCase().startsWith("kredit");
+
   const labelForAccount = (a) => {
-    const base = `${a.person} ${a.bank ?? ""} (${a.country ?? ""})`
+    const person = (a.person ?? "").trim();
+    const bank = (a.bank ?? "").trim();
+    const country = (a.country ?? "").trim();
+    const base = `${person} ${bank} ${country ? `(${country})` : ""}`
       .trim()
       .replace(/\s+/g, " ");
-    return isCreditRow(a) ? `${base} — Credit` : base;
+    return isCreditRow(a) ? `${base} — Credit` : base || "Account";
   };
 
   const updateLocalCredit = (id, value) => {
     setAccInfo((prev) => prev.map((r) => (r.id === id ? { ...r, value } : r)));
   };
+
   const saveCredit = async (id, value) => {
     try {
       await updateAccValue(id, Number(value) || 0);
@@ -70,15 +72,16 @@ export default function Investments() {
     "rounded-xl bg-white/90 ring-1 ring-amber-200 p-4 shadow-sm hover:shadow-md transition-transform hover:scale-[1.01] border-l-4 border-amber-300";
 
   return (
-    <div 
-      data-testid="page-investments"
-      className="space-y-6">
+    <div data-testid="page-investments" className="space-y-6">
       {/* 📥 Accounts & Balances (indigo) */}
       <section className={cardIndigo}>
         <h2 className="text-lg font-semibold text-slate-900 mb-3">
           Accounts & Balances
         </h2>
+
+        {/* Keep prop name as-is to match existing component */}
         <CsvUpload onUpdateacc_info={refreshAccInfo} />
+
         {accInfo.length === 0 ? (
           <div className="text-center text-red-600 mt-4">
             No acc_info data available.
@@ -95,20 +98,19 @@ export default function Investments() {
                   <span className="capitalize text-slate-900">
                     {labelForAccount(row)}
                   </span>
+
                   {credit ? (
                     <input
                       type="number"
                       step="0.01"
                       className={`${inputCls} w-48 text-right`}
-                      value={row.value}
-                      onChange={(e) =>
-                        updateLocalCredit(row.id, e.target.value)
-                      }
+                      value={row.value ?? ""}
+                      onChange={(e) => updateLocalCredit(row.id, e.target.value)}
                       onBlur={(e) => saveCredit(row.id, e.target.value)}
                     />
                   ) : (
                     <span className="font-bold text-indigo-800 bg-indigo-100/80 px-2 py-0.5 rounded">
-                      {Number(row.value).toLocaleString("sv-SE")} SEK
+                      {Number(row.value || 0).toLocaleString("sv-SE")} SEK
                     </span>
                   )}
                 </div>
@@ -118,15 +120,14 @@ export default function Investments() {
         )}
       </section>
 
-      {/* 💼 Investments (amber instead of red) */}
+      {/* 💼 Investments (amber) */}
       <section className={cardAmber}>
         <h1 className="text-xl font-semibold mb-3 text-slate-900">
           💼 Investments
         </h1>
+
         {investments.length === 0 ? (
-          <div className="text-center text-red-600">
-            No investments available.
-          </div>
+          <div className="text-center text-red-600">No investments available.</div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {investments.map((inv, index) => (
@@ -138,21 +139,21 @@ export default function Investments() {
                 <div className="flex justify-between">
                   <span className="text-slate-700">Value:</span>
                   <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded">
-                    {Number(inv.value).toLocaleString("sv-SE")} SEK
+                    {Number(inv.value || 0).toLocaleString("sv-SE")} SEK
                   </span>
                 </div>
 
                 <div className="mt-1 flex justify-between">
                   <span className="text-slate-700">Paid:</span>
                   <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded">
-                    {Number(inv.paid).toLocaleString("sv-SE")} SEK
+                    {Number(inv.paid || 0).toLocaleString("sv-SE")} SEK
                   </span>
                 </div>
 
                 <div className="mt-1 flex justify-between">
                   <span className="text-slate-700">Rent:</span>
                   <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded">
-                    {Number(inv.rent).toLocaleString("sv-SE")} SEK
+                    {Number(inv.rent || 0).toLocaleString("sv-SE")} SEK
                   </span>
                 </div>
               </div>

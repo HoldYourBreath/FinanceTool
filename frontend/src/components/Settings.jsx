@@ -14,9 +14,9 @@ export default function Settings() {
   };
 
   useEffect(() => {
+    let dead = false;
     (async () => {
       try {
-        // months
         const monthsRes = await api.get("/months/all");
         const ms = monthsRes.data || [];
         setMonths(ms);
@@ -28,13 +28,17 @@ export default function Settings() {
       }
 
       try {
-        // accounts
-        const accountsRes = await api.get("/acc_info");
-        setAccounts(accountsRes.data || []);
-      } catch (e) {
-        console.error("❌ Failed to load accounts", e);
-        flash("❌ Failed to load accounts");
-      }
+      const [acc] = await Promise.all([
+        api.get("/acc_info/"),
+        // add others as needed:
+        // api.get("/settings/prices"),
+        // api.get("/settings/current_month"),
+      ]);
+      if (dead) return;
+      setAccounts(acc.data || []);
+    } catch (e) {
+      console.error("❌ Failed to load accounts", e);
+    }
     })();
   }, []);
 
@@ -72,9 +76,9 @@ export default function Settings() {
   return (
     <div data-testid="page-settings" className="space-y-6 p-4">
       {/* Current Month */}
-      <section>
+      <div>
         <h2 className="text-xl font-semibold">Set Current Month</h2>
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2">
           <label htmlFor="current-month" className="sr-only">
             Current Month
           </label>
@@ -98,91 +102,89 @@ export default function Settings() {
             Save
           </button>
         </div>
-      </section>
+      </div>
 
       {/* Accounts */}
-      <section>
+      <div>
         <h2 className="text-xl font-semibold">Account Information</h2>
-        <div className="mt-2 space-y-2">
-          {accounts.map((acc, index) => {
-            const pid = `person-${index}`;
-            const bid = `bank-${index}`;
-            const aid = `acc-number-${index}`;
-            const cid = `country-${index}`;
-            return (
-              <div
-                key={acc.id ?? index}
-                className="space-x-2 flex flex-wrap items-center gap-2"
-              >
-                <label htmlFor={pid} className="text-sm w-20">
-                  Person
-                </label>
-                <input
-                  id={pid}
-                  type="text"
-                  value={acc.person ?? ""}
-                  onChange={(e) =>
-                    handleAccountChange(index, "person", e.target.value)
-                  }
-                  placeholder="Person"
-                  className="border p-1 rounded"
-                />
+        {accounts.map((acc, index) => {
+          const pid = `person-${index}`;
+          const bid = `bank-${index}`;
+          const aid = `acc-number-${index}`;
+          const cid = `country-${index}`;
+          return (
+            <div
+              key={acc.id ?? index}
+              className="space-x-2 mb-2 flex flex-wrap items-center gap-2"
+            >
+              <label htmlFor={pid} className="text-sm w-20">
+                Person
+              </label>
+              <input
+                id={pid}
+                type="text"
+                value={acc.person ?? ""}
+                onChange={(e) =>
+                  handleAccountChange(index, "person", e.target.value)
+                }
+                placeholder="Person"
+                className="border p-1 rounded"
+              />
 
-                <label htmlFor={bid} className="text-sm w-14">
-                  Bank
-                </label>
-                <input
-                  id={bid}
-                  type="text"
-                  value={acc.bank ?? ""}
-                  onChange={(e) =>
-                    handleAccountChange(index, "bank", e.target.value)
-                  }
-                  placeholder="Bank"
-                  className="border p-1 rounded"
-                />
+              <label htmlFor={bid} className="text-sm w-14">
+                Bank
+              </label>
+              <input
+                id={bid}
+                type="text"
+                value={acc.bank ?? ""}
+                onChange={(e) =>
+                  handleAccountChange(index, "bank", e.target.value)
+                }
+                placeholder="Bank"
+                className="border p-1 rounded"
+              />
 
-                <label htmlFor={aid} className="text-sm w-36">
-                  Account #
-                </label>
-                <input
-                  id={aid}
-                  type="text"
-                  value={acc.acc_number ?? ""}
-                  onChange={(e) =>
-                    handleAccountChange(index, "acc_number", e.target.value)
-                  }
-                  placeholder="Account Number"
-                  className="border p-1 rounded"
-                />
+              <label htmlFor={aid} className="text-sm w-36">
+                Account #
+              </label>
+              <input
+                id={aid}
+                type="text"
+                value={acc.acc_number ?? ""}
+                onChange={(e) =>
+                  handleAccountChange(index, "acc_number", e.target.value)
+                }
+                placeholder="Account Number"
+                className="border p-1 rounded"
+              />
 
-                <label htmlFor={cid} className="text-sm w-20">
-                  Country
-                </label>
-                <input
-                  id={cid}
-                  type="text"
-                  value={acc.country ?? ""}
-                  onChange={(e) =>
-                    handleAccountChange(index, "country", e.target.value)
-                  }
-                  placeholder="Country"
-                  className="border p-1 rounded"
-                />
-              </div>
-            );
-          })}
-        </div>
-
+              <label htmlFor={cid} className="text-sm w-20">
+                Country
+              </label>
+              <input
+                id={cid}
+                type="text"
+                value={acc.country ?? ""}
+                onChange={(e) =>
+                  handleAccountChange(index, "country", e.target.value)
+                }
+                placeholder="Country"
+                className="border p-1 rounded"
+              />
+            </div>
+          );
+        })}
         <button
           data-testid="btn-save-accounts"
           onClick={saveAccounts}
-          className="mt-2 bg-green-500 text-white px-3 py-1 rounded"
+          className="bg-green-500 text-white px-3 py-1 rounded"
         >
           Save Accounts
         </button>
-      </section>
+      </div>
 
+      {/* Toast */}
       {toast && (
         <div
           role="status"
