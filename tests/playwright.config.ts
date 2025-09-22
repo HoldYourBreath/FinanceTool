@@ -25,12 +25,13 @@ function killPort(port: number): string {
 }
 
 export default defineConfig({
-  testDir: __dirname,                          // tests live next to this config
-  fullyParallel: true,
+  testDir: __dirname,
+  fullyParallel: true,               // global, not per-project
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 1 : undefined,
+  // keep global workers fast for stateless; we’ll override via CLI for stateful
   reporter: isCI ? [['github'], ['line']] : 'html',
+
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://${HOST}:${WEB_PORT}/`,
     trace: 'on-first-retry',
@@ -38,15 +39,13 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
 
-  // Let Playwright manage both servers.
   webServer: [
     // Backend (Flask)
     {
       command: sh(
         '../backend',
         `${isCI ? `${killPort(API_PORT)} && ` : ''}` +
-        // factory target + no reload for stability
-        `python -m flask --app "app:create_app" run --host ${HOST} --port ${API_PORT} --no-reload`
+          `python -m flask --app "app:create_app" run --host ${HOST} --port ${API_PORT} --no-reload`
       ),
       url: `http://${HOST}:${API_PORT}/api/health`,
       reuseExistingServer: true,
@@ -55,24 +54,20 @@ export default defineConfig({
       stderr: 'pipe',
       env: {
         ...process.env,
-        // repo root for imports like "from backend import …" if your code does that
         PYTHONPATH: path.resolve(__dirname, '..'),
         PYTHONUTF8: '1',
         PYTHONIOENCODING: 'utf-8',
-        // simple DB for CI runs (adjust if you prefer Postgres)
         SQLALCHEMY_DATABASE_URI: process.env.SQLALCHEMY_DATABASE_URI || 'sqlite:///e2e.db',
         DATABASE_URL: process.env.DATABASE_URL || 'sqlite:///e2e.db',
         APP_ENV: process.env.APP_ENV || 'demo',
       },
     },
-
     // Frontend (Vite preview)
     {
       command: sh(
         '../frontend',
         `${isCI ? `${killPort(WEB_PORT)} && ` : ''}` +
-        // assume deps installed already in CI; locally this also works if you've run npm ci
-        `npm run build && npm run preview -- --host ${HOST} --port ${WEB_PORT} --strictPort`
+          `npm run build && npm run preview -- --host ${HOST} --port ${WEB_PORT} --strictPort`
       ),
       url: `http://${HOST}:${WEB_PORT}/`,
       reuseExistingServer: true,
@@ -82,5 +77,30 @@ export default defineConfig({
     },
   ],
 
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // 1) parallel-safe suites
+    {
+      name: 'stateless',
+      testMatch: [
+        /api\.(cars|cors|health|housecosts|investments|monthly)\.spec\.ts/,
+        /spa\.spec\.ts/,
+        /urls\.spec\.ts/,
+      ],
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // 2) settings-mutating suites — run AFTER stateless
+    {
+      name: 'stateful',
+      dependencies: ['stateless'],
+      testMatch: [
+        /api\.settings\.spec\.ts/,
+        /api\.tco-financing\.spec\.ts/,
+        /settings\.current-month\.spec\.ts/,
+        /settings\.spec\.ts/,
+      ],
+      use: { ...devices['Desktop Chrome'] },
+      // no per-project `workers` here (not supported by many versions)
+    },
+  ],
 });
