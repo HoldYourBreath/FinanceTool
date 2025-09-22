@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from backend.models.models import PriceSettings  # absolute import to avoid relative hops
 
 from .util import num
 
-DEFAULTS: Dict[str, Any] = {
+DEFAULTS: dict[str, Any] = {
     # prices
     "el_price_ore_kwh": 250,      # 2.50 SEK/kWh
     "diesel_sek_l": 20.0,
@@ -29,7 +29,7 @@ def _pos(v, fallback):
     return x if (x is not None and x > 0) else fallback
 
 
-def normalize_prices(ps: Optional[PriceSettings]) -> Dict[str, Any]:
+def normalize_prices(ps: PriceSettings | None) -> dict[str, Any]:
     """
     Convert a PriceSettings row into a normalized dict the calculators can use.
     Safe if ps is None (uses DEFAULTS).
@@ -64,7 +64,7 @@ def normalize_prices(ps: Optional[PriceSettings]) -> Dict[str, Any]:
     }
 
 
-def amortized_totals(purchase_price: float, downpayment_sek: float, interest_rate_pct: float, years: int) -> Tuple[float, float]:
+def amortized_totals(purchase_price: float, downpayment_sek: float, interest_rate_pct: float, years: int) -> tuple[float, float]:
     """
     Return (total_paid_over_term, interest_paid_over_term) for a loan
     with principal (price - downpayment), annual rate %, and term years.

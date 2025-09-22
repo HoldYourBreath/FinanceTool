@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 
-def as_text(v: Any, default: Optional[str] = None) -> Optional[str]:
+def as_text(v: Any, default: str | None = None) -> str | None:
     if v is None:
         return default
     try:
@@ -28,7 +28,7 @@ def plainify(v: Any):
     return v
 
 
-def as_float(v: Any, default: Optional[float] = None) -> Optional[float]:
+def as_float(v: Any, default: float | None = None) -> float | None:
     if v is None:
         return default
     if isinstance(v, Decimal):
@@ -81,7 +81,7 @@ def estimate_tax_year(norm_type_: str) -> float:
     return 360 if norm_type_ == "EV" else 1600
 
 
-def estimate_repairs_year(norm_type_: str, car_year: Optional[int]) -> float:
+def estimate_repairs_year(norm_type_: str, car_year: int | None) -> float:
     year_now = datetime.utcnow().year
     age = max(0, (year_now - int(car_year)) if car_year else 0)
     base = 3000 if norm_type_ == "EV" else 5000

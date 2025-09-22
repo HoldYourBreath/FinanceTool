@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Dict, Optional, Tuple
 
 from backend.models.models import PriceSettings
 
@@ -30,12 +29,12 @@ def _safe_int(x, default: int = 0) -> int:
 
 
 # ---------- settings ----------
-def _prices() -> Dict[str, float]:
+def _prices() -> dict[str, float]:
     """
     Read PriceSettings(id=1) if available; otherwise return safe defaults.
     CI-safe: never raises on missing table/row.
     """
-    ps: Optional[PriceSettings] = None
+    ps: PriceSettings | None = None
     try:
         ps = PriceSettings.query.get(1)
     except Exception:
@@ -112,7 +111,7 @@ def _recurring_year(car, P):
 
 
 # ---------- depreciation via residuals ----------
-def _residuals(car, purchase: float) -> Dict[str, float]:
+def _residuals(car, purchase: float) -> dict[str, float]:
     # use explicit fields if your model has them; otherwise sensible defaults
     v3 = getattr(car, "expected_value_after_3y", None)
     v5 = getattr(car, "expected_value_after_5y", None)
@@ -129,7 +128,7 @@ def _residuals(car, purchase: float) -> Dict[str, float]:
 
 
 # ---------- financing ----------
-def _amortized_totals(principal: float, interest_rate_pct: float, years: int) -> Tuple[float, float]:
+def _amortized_totals(principal: float, interest_rate_pct: float, years: int) -> tuple[float, float]:
     """
     Return (total_paid_over_term, interest_paid_over_term) for a standard
     annuity loan:
@@ -157,7 +156,7 @@ def _amortized_totals(principal: float, interest_rate_pct: float, years: int) ->
 
 
 # ---------- public: compute derived ----------
-def compute_derived(car) -> Dict[str, float]:
+def compute_derived(car) -> dict[str, float]:
     """
     Returns a dict with (now financing-aware):
       energy_fuel_year, energy_cost_month,

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from flask import Blueprint, current_app, jsonify
 from sqlalchemy.orm import selectinload
@@ -44,7 +44,7 @@ def _f(v: Any, default: float = 0.0) -> float:
         return float(default)
 
 
-def _iso(d) -> Optional[str]:
+def _iso(d) -> str | None:
     return d.isoformat() if d is not None else None
 
 
@@ -59,10 +59,10 @@ def _loan_delta(adj_type: str, amount: float) -> float:
 
 def build_months_data(
     months: Iterable[Month],
-    financing_data: Dict[str, float],
+    financing_data: dict[str, float],
     *,
     is_past: bool = False,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Compute derived month fields. If is_past=False, update and persist
     Month.starting_funds, Month.ending_funds, Month.surplus, Month.loan_remaining
@@ -72,9 +72,9 @@ def build_months_data(
       - incomes:        [{ name, person, amount }]
       - incomesByPerson: { personNameOrUnknown: totalAmount }
     """
-    result: List[Dict[str, Any]] = []
-    prev_ending_funds: Optional[float] = None
-    prev_loan_remaining: Optional[float] = None
+    result: list[dict[str, Any]] = []
+    prev_ending_funds: float | None = None
+    prev_loan_remaining: float | None = None
     dirty = False
 
     months_list = list(months)
@@ -88,7 +88,7 @@ def build_months_data(
             }
             for inc in getattr(month, "incomes", []) or []
         ]
-        incomes_by_person: Dict[str, float] = {}
+        incomes_by_person: dict[str, float] = {}
         for item in incomes_list:
             key = item["person"] or "Unknown"
             incomes_by_person[key] = incomes_by_person.get(key, 0.0) + _f(item["amount"])

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from flask import Blueprint, current_app, jsonify, request
 
 from backend.models.models import Car, PriceSettings, db
@@ -24,7 +22,7 @@ def list_cars():
     CI-safe: returns [] with 200 if the table is missing.
     """
     try:
-        cars: List[Car] = Car.query.order_by(Car.id).all()
+        cars: list[Car] = Car.query.order_by(Car.id).all()
     except Exception as e:
         current_app.logger.warning("GET /api/cars failed; returning []: %s", e)
         return jsonify([]), 200

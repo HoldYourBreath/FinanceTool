@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any
 
 from flask import current_app
 
@@ -32,7 +32,7 @@ def _f(x, d: float = 0.0) -> float:
             return d
 
 
-def _text(x) -> Optional[str]:
+def _text(x) -> str | None:
     """Enum -> str, else str(x), preserving None."""
     if x is None:
         return None
@@ -43,7 +43,7 @@ def _text(x) -> Optional[str]:
         return str(x)
 
 
-def _norm_type(v: Optional[str]) -> str:
+def _norm_type(v: str | None) -> str:
     """Canonicalize vehicle type to one of: EV, PHEV, Diesel, Bensin."""
     s = (v or "").strip().lower()
     if s in {"ev", "bev", "electric"}:
@@ -59,7 +59,7 @@ def _norm_type(v: Optional[str]) -> str:
 
 
 # ---------- energy / running cost helpers ----------
-def _energy_year(car: Car, P: Dict[str, Any]) -> float:
+def _energy_year(car: Car, P: dict[str, Any]) -> float:
     tv = _norm_type(_text(getattr(car, "type_of_vehicle", None)))
     kwh100 = _f(getattr(car, "consumption_kwh_per_100km", None))
     l100   = _f(getattr(car, "consumption_l_per_100km", None))
@@ -79,7 +79,7 @@ def _energy_year(car: Car, P: Dict[str, Any]) -> float:
     return 0.0
 
 
-def _tires_year(car: Car, P: Dict[str, Any]) -> float:
+def _tires_year(car: Car, P: dict[str, Any]) -> float:
     total = _f(getattr(car, "summer_tires_price", 0)) + _f(getattr(car, "winter_tires_price", 0))
     life = int(getattr(car, "tire_replacement_interval_years", 0) or 0)
     if life <= 0:
@@ -93,7 +93,7 @@ def _insurance_year(car: Car) -> float:
     return full if full > 0 else (half if half > 0 else 0.0)
 
 
-def _recurring_year(car: Car, P: Dict[str, Any]) -> float:
+def _recurring_year(car: Car, P: dict[str, Any]) -> float:
     return (
         _energy_year(car, P)
         + _insurance_year(car)
@@ -103,7 +103,7 @@ def _recurring_year(car: Car, P: Dict[str, Any]) -> float:
     )
 
 
-def _residuals(car: Car, purchase: float) -> Dict[str, float]:
+def _residuals(car: Car, purchase: float) -> dict[str, float]:
     v3 = getattr(car, "expected_value_after_3y", None)
     v5 = getattr(car, "expected_value_after_5y", None)
     v8 = getattr(car, "expected_value_after_8y", None)
@@ -118,7 +118,7 @@ def _residuals(car: Car, purchase: float) -> Dict[str, float]:
 
 
 # ---------- public: compute + serialize ----------
-def compute_derived(car: Car, ps: Optional[PriceSettings]) -> Dict[str, float]:
+def compute_derived(car: Car, ps: PriceSettings | None) -> dict[str, float]:
     """
     TCO model = Depreciation + Recurring + FinancingInterest
     - Downpayment is NOT added to TCO; it only reduces interest (principal).
@@ -176,11 +176,11 @@ def compute_derived(car: Car, ps: Optional[PriceSettings]) -> Dict[str, float]:
     }
 
 
-def serialize_car(c: Car, ps: Optional[PriceSettings]) -> Dict[str, Any]:
+def serialize_car(c: Car, ps: PriceSettings | None) -> dict[str, Any]:
     """
     Raw car fields + derived numbers (financing-aware).
     """
-    derived: Dict[str, Any] = {}
+    derived: dict[str, Any] = {}
     try:
         derived = compute_derived(c, ps)
     except Exception as e:
@@ -188,7 +188,7 @@ def serialize_car(c: Car, ps: Optional[PriceSettings]) -> Dict[str, Any]:
             "compute_derived failed for car %s: %s", getattr(c, "id", "?"), e
         )
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "id": c.id,
         "model": _text(c.model) or "",
         "year": int(_f(c.year)) if c.year is not None else None,
