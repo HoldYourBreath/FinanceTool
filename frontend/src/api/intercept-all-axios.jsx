@@ -36,11 +36,11 @@ axios.interceptors.request.use((config) => {
 
   if (before !== after) {
     // Helpful trace if something tried to hit :5000 directly
-    // eslint-disable-next-line no-console
+     
     console.debug(`[api] rewrote URL ${before} → ${after}`);
   }
   return config;
 });
 
-// eslint-disable-next-line no-console
+ 
 console.info("[api] global axios interceptor armed (browser:", typeof window !== "undefined", ")");
