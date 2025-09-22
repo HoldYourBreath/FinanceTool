@@ -62,7 +62,7 @@ def _row_to_dict(p: PlannedPurchase) -> dict[str, Any]:
         "note": getattr(p, "note", None),
         "category": getattr(p, "category", None),
     } | (
-        {"date": getattr(p, "date").isoformat()}
+        {"date": p.date.isoformat()}
         if getattr(p, "date", None)
         else {"date": None}
     )

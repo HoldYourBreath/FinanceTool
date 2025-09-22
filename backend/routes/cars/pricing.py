@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Optional, Dict, Any, Tuple
+
+from typing import Any, Dict, Optional, Tuple
 
 from backend.models.models import PriceSettings  # absolute import to avoid relative hops
-from .util import num
 
+from .util import num
 
 DEFAULTS: Dict[str, Any] = {
     # prices

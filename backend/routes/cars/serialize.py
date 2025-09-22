@@ -1,11 +1,14 @@
 # serialize.py
 from __future__ import annotations
-from typing import Dict, Any, Optional
+
 from decimal import Decimal
+from typing import Any, Dict, Optional
+
 from flask import current_app
 
 from backend.models.models import Car, PriceSettings
-from .pricing import normalize_prices, amortized_totals
+
+from .pricing import amortized_totals, normalize_prices
 
 
 # ---------- tiny coercers ----------

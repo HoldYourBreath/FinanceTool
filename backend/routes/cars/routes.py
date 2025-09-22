@@ -1,11 +1,12 @@
 from __future__ import annotations
-from typing import List, Dict, Any
 
-from flask import Blueprint, jsonify, request, current_app
+from typing import List
+
+from flask import Blueprint, current_app, jsonify, request
+
 from backend.models.models import Car, PriceSettings, db
 
-from .serialize import serialize_car, compute_derived
-from .pricing import normalize_prices
+from .serialize import compute_derived, serialize_car
 
 cars_bp = Blueprint("cars", __name__, url_prefix="/api")
 

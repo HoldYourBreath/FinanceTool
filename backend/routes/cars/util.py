@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional, Any
+from typing import Any, Optional
 
 
 def as_text(v: Any, default: Optional[str] = None) -> Optional[str]:

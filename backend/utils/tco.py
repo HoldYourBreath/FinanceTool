@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
 
 from backend.models.models import PriceSettings
 

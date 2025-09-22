@@ -1,8 +1,8 @@
 # routes/__init__.py
+from backend.routes.cars import cars_bp
 from backend.routes.debug import debug_bp
 
 from .acc_info import acc_info_bp
-from backend.routes.cars import cars_bp
 from .expenses import expenses_bp
 from .file_upload_routes import file_upload_bp
 from .financing import financing_bp
@@ -14,6 +14,7 @@ from .loans import loans_bp
 from .months import months_bp
 from .planned_purchases import planned_purchases_bp
 from .settings import settings_bp
+
 
 def register_routes(app):
     app.register_blueprint(health_bp)
