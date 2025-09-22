@@ -92,6 +92,7 @@ def estimate_repairs_year(norm_type_: str, car_year: int | None) -> float:
 try:
     from utils.charging import estimate_ac_0_100_hours, estimate_dc_10_80_minutes
 except Exception:  # pragma: no cover
+
     def estimate_dc_10_80_minutes(batt_kwh, peak_kw) -> int:
         try:
             batt = float(batt_kwh or 0)

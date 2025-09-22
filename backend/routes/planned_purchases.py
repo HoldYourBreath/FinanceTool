@@ -48,7 +48,7 @@ def _row_to_dict(p: PlannedPurchase) -> dict[str, Any]:
             d = p.to_dict()  # type: ignore[attr-defined]
             # ensure amount is float and date is iso or None
             d["amount"] = _to_float(d.get("amount", 0))
-            if isinstance(d.get("date"), (datetime, date)):
+            if isinstance(d.get("date"), datetime | date):
                 d["date"] = d["date"].isoformat()
             return d
         except Exception:
@@ -61,11 +61,7 @@ def _row_to_dict(p: PlannedPurchase) -> dict[str, Any]:
         "date": (getattr(p, "date", None) or None),
         "note": getattr(p, "note", None),
         "category": getattr(p, "category", None),
-    } | (
-        {"date": p.date.isoformat()}
-        if getattr(p, "date", None)
-        else {"date": None}
-    )
+    } | ({"date": p.date.isoformat()} if getattr(p, "date", None) else {"date": None})
 
 
 # -------------------- routes --------------------
@@ -82,9 +78,7 @@ def list_planned_purchases():
         rows = PlannedPurchase.query.order_by(PlannedPurchase.id.asc()).all()
         return jsonify([_row_to_dict(p) for p in rows]), 200
     except Exception as e:
-        current_app.logger.warning(
-            "GET /api/planned_purchases failed; returning []: %s", e
-        )
+        current_app.logger.warning("GET /api/planned_purchases failed; returning []: %s", e)
         return jsonify([]), 200
 
 
@@ -141,7 +135,5 @@ def update_planned_purchase(id: int):
         return jsonify({"message": "updated"}), 200
     except Exception as e:
         db.session.rollback()
-        current_app.logger.exception(
-            "PUT/PATCH /api/planned_purchases/%s failed: %s", id, e
-        )
+        current_app.logger.exception("PUT/PATCH /api/planned_purchases/%s failed: %s", id, e)
         return jsonify({"error": "Internal Server Error"}), 500

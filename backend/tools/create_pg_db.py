@@ -4,8 +4,10 @@ from urllib.parse import urlparse
 
 import psycopg2
 
-dsn = os.environ["DEMO_DATABASE_URL"]  # e.g. postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker_demo
-u = urlparse(dsn.replace("+psycopg2",""))
+dsn = os.environ[
+    "DEMO_DATABASE_URL"
+]  # e.g. postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker_demo
+u = urlparse(dsn.replace("+psycopg2", ""))
 db = u.path.lstrip("/") or "postgres"
 
 admin = f"{u.scheme}://{u.username}:{u.password}@{u.hostname}:{u.port}/postgres"
@@ -18,4 +20,5 @@ if not cur.fetchone():
     print("✅ created", db)
 else:
     print("ℹ️  exists", db)
-cur.close(); conn.close()
+cur.close()
+conn.close()

@@ -6,9 +6,9 @@ def to_num(v, default=0.0):
     try:
         if v is None:
             return default
-        if isinstance(v, (int, float)):
+        if isinstance(v, int | float):
             return float(v)
-        s = str(v).replace(' ', '').replace('\u00a0', '').replace(',', '.')
+        s = str(v).replace(" ", "").replace("\u00a0", "").replace(",", ".")
         return float(s)
     except Exception:
         return default

@@ -32,9 +32,9 @@ def list_investments():
     CI-safe: if tables/models are missing or queries fail, return empty structures with 200.
     """
     payload = {
-        "accounts": [],     # [{ id, name, kind, value }]
-        "properties": [],   # [{ id, name, value, paid, rent }]
-        "summary": {        # Totals to keep frontend happy
+        "accounts": [],  # [{ id, name, kind, value }]
+        "properties": [],  # [{ id, name, value, paid, rent }]
+        "summary": {  # Totals to keep frontend happy
             "total_accounts": 0.0,
             "total_properties_value": 0.0,
             "total_properties_paid": 0.0,
@@ -52,12 +52,14 @@ def list_investments():
                 name = getattr(r, "name", getattr(r, "account_name", "Account"))
                 kind = getattr(r, "kind", getattr(r, "type", "cash"))
                 value = _f(getattr(r, "value", 0))
-                payload["accounts"].append({
-                    "id": getattr(r, "id", None),
-                    "name": name,
-                    "kind": kind,
-                    "value": value,
-                })
+                payload["accounts"].append(
+                    {
+                        "id": getattr(r, "id", None),
+                        "name": name,
+                        "kind": kind,
+                        "value": value,
+                    }
+                )
             payload["summary"]["total_accounts"] = sum(a["value"] for a in payload["accounts"])
 
         # Load properties if model/table exists (optional for your app)
@@ -65,19 +67,25 @@ def list_investments():
             rows = db.session.query(Property).all()
             for p in rows:
                 value = _f(getattr(p, "value", 0))
-                paid  = _f(getattr(p, "paid_amount", getattr(p, "paid", 0)))
-                rent  = _f(getattr(p, "rent", 0))
-                payload["properties"].append({
-                    "id": getattr(p, "id", None),
-                    "name": getattr(p, "name", "Property"),
-                    "value": value,
-                    "paid": paid,
-                    "rent": rent,
-                })
+                paid = _f(getattr(p, "paid_amount", getattr(p, "paid", 0)))
+                rent = _f(getattr(p, "rent", 0))
+                payload["properties"].append(
+                    {
+                        "id": getattr(p, "id", None),
+                        "name": getattr(p, "name", "Property"),
+                        "value": value,
+                        "paid": paid,
+                        "rent": rent,
+                    }
+                )
 
-            payload["summary"]["total_properties_value"] = sum(x["value"] for x in payload["properties"])
-            payload["summary"]["total_properties_paid"]  = sum(x["paid"]  for x in payload["properties"])
-            payload["summary"]["total_rent"]             = sum(x["rent"]  for x in payload["properties"])
+            payload["summary"]["total_properties_value"] = sum(
+                x["value"] for x in payload["properties"]
+            )
+            payload["summary"]["total_properties_paid"] = sum(
+                x["paid"] for x in payload["properties"]
+            )
+            payload["summary"]["total_rent"] = sum(x["rent"] for x in payload["properties"])
 
         # Net worth = accounts + properties (you can refine if you track debts here)
         payload["summary"]["net_worth"] = (

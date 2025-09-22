@@ -49,7 +49,9 @@ class Config:
     # Accept either CORS_ORIGIN or CORS_ORIGINS (comma-separated)
     _cors = os.getenv("CORS_ORIGIN") or os.getenv("CORS_ORIGINS") or "http://localhost:5173"
     CORS_ORIGIN = _cors  # keep string for simple setups
-    CORS_ORIGINS_LIST = [x.strip() for x in _cors.split(",")] if _cors else ["http://localhost:5173"]
+    CORS_ORIGINS_LIST = (
+        [x.strip() for x in _cors.split(",")] if _cors else ["http://localhost:5173"]
+    )
 
     # --- Environment selection (dev/demo/prod) ---
     APP_ENV = (os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or "dev").lower()
@@ -74,7 +76,12 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = _chosen
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = os.getenv("SQLALCHEMY_ECHO", "0").lower() in {"1", "true", "yes", "on"}
+    SQLALCHEMY_ECHO = os.getenv("SQLALCHEMY_ECHO", "0").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
     # Helpful for startup logs (password redacted)
     EFFECTIVE_DB_URL_SAFE = _safe_url(SQLALCHEMY_DATABASE_URI)

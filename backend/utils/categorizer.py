@@ -1,9 +1,9 @@
 import json
 import os
 
-CATEGORY_MAP_FILE = os.path.join(os.path.dirname(__file__), '../data/category_map.json')
+CATEGORY_MAP_FILE = os.path.join(os.path.dirname(__file__), "../data/category_map.json")
 
-with open(CATEGORY_MAP_FILE, encoding='utf-8') as f:
+with open(CATEGORY_MAP_FILE, encoding="utf-8") as f:
     CATEGORY_MAP = json.load(f)
 
 
@@ -17,4 +17,4 @@ def categorize_description(description):
         for keyword in keywords:
             if keyword.lower() in desc_lower:
                 return category
-    return 'Other'
+    return "Other"

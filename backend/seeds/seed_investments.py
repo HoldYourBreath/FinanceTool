@@ -1,4 +1,5 @@
 # backend/seeds/seed_investments.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import argparse
@@ -14,8 +15,8 @@ from sqlalchemy import delete as sa_delete
 
 # ---- Make repo imports work (run from repo root OR backend/) ----
 THIS_FILE = Path(__file__).resolve()
-BACKEND_DIR = THIS_FILE.parents[1]        # .../backend
-REPO_ROOT = BACKEND_DIR.parent            # repo root
+BACKEND_DIR = THIS_FILE.parents[1]  # .../backend
+REPO_ROOT = BACKEND_DIR.parent  # repo root
 for p in (str(REPO_ROOT),):
     if p not in sys.path:
         sys.path.insert(0, p)
@@ -23,8 +24,13 @@ for p in (str(REPO_ROOT),):
 # Load optional .env files
 try:
     from dotenv import load_dotenv  # type: ignore
-    for env_file in (REPO_ROOT / ".env", BACKEND_DIR / ".env",
-                     REPO_ROOT / ".env.local", BACKEND_DIR / ".env.local"):
+
+    for env_file in (
+        REPO_ROOT / ".env",
+        BACKEND_DIR / ".env",
+        REPO_ROOT / ".env.local",
+        BACKEND_DIR / ".env.local",
+    ):
         if env_file.exists():
             load_dotenv(env_file)
 except Exception:
@@ -43,6 +49,7 @@ ENV_DIR_VAR = "SEED_DIR"
 CAND_FILENAMES = ("seed_investments.json", "investments.json")
 FALLBACK_ROWS: list[dict] = []
 
+
 def _search_roots() -> Iterable[Path]:
     env_dir = os.getenv(ENV_DIR_VAR)
     if env_dir:
@@ -54,6 +61,7 @@ def _search_roots() -> Iterable[Path]:
     yield BACKEND_DIR / "data"
     yield REPO_ROOT / "seeds"
     yield REPO_ROOT / "data"
+
 
 def _resolve_seed_path(cli_path: str | None) -> Path | None:
     if cli_path:
@@ -83,13 +91,14 @@ def _resolve_seed_path(cli_path: str | None) -> Path | None:
                 return cand
     return None
 
+
 # ---- Coercion helpers ----
 def _to_decimal(v: Any) -> Decimal:
     if v is None or (isinstance(v, str) and v.strip() == ""):
         return Decimal("0")
     if isinstance(v, Decimal):
         return v
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return Decimal(str(v))
     if isinstance(v, str):
         s = v.strip().replace(",", ".")
@@ -99,11 +108,13 @@ def _to_decimal(v: Any) -> Decimal:
             return Decimal("0")
     return Decimal("0")
 
+
 def _to_float(v: Any) -> float:
     try:
         return float(_to_decimal(v))
     except Exception:
         return 0.0
+
 
 def _to_int(v: Any) -> int:
     try:
@@ -114,14 +125,16 @@ def _to_int(v: Any) -> int:
         except Exception:
             return 0
 
+
 def _to_bool(v: Any) -> bool:
     if isinstance(v, bool):
         return v
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return v != 0
     if isinstance(v, str):
         return v.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
     return False
+
 
 # Map a sloppy dict to Investment columns (best-effort)
 def _sanitize_item(item: dict) -> dict:
@@ -146,6 +159,7 @@ def _sanitize_item(item: dict) -> dict:
             out[name] = raw
     return out
 
+
 # ---- Load rows ----
 def _discover_rows(data: Any) -> list[dict]:
     if isinstance(data, list):
@@ -155,6 +169,7 @@ def _discover_rows(data: Any) -> list[dict]:
             if k in data and isinstance(data[k], list):
                 return [x for x in data[k] if isinstance(x, dict)]
     return []
+
 
 def _load_rows(seed_file: Path | None) -> list[dict]:
     if not (seed_file and seed_file.exists()):
@@ -166,6 +181,7 @@ def _load_rows(seed_file: Path | None) -> list[dict]:
             return FALLBACK_ROWS
     return _discover_rows(data)
 
+
 # ---- Seeding ----
 def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool = False) -> None:
     app = create_app()
@@ -173,7 +189,9 @@ def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool =
         seed_file = _resolve_seed_path(seed_path)
         rows = _load_rows(seed_file)
         print(f"📄 investments seed: {seed_file if seed_file else '(missing → seeding nothing)'}")
-        print(f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}")
+        print(
+            f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}"
+        )
         print(f"📦 Parsed rows: {len(rows)}")
 
         if truncate and not dry_run:
@@ -194,13 +212,19 @@ def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool =
         db.session.commit()
         print(f"✅ Seeded {inserted} investments")
 
+
 # ---- CLI ----
 def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Seed Investment rows.")
     ap.add_argument("--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})")
     ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
-    ap.add_argument("--dry-run", action="store_true", help="Validate and show counts without writing")
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and show counts without writing",
+    )
     return ap.parse_args()
+
 
 if __name__ == "__main__":
     args = _parse_args()

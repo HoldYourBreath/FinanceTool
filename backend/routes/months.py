@@ -30,10 +30,10 @@ def _f(v: Any, default: float = 0.0) -> float:
         return v
     if isinstance(v, Decimal):
         return float(v)
-    if isinstance(v, (int,)):
+    if isinstance(v, int):
         return float(v)
     if isinstance(v, str):
-        s = v.strip().replace("\u00A0", "").replace(" ", "").replace(",", ".")
+        s = v.strip().replace("\u00a0", "").replace(" ", "").replace(",", ".")
         try:
             return float(s)
         except Exception:
@@ -101,7 +101,9 @@ def build_months_data(
         if idx == 0:
             starting_funds = _f(month.starting_funds)  # keep DB value for first row
         else:
-            starting_funds = prev_ending_funds if prev_ending_funds is not None else _f(month.starting_funds)
+            starting_funds = (
+                prev_ending_funds if prev_ending_funds is not None else _f(month.starting_funds)
+            )
 
         # ---- loan remaining (+ adjustments) ----
         if idx == 0:
@@ -156,10 +158,8 @@ def build_months_data(
                 "surplus": _f(surplus),
                 "loanRemaining": _f(loan_remaining),
                 "is_current": bool(getattr(month, "is_current", False)),
-
                 "incomes": incomes_list,
                 "incomesByPerson": incomes_by_person,
-
                 "expenses": [
                     {"description": e.description, "amount": _f(e.amount)}
                     for e in getattr(month, "expenses", []) or []

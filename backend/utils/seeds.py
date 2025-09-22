@@ -2,9 +2,9 @@
 import os
 
 SEED_SEARCH_DIRS = [
-    os.getenv('SEED_DIR', 'backend/seeds/demo'),
-    'backend/seeds/private',
-    'backend/seeds/common',
+    os.getenv("SEED_DIR", "backend/seeds/demo"),
+    "backend/seeds/private",
+    "backend/seeds/common",
 ]
 
 
@@ -19,4 +19,4 @@ def resolve_seed(filename: str) -> str:
         path = os.path.join(root, filename)
         if os.path.exists(path):
             return path
-    raise FileNotFoundError(f'Seed file not found in {SEED_SEARCH_DIRS}: {filename}')
+    raise FileNotFoundError(f"Seed file not found in {SEED_SEARCH_DIRS}: {filename}")

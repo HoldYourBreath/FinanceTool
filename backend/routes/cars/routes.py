@@ -49,14 +49,14 @@ def car_categories():
         eu_segments = [
             r[0] for r in db.session.query(Car.eu_segment).distinct() if r[0] is not None
         ]
-        suv_tiers = [
-            r[0] for r in db.session.query(Car.suv_tier).distinct() if r[0] is not None
-        ]
-        resp = jsonify({
-            "body_styles": sorted({str(b) for b in body_styles if b}),
-            "eu_segments": sorted({str(s) for s in eu_segments if s}),
-            "suv_tiers": sorted({str(t) for t in suv_tiers if t}),
-        })
+        suv_tiers = [r[0] for r in db.session.query(Car.suv_tier).distinct() if r[0] is not None]
+        resp = jsonify(
+            {
+                "body_styles": sorted({str(b) for b in body_styles if b}),
+                "eu_segments": sorted({str(s) for s in eu_segments if s}),
+                "suv_tiers": sorted({str(t) for t in suv_tiers if t}),
+            }
+        )
         resp.headers["X-Cars-Handler"] = "car_evaluation"
         return resp, 200
     except Exception as e:
@@ -95,11 +95,20 @@ def update_cars():
                 continue
 
             # basic fields
-            if "model" in p: car.model = p["model"] or car.model
-            if "year" in p and p["year"] is not None: car.year = int(p["year"])
-            if "type_of_vehicle" in p: car.type_of_vehicle = p["type_of_vehicle"] or car.type_of_vehicle
+            if "model" in p:
+                car.model = p["model"] or car.model
+            if "year" in p and p["year"] is not None:
+                car.year = int(p["year"])
+            if "type_of_vehicle" in p:
+                car.type_of_vehicle = p["type_of_vehicle"] or car.type_of_vehicle
 
-            for k in ("body_style", "eu_segment", "suv_tier", "dc_time_source", "ac_time_source"):
+            for k in (
+                "body_style",
+                "eu_segment",
+                "suv_tier",
+                "dc_time_source",
+                "ac_time_source",
+            ):
                 if k in p:
                     setattr(car, k, p[k] or getattr(car, k))
 
@@ -137,7 +146,9 @@ def update_cars():
                 car.tco_5_years = d["tco_5_years"]
                 car.tco_8_years = d["tco_8_years"]
             except Exception as e:
-                current_app.logger.debug("persist TCO failed for car %s: %s", getattr(car, "id", "?"), e)
+                current_app.logger.debug(
+                    "persist TCO failed for car %s: %s", getattr(car, "id", "?"), e
+                )
 
             updated += 1
 

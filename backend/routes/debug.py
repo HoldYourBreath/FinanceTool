@@ -6,6 +6,7 @@ from backend.models.models import Month, db
 
 debug_bp = Blueprint("debug", __name__, url_prefix="/api/debug")
 
+
 @debug_bp.get("/db")
 def db_info():
     out = {"engine": str(db.engine.url), "dialect": db.engine.dialect.name}
@@ -25,11 +26,19 @@ def db_info():
     # Extra details per dialect
     if out["dialect"].startswith("postgres"):
         try:
-            row = db.session.execute(text("""
+            row = (
+                db.session.execute(
+                    text(
+                        """
                 SELECT current_database() AS db,
                        current_user AS user,
                        current_setting('search_path') AS search_path
-            """)).mappings().first()
+            """
+                    )
+                )
+                .mappings()
+                .first()
+            )
             out.update(dict(row))
         except Exception as e:
             out["pg_meta_error"] = str(e)

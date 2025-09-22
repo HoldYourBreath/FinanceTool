@@ -1,4 +1,5 @@
 # backend/seeds/reset_db.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import sys
@@ -19,4 +20,3 @@ if __name__ == "__main__":
         db.drop_all()
         db.create_all()
         print("✅ DB reset")
-

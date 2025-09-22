@@ -1,4 +1,5 @@
 # backend/seeds/seed_months.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import argparse
@@ -13,12 +14,15 @@ from typing import Any
 
 from sqlalchemy import text
 
+from backend.app import create_app
+from backend.models.models import Expense, Income, LoanAdjustment, Month, db
+
 # ------------------------------------------------------------------------------
 # Resolve paths so the module works when run from repo root or backend/
 # ------------------------------------------------------------------------------
 THIS_FILE = Path(__file__).resolve()
-BACKEND_DIR = THIS_FILE.parents[1]          # .../backend
-REPO_ROOT = BACKEND_DIR.parent              # repo root
+BACKEND_DIR = THIS_FILE.parents[1]  # .../backend
+REPO_ROOT = BACKEND_DIR.parent  # repo root
 
 # Ensure repo root on sys.path so `backend.*` imports work
 if str(REPO_ROOT) not in sys.path:
@@ -29,21 +33,23 @@ try:
     from dotenv import load_dotenv  # type: ignore
 
     # Load typical locations (repo root and backend/)
-    for env_file in (REPO_ROOT / ".env", BACKEND_DIR / ".env", REPO_ROOT / ".env.local", BACKEND_DIR / ".env.local"):
+    for env_file in (
+        REPO_ROOT / ".env",
+        BACKEND_DIR / ".env",
+        REPO_ROOT / ".env.local",
+        BACKEND_DIR / ".env.local",
+    ):
         if env_file.exists():
             load_dotenv(env_file)
 except Exception:
     pass
 
-# Use explicit package imports (consistent everywhere)
-from backend.app import create_app  # noqa: E402
-from backend.models.models import Expense, Income, LoanAdjustment, Month, db  # noqa: E402
 
 # ------------------------------------------------------------------------------
 # Config
 # ------------------------------------------------------------------------------
 ENV_FILE_VAR = "SEED_FILE_MONTHS"  # direct file override
-ENV_DIR_VAR = "SEED_DIR"           # directory override (demo/private/common)
+ENV_DIR_VAR = "SEED_DIR"  # directory override (demo/private/common)
 CAND_FILENAMES = ("seed_months.json", "months.json")
 
 CATEGORY_MAP = {
@@ -89,9 +95,9 @@ def _search_roots() -> Iterable[Path]:
 
     # Conventional locations in this repo layout
     yield BACKEND_DIR / "seeds" / "private"  # ignored in VCS, real data (if present)
-    yield BACKEND_DIR / "seeds" / "common"   # committed (shared)
-    yield BACKEND_DIR / "seeds"              # committed (demo)
-    yield BACKEND_DIR / "data"               # legacy
+    yield BACKEND_DIR / "seeds" / "common"  # committed (shared)
+    yield BACKEND_DIR / "seeds"  # committed (demo)
+    yield BACKEND_DIR / "data"  # legacy
     yield REPO_ROOT / "seeds"
     yield REPO_ROOT / "data"
 
@@ -133,7 +139,7 @@ def _resolve_seed_path(cli_path: str | None) -> Path | None:
 def _to_amount(v: Any) -> float:
     if v is None or (isinstance(v, str) and v.strip() == ""):
         return 0.0
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return float(v)
     if isinstance(v, str):
         s = v.strip().replace(",", ".")
@@ -147,7 +153,7 @@ def _to_amount(v: Any) -> float:
 def _to_bool(v: Any) -> bool:
     if isinstance(v, bool):
         return v
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return v != 0
     if isinstance(v, str):
         return v.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
@@ -212,7 +218,9 @@ def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool =
 
     print(f"📂 CWD: {Path.cwd()}")
     print(f"📄 Seed file: {seed_file if seed_file else '(missing → seeding nothing)'}")
-    print(f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}")
+    print(
+        f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}"
+    )
 
     months_data = _load_months(seed_file)
     print(f"📦 Parsed months: {len(months_data)}")
@@ -289,10 +297,16 @@ def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool =
 # CLI
 # ------------------------------------------------------------------------------
 def _parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Seed Month, Income, Expense, and LoanAdjustment rows.")
+    ap = argparse.ArgumentParser(
+        description="Seed Month, Income, Expense, and LoanAdjustment rows."
+    )
     ap.add_argument("--file", help=f"Path to seed file (overrides ${ENV_FILE_VAR})", default=None)
     ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
-    ap.add_argument("--dry-run", action="store_true", help="Validate and show counts without writing")
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and show counts without writing",
+    )
     return ap.parse_args()
 
 

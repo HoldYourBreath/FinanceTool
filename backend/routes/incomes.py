@@ -5,9 +5,13 @@ from backend.models.models import Income, db
 
 incomes_bp = Blueprint("incomes", __name__, url_prefix="/api/incomes")
 
+
 def _f(v, default=0.0):
-    try: return float(v)
-    except Exception: return float(default)
+    try:
+        return float(v)
+    except Exception:
+        return float(default)
+
 
 @incomes_bp.get("")
 @incomes_bp.get("/")
@@ -18,17 +22,20 @@ def list_incomes():
         for r in rows:
             # person may not exist in demo DB → getattr with default
             person = getattr(r, "person", None)
-            data.append({
-                "id": r.id,
-                "month_id": r.month_id,
-                "source": r.source,
-                "person": person,               # <-- expose it (can be None)
-                "amount": _f(r.amount),
-            })
+            data.append(
+                {
+                    "id": r.id,
+                    "month_id": r.month_id,
+                    "source": r.source,
+                    "person": person,  # <-- expose it (can be None)
+                    "amount": _f(r.amount),
+                }
+            )
         return jsonify(data), 200
     except Exception as e:
         current_app.logger.warning("GET /api/incomes failed; returning []: %s", e)
         return jsonify([]), 200
+
 
 @incomes_bp.post("")
 @incomes_bp.post("/")
@@ -36,11 +43,13 @@ def create_income():
     data = request.get_json(silent=True) or {}
     month_id = data.get("month_id")
     source = (data.get("source") or "").strip()
-    person = (data.get("person") or "").strip() or None   # <-- accept person in payload
+    person = (data.get("person") or "").strip() or None  # <-- accept person in payload
     amount = _f(data.get("amount"), 0.0)
 
-    if month_id is None: return jsonify({"error":"month_id is required"}), 400
-    if not source:       return jsonify({"error":"source is required"}), 400
+    if month_id is None:
+        return jsonify({"error": "month_id is required"}), 400
+    if not source:
+        return jsonify({"error": "source is required"}), 400
 
     try:
         r = Income(month_id=month_id, source=source, amount=amount)

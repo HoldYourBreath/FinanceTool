@@ -1,4 +1,5 @@
 # backend/seeds/seed_acc_info.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import argparse
@@ -11,6 +12,9 @@ from typing import Any
 
 from sqlalchemy import delete as sa_delete
 
+from backend.app import create_app
+from backend.models.models import AccInfo, db
+
 # --- Make repo imports work whether run from repo root or backend/ ---
 THIS_FILE = Path(__file__).resolve()
 SCRIPT_DIR = THIS_FILE.parent
@@ -22,27 +26,35 @@ if str(REPO_ROOT) not in sys.path:
 # --- Optional .env loading (repo and backend dirs) ---
 try:
     from dotenv import load_dotenv  # type: ignore
-    for env in (REPO_ROOT / ".env", BACKEND_DIR / ".env",
-                REPO_ROOT / ".env.local", BACKEND_DIR / ".env.local"):
+
+    for env in (
+        REPO_ROOT / ".env",
+        BACKEND_DIR / ".env",
+        REPO_ROOT / ".env.local",
+        BACKEND_DIR / ".env.local",
+    ):
         if env.exists():
             load_dotenv(env)
 except Exception:
     pass
 
-# --- Import ONLY from backend.* so we share the app-registered db instance ---
-from backend.app import create_app
-from backend.models.models import AccInfo, db
-
 # -------------------------------------------------------------------
 # Config
 # -------------------------------------------------------------------
 ENV_FILE_VAR = "SEED_FILE_ACC_INFO"  # direct file override
-ENV_DIR_VAR = "SEED_DIR"             # directory override (demo/private/etc.)
+ENV_DIR_VAR = "SEED_DIR"  # directory override (demo/private/etc.)
 CAND_FILENAMES = ("seed_acc_info.json", "acc_info.json")
 
 FALLBACK_ROWS: list[dict[str, Any]] = [
-    {"person": "Demo", "bank": "DemoBank", "acc_number": "0000", "country": "SE", "value": 0}
+    {
+        "person": "Demo",
+        "bank": "DemoBank",
+        "acc_number": "0000",
+        "country": "SE",
+        "value": 0,
+    }
 ]
+
 
 # -------------------------------------------------------------------
 # Seed file resolution
@@ -93,13 +105,14 @@ def _resolve_seed_path(cli_path: str | None) -> Path | None:
 
     return None
 
+
 # -------------------------------------------------------------------
 # IO helpers
 # -------------------------------------------------------------------
 def _to_float(v: Any) -> float:
     if v is None or v == "":
         return 0.0
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return float(v)
     if isinstance(v, str):
         s = v.strip().replace(",", ".")
@@ -121,6 +134,7 @@ def _load_rows(seed_file: Path | None) -> list[dict]:
         return rows
     return FALLBACK_ROWS
 
+
 # -------------------------------------------------------------------
 # Seeding
 # -------------------------------------------------------------------
@@ -130,7 +144,9 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
 
     print(f"📂 CWD: {Path.cwd()}")
     print(f"📄 Seed file: {seed_file if seed_file else '(missing → using fallback)'}")
-    print(f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}")
+    print(
+        f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}"
+    )
 
     rows = _load_rows(seed_file)
 
@@ -159,6 +175,7 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
             db.session.commit()
             print(f"✅ Seeded {inserted} acc_info row(s).")
 
+
 # -------------------------------------------------------------------
 # CLI
 # -------------------------------------------------------------------
@@ -166,7 +183,11 @@ def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Seed AccInfo rows.")
     ap.add_argument("--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})")
     ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
-    ap.add_argument("--dry-run", action="store_true", help="Validate and show counts without writing")
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and show counts without writing",
+    )
     return ap.parse_args()
 
 

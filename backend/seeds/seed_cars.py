@@ -1,4 +1,5 @@
 # backend/seeds/seed_cars.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import argparse
@@ -17,8 +18,13 @@ if str(REPO_ROOT) not in sys.path:
 
 try:
     from dotenv import load_dotenv  # type: ignore
-    for env in (REPO_ROOT / ".env", BACKEND_DIR / ".env",
-                REPO_ROOT / ".env.local", BACKEND_DIR / ".env.local"):
+
+    for env in (
+        REPO_ROOT / ".env",
+        BACKEND_DIR / ".env",
+        REPO_ROOT / ".env.local",
+        BACKEND_DIR / ".env.local",
+    ):
         if env.exists():
             load_dotenv(env)
 except Exception:
@@ -37,7 +43,7 @@ except Exception:  # pragma: no cover
     SANumeric = SAFloat = SAInteger = SAString = SABoolean = object  # type: ignore[misc,assignment]
 
 ENV_FILE_VAR = "SEED_FILE_CARS"
-ENV_DIR_VAR  = "SEED_DIR"
+ENV_DIR_VAR = "SEED_DIR"
 
 CAND_FILENAMES = (
     "seed_car_evaluation.json",
@@ -75,8 +81,10 @@ FIELD_MAP: dict[str, str] = {
     "ac_time_source": "ac_time_source",
 }
 
+
 def _app_env(app) -> str:
     return (app.config.get("APP_ENV") or os.getenv("APP_ENV") or "dev").lower()
+
 
 def _search_roots(app) -> list[Path]:
     env_dir = os.getenv(ENV_DIR_VAR)
@@ -85,18 +93,21 @@ def _search_roots(app) -> list[Path]:
         p = Path(env_dir)
         roots.append((REPO_ROOT / p) if not p.is_absolute() else p)
     env = _app_env(app)
-    roots.extend([
-        BACKEND_DIR / "seeds" / env,
-        BACKEND_DIR / "seeds" / "private",
-        BACKEND_DIR / "seeds" / "common",
-        BACKEND_DIR / "seeds",
-        BACKEND_DIR / "data",
-        REPO_ROOT   / "seeds" / env,
-        REPO_ROOT   / "seeds" / "common",
-        REPO_ROOT   / "seeds",
-        REPO_ROOT   / "data",
-    ])
+    roots.extend(
+        [
+            BACKEND_DIR / "seeds" / env,
+            BACKEND_DIR / "seeds" / "private",
+            BACKEND_DIR / "seeds" / "common",
+            BACKEND_DIR / "seeds",
+            BACKEND_DIR / "data",
+            REPO_ROOT / "seeds" / env,
+            REPO_ROOT / "seeds" / "common",
+            REPO_ROOT / "seeds",
+            REPO_ROOT / "data",
+        ]
+    )
     return roots
+
 
 def _resolve_seed_path(app, cli_path: str | None) -> Path | None:
     if cli_path:
@@ -126,10 +137,11 @@ def _resolve_seed_path(app, cli_path: str | None) -> Path | None:
                 return cand
     return None
 
+
 def _to_float(v: Any) -> float | None:
     if v is None:
         return None
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return float(v)
     if isinstance(v, str):
         s = v.strip().replace(",", ".")
@@ -144,6 +156,7 @@ def _to_float(v: Any) -> float | None:
     except Exception:
         return None
 
+
 def _to_int(v: Any) -> int | None:
     f = _to_float(v)
     if f is None:
@@ -152,6 +165,7 @@ def _to_int(v: Any) -> int | None:
         return int(round(f))
     except Exception:
         return None
+
 
 def _coerce_for_column(attr: str, value: Any) -> Any:
     if value is None:
@@ -162,17 +176,18 @@ def _coerce_for_column(attr: str, value: Any) -> Any:
     t = col.type
     if isinstance(t, SAInteger):
         return _to_int(value)
-    if isinstance(t, (SAFloat, SANumeric)):
+    if isinstance(t, SAFloat | SANumeric):
         return _to_float(value)
     if isinstance(t, SABoolean):
         if isinstance(value, bool):
             return value
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return value != 0
         if isinstance(value, str):
             return value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
         return False
     return str(value).strip() if isinstance(value, str) else value
+
 
 def _normalize_row(r: dict[str, Any]) -> dict[str, Any]:
     d = dict(r)
@@ -190,6 +205,7 @@ def _normalize_row(r: dict[str, Any]) -> dict[str, Any]:
             d[k] = None
     return d
 
+
 def _set_if_present(row: dict, car: Car, key: str) -> bool:
     """Set only when the JSON contains the key; avoid wiping with None."""
     if key not in row:
@@ -206,6 +222,7 @@ def _set_if_present(row: dict, car: Car, key: str) -> bool:
         setattr(car, attr, new_val)
         return True
     return False
+
 
 def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
     app = create_app()
@@ -232,8 +249,12 @@ def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
             r = _normalize_row(raw)
 
             model_raw = r.get("model")
-            year_raw  = r.get("year")
-            model = (model_raw or "").strip() if isinstance(model_raw, str) else str(model_raw or "").strip()
+            year_raw = r.get("year")
+            model = (
+                (model_raw or "").strip()
+                if isinstance(model_raw, str)
+                else str(model_raw or "").strip()
+            )
             try:
                 year = int(year_raw or 0)
             except Exception:
@@ -243,12 +264,10 @@ def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
                 skipped += 1
                 continue
 
-            existing = (
-                Car.query.filter(
-                    db.func.lower(Car.model) == model.lower(),
-                    Car.year == year,
-                ).one_or_none()
-            )
+            existing = Car.query.filter(
+                db.func.lower(Car.model) == model.lower(),
+                Car.year == year,
+            ).one_or_none()
 
             was_new = existing is None
             car = existing or Car(model=model, year=year)
@@ -278,11 +297,19 @@ def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
             db.session.commit()
             print(f"✅ Done: {inserted} inserted, {updated} updated, {skipped} skipped.")
 
+
 def _parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Seed/update Car rows from JSON (env-aware with common fallback).")
+    ap = argparse.ArgumentParser(
+        description="Seed/update Car rows from JSON (env-aware with common fallback)."
+    )
     ap.add_argument("--file", default=None, help=f"Path to seed JSON (overrides ${ENV_FILE_VAR}).")
-    ap.add_argument("--dry-run", action="store_true", help="Validate and show counts without writing.")
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and show counts without writing.",
+    )
     return ap.parse_args()
+
 
 if __name__ == "__main__":
     args = _parse_args()

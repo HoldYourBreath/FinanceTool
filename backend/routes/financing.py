@@ -11,11 +11,13 @@ except Exception:  # pragma: no cover
 
 financing_bp = Blueprint("financing", __name__, url_prefix="/api/financing")
 
+
 def _f(v, default=0.0):
     try:
         return float(v)
     except Exception:
         return float(default)
+
 
 @financing_bp.get("")
 @financing_bp.get("/")
@@ -33,6 +35,7 @@ def list_financing():
     except Exception as e:
         current_app.logger.warning("GET /api/financing failed; returning []: %s", e)
         return jsonify([]), 200
+
 
 @financing_bp.post("")
 @financing_bp.post("/")
@@ -59,7 +62,17 @@ def upsert_financing():
             row = Financing(name=name, value=value)
             db.session.add(row)
         db.session.commit()
-        return jsonify({"ok": True, "id": getattr(row, "id", None), "name": name, "value": value}), 201
+        return (
+            jsonify(
+                {
+                    "ok": True,
+                    "id": getattr(row, "id", None),
+                    "name": name,
+                    "value": value,
+                }
+            ),
+            201,
+        )
     except Exception as e:
         db.session.rollback()
         current_app.logger.exception("POST /api/financing failed: %s", e)

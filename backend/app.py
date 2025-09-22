@@ -17,11 +17,16 @@ def _print_routes(app: Flask) -> None:
     if os.getenv("PRINT_ROUTES", "0").lower() not in {"1", "true", "yes", "on"}:
         return
     print("Registered Routes:")
-    rules = sorted(app.url_map.iter_rules(), key=lambda r: (str(r.rule), ",".join(sorted(r.methods))))
+    rules = sorted(
+        app.url_map.iter_rules(),
+        key=lambda r: (str(r.rule), ",".join(sorted(r.methods))),
+    )
     for r in rules:
         if r.endpoint == "static":
             continue
-        methods = ",".join(sorted(m for m in r.methods if m in {"GET", "POST", "PUT", "PATCH", "DELETE"}))
+        methods = ",".join(
+            sorted(m for m in r.methods if m in {"GET", "POST", "PUT", "PATCH", "DELETE"})
+        )
         print(f"{r.rule}  [{methods}]  -> {r.endpoint}")
 
 
@@ -52,7 +57,9 @@ def create_app() -> Flask:
 
     # DB + routes
     db.init_app(app)
-    register_routes(app)  # blueprints should be defined without url_prefix; mounted here under "/api"
+    register_routes(
+        app
+    )  # blueprints should be defined without url_prefix; mounted here under "/api"
 
     # Helpful startup log (password redacted)
     with app.app_context():

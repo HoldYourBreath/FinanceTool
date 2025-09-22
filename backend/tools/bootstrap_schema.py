@@ -14,14 +14,17 @@ def _has_table(engine: Engine, table: str) -> bool:
     insp = inspect(engine)
     return table in insp.get_table_names()
 
+
 def _has_col(engine: Engine, table: str, col: str) -> bool:
     insp = inspect(engine)
     if not _has_table(engine, table):
         return False
     return any(c["name"] == col for c in insp.get_columns(table))
 
+
 def _exec(sql: str) -> None:
     db.session.execute(text(sql))
+
 
 def _add_col_if_missing(engine: Engine, table: str, col: str, ddl: str) -> bool:
     if not _has_table(engine, table):
@@ -35,6 +38,7 @@ def _add_col_if_missing(engine: Engine, table: str, col: str, ddl: str) -> bool:
     db.session.commit()
     return True
 
+
 def _drop_cols_if_exist(engine: Engine, table: str, cols: Iterable[str]) -> None:
     if not _has_table(engine, table):
         return
@@ -44,6 +48,7 @@ def _drop_cols_if_exist(engine: Engine, table: str, cols: Iterable[str]) -> None
             _exec(f"ALTER TABLE {table} DROP COLUMN IF EXISTS {col}")
             db.session.commit()
 
+
 def main() -> None:
     app = create_app()
     with app.app_context():
@@ -52,12 +57,7 @@ def main() -> None:
         engine = db.engine
 
         # ---- cars.tire_replacement_interval_years ----
-        _add_col_if_missing(
-            engine,
-            "cars",
-            "tire_replacement_interval_years",
-            "NUMERIC(4,2)"
-        )
+        _add_col_if_missing(engine, "cars", "tire_replacement_interval_years", "NUMERIC(4,2)")
 
         # Default to 3 years where NULL (safe to run repeatedly)
         if _has_table(engine, "cars"):
@@ -75,7 +75,7 @@ def main() -> None:
             engine,
             "app_settings",
             "tire_change_price_year",
-            "NUMERIC(10,2) DEFAULT 2000"
+            "NUMERIC(10,2) DEFAULT 2000",
         )
 
         # Ensure singleton row exists (id=1); do not overwrite existing

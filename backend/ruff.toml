@@ -1,35 +1,21 @@
-# ruff.toml (place at repo root or in backend/ and call Ruff from there)
+# ruff.toml
 line-length = 100
-# If your runtime is Python 3.11 (your CI showed 3.11), prefer:
-# target-version = "py311"
-target-version = "py39"
-
-# So Ruff treats "backend" as source root for first-party imports (isort grouping, F401 resolution).
+target-version = "py312"     # or "py311" to match your runtime
 src = ["backend"]
-
-extend-exclude = [
-  ".venv", "venv", "node_modules",
-  "frontend", "dist", "build",
-  "migrations",
-]
+extend-exclude = ["frontend", "node_modules", ".venv", "venv", "dist", "build", "migrations"]
 
 [lint]
-# E/F/W = pycodestyle/pyflakes; I = isort; B = bugbear; UP = pyupgrade; SIM = flake8-simplify
-select = ["E", "F", "W", "I", "B", "UP", "SIM"]
-ignore = ["E203", "E501"]   # E501 ignored since formatter handles line length
-unfixable = ["UP038"]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E203", "E501"]    # formatter handles long lines
 
-# Optional: treat your modules as first-party for import sorting
 [lint.isort]
-known-first-party = ["app", "models", "backend"]
+known-first-party = ["backend", "app", "models"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
-# Optional: common per-file ignores
 [lint.per-file-ignores]
-# Allow re-export patterns like `from .x import y as y` without F401 noise
-"backend/**/__init__.py" = ["F401"]
+"backend/seeds/*.py" = ["E402"]
+"backend/tools/*.py" = ["E402"]
 
 [format]
-quote-style = "single"        # ✅ correct; "prefer-single" is invalid
+quote-style = "single"
 indent-style = "space"
-skip-magic-trailing-comma = false

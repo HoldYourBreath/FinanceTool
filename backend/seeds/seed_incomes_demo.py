@@ -1,9 +1,10 @@
 # backend/seeds/seed_incomes_demo.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import os
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import text
 
@@ -48,7 +49,7 @@ def main() -> None:
         db.session.commit()
         return
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rows: list[Income] = []
     total = 0
 

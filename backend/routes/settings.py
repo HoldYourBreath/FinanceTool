@@ -13,6 +13,7 @@ settings_bp = Blueprint("settings", __name__, url_prefix="/api/settings")
 
 ACCOUNTS_JSON_FILE = "data/accounts.json"
 
+
 # ----------------- helpers -----------------
 def _to_int(v: Any, default: int | None = 0) -> int | None:
     try:
@@ -23,6 +24,7 @@ def _to_int(v: Any, default: int | None = 0) -> int | None:
     except Exception:
         return default
 
+
 def _to_float(v: Any, default: float = 0.0) -> float:
     try:
         if v is None or v == "":
@@ -32,10 +34,11 @@ def _to_float(v: Any, default: float = 0.0) -> float:
     except Exception:
         return default
 
+
 def _default_prices() -> dict[str, Any]:
     # Safe defaults when DB/table isn’t ready
     return {
-        "el_price_ore_kwh": 250,          # 2.50 SEK/kWh
+        "el_price_ore_kwh": 250,  # 2.50 SEK/kWh
         "diesel_price_sek_litre": 15.0,
         "bensin_price_sek_litre": 14.0,
         "yearly_km": 18000,
@@ -44,6 +47,7 @@ def _default_prices() -> dict[str, Any]:
         "downpayment_sek": 100000.0,
         "interest_rate_pct": 5.0,
     }
+
 
 def _prices_row_or_none() -> PriceSettings | None:
     """
@@ -71,6 +75,7 @@ def _prices_row_or_none() -> PriceSettings | None:
         current_app.logger.warning("PriceSettings unavailable (CI-safe fallback): %s", e)
         return None
 
+
 def _serialize_prices(row: PriceSettings | None) -> dict[str, Any]:
     """Normalize to JSON primitives; fall back to defaults if row is None."""
     if row is None:
@@ -84,6 +89,7 @@ def _serialize_prices(row: PriceSettings | None) -> dict[str, Any]:
         "downpayment_sek": _to_float(getattr(row, "downpayment_sek", 100000.0), 100000.0),
         "interest_rate_pct": _to_float(getattr(row, "interest_rate_pct", 5.0), 5.0),
     }
+
 
 # ----------------- Accounts -----------------
 @settings_bp.post("/accounts")
@@ -128,6 +134,7 @@ def update_accounts():
 
     return jsonify({"message": "Accounts updated in DB and JSON file"}), 200
 
+
 # ----------------- Current month -----------------
 @settings_bp.post("/current_month")
 def set_current_month():
@@ -150,11 +157,20 @@ def set_current_month():
 
         m.is_current = True
         db.session.commit()
-        return jsonify({"message": "Current month updated successfully", "month_id": month_id_int}), 200
+        return (
+            jsonify(
+                {
+                    "message": "Current month updated successfully",
+                    "month_id": month_id_int,
+                }
+            ),
+            200,
+        )
     except Exception as e:
         current_app.logger.exception("set_current_month error: %s", e)
         db.session.rollback()
         return jsonify({"error": "Internal server error"}), 500
+
 
 # ----------------- Prices -----------------
 @settings_bp.get("/prices")
@@ -165,6 +181,7 @@ def get_prices():
     except Exception as e:
         current_app.logger.warning("GET /api/settings/prices failed; returning defaults: %s", e)
         return jsonify(_default_prices()), 200
+
 
 @settings_bp.route("/prices", methods=["POST", "PATCH"])
 def save_prices():
@@ -192,9 +209,13 @@ def save_prices():
         if "el_price_ore_kwh" in data:
             row.el_price_ore_kwh = _to_int(data["el_price_ore_kwh"], row.el_price_ore_kwh or 0) or 0
         if "diesel_price_sek_litre" in data:
-            row.diesel_price_sek_litre = _to_float(data["diesel_price_sek_litre"], row.diesel_price_sek_litre or 0.0)
+            row.diesel_price_sek_litre = _to_float(
+                data["diesel_price_sek_litre"], row.diesel_price_sek_litre or 0.0
+            )
         if "bensin_price_sek_litre" in data:
-            row.bensin_price_sek_litre = _to_float(data["bensin_price_sek_litre"], row.bensin_price_sek_litre or 0.0)
+            row.bensin_price_sek_litre = _to_float(
+                data["bensin_price_sek_litre"], row.bensin_price_sek_litre or 0.0
+            )
         if "yearly_km" in data:
             row.yearly_km = _to_int(data["yearly_km"], row.yearly_km or 0) or 0
         if "daily_commute_km" in data:
@@ -202,7 +223,9 @@ def save_prices():
         if "downpayment_sek" in data:
             row.downpayment_sek = _to_float(data["downpayment_sek"], row.downpayment_sek or 0.0)
         if "interest_rate_pct" in data:
-            row.interest_rate_pct = _to_float(data["interest_rate_pct"], row.interest_rate_pct or 0.0)
+            row.interest_rate_pct = _to_float(
+                data["interest_rate_pct"], row.interest_rate_pct or 0.0
+            )
 
         db.session.commit()
         return jsonify(_serialize_prices(row)), 200

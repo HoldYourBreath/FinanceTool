@@ -62,8 +62,8 @@ def _norm_type(v: str | None) -> str:
 def _energy_year(car: Car, P: dict[str, Any]) -> float:
     tv = _norm_type(_text(getattr(car, "type_of_vehicle", None)))
     kwh100 = _f(getattr(car, "consumption_kwh_per_100km", None))
-    l100   = _f(getattr(car, "consumption_l_per_100km", None))
-    km     = int(P.get("yearly_km", 18000))
+    l100 = _f(getattr(car, "consumption_l_per_100km", None))
+    km = int(P.get("yearly_km", 18000))
 
     if tv == "EV":
         return (km / 100.0) * kwh100 * float(P["elec_sek_kwh"])
@@ -73,9 +73,7 @@ def _energy_year(car: Car, P: dict[str, Any]) -> float:
         return (km / 100.0) * l100 * float(P["bensin_sek_l"])
     if tv == "PHEV":
         # Simple blended model (can be improved later with commute-based split)
-        return (km / 100.0) * (
-            l100 * float(P["bensin_sek_l"]) + kwh100 * float(P["elec_sek_kwh"])
-        )
+        return (km / 100.0) * (l100 * float(P["bensin_sek_l"]) + kwh100 * float(P["elec_sek_kwh"]))
     return 0.0
 
 
@@ -152,24 +150,19 @@ def compute_derived(car: Car, ps: PriceSettings | None) -> dict[str, float]:
         "energy_fuel_year": round(energy_y, 2),
         "energy_cost_month": round(energy_y / 12.0, 2),
         "recurring_year": round(recurring_y, 2),
-
         "expected_value_after_3y": round(res["v3"], 2),
         "expected_value_after_5y": round(res["v5"], 2),
         "expected_value_after_8y": round(res["v8"], 2),
-
         "interest_3y": round(interest3, 2),
         "interest_5y": round(interest5, 2),
         "interest_8y": round(interest8, 2),
-
         "tco_total_3y": round(tco3, 2),
         "tco_total_5y": round(tco5, 2),
         "tco_total_8y": round(tco8, 2),
-
         # back-compat aliases
         "tco_3_years": round(tco3, 2),
         "tco_5_years": round(tco5, 2),
         "tco_8_years": round(tco8, 2),
-
         "tco_per_month_3y": round(tco3 / 36.0, 2),
         "tco_per_month_5y": round(tco5 / 60.0, 2),
         "tco_per_month_8y": round(tco8 / 96.0, 2),
@@ -184,29 +177,23 @@ def serialize_car(c: Car, ps: PriceSettings | None) -> dict[str, Any]:
     try:
         derived = compute_derived(c, ps)
     except Exception as e:
-        current_app.logger.debug(
-            "compute_derived failed for car %s: %s", getattr(c, "id", "?"), e
-        )
+        current_app.logger.debug("compute_derived failed for car %s: %s", getattr(c, "id", "?"), e)
 
     out: dict[str, Any] = {
         "id": c.id,
         "model": _text(c.model) or "",
         "year": int(_f(c.year)) if c.year is not None else None,
-
         "type_of_vehicle": _norm_type(_text(getattr(c, "type_of_vehicle", None))),
         "body_style": _text(getattr(c, "body_style", None)),
         "eu_segment": _text(getattr(c, "eu_segment", None)),
         "suv_tier": _text(getattr(c, "suv_tier", None)),
-
         "estimated_purchase_price": _f(getattr(c, "estimated_purchase_price", 0)),
         "summer_tires_price": _f(getattr(c, "summer_tires_price", 0)),
         "winter_tires_price": _f(getattr(c, "winter_tires_price", 0)),
-
         "full_insurance_year": _f(getattr(c, "full_insurance_year", 0)),
         "half_insurance_year": _f(getattr(c, "half_insurance_year", 0)),
         "car_tax_year": _f(getattr(c, "car_tax_year", 0)),
         "repairs_year": _f(getattr(c, "repairs_year", 0)),
-
         "consumption_kwh_per_100km": _f(getattr(c, "consumption_kwh_per_100km", 0)),
         "consumption_l_per_100km": _f(getattr(c, "consumption_l_per_100km", 0)),
         "battery_capacity_kwh": _f(getattr(c, "battery_capacity_kwh", 0)),
@@ -215,14 +202,12 @@ def serialize_car(c: Car, ps: PriceSettings | None) -> dict[str, Any]:
         "driven_km": int(_f(getattr(c, "driven_km", 0))),
         "battery_aviloo_score": int(_f(getattr(c, "battery_aviloo_score", 0))),
         "trunk_size_litre": int(_f(getattr(c, "trunk_size_litre", 0))),
-
         "dc_peak_kw": _f(getattr(c, "dc_peak_kw", 0)),
         "dc_time_min_10_80": int(_f(getattr(c, "dc_time_min_10_80", 0))),
         "dc_time_source": _text(getattr(c, "dc_time_source", None)),
         "ac_onboard_kw": _f(getattr(c, "ac_onboard_kw", 0)),
         "ac_time_h_0_100": _f(getattr(c, "ac_time_h_0_100", 0)),
         "ac_time_source": _text(getattr(c, "ac_time_source", None)),
-
         # persisted totals if any (kept; derived will overwrite below)
         "tco_3_years": _f(getattr(c, "tco_3_years", 0)),
         "tco_5_years": _f(getattr(c, "tco_5_years", 0)),

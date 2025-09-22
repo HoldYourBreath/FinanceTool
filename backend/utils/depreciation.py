@@ -7,11 +7,11 @@ from .format import to_num
 
 # Retained value vs NEW price at 36/60/96 months (EU/SE heuristics)
 RETENTION = {
-    'PETROL': {36: 0.53, 60: 0.40, 96: 0.28},
-    'DIESEL': {36: 0.50, 60: 0.38, 96: 0.25},
-    'HEV': {36: 0.56, 60: 0.42, 96: 0.30},
-    'PHEV': {36: 0.49, 60: 0.36, 96: 0.26},
-    'BEV': {36: 0.42, 60: 0.32, 96: 0.24},
+    "PETROL": {36: 0.53, 60: 0.40, 96: 0.28},
+    "DIESEL": {36: 0.50, 60: 0.38, 96: 0.25},
+    "HEV": {36: 0.56, 60: 0.42, 96: 0.30},
+    "PHEV": {36: 0.49, 60: 0.36, 96: 0.26},
+    "BEV": {36: 0.42, 60: 0.32, 96: 0.24},
 }
 
 SALVAGE_FLOOR = 0.15  # minimum retained value vs NEW price
@@ -32,7 +32,7 @@ def estimate_new_price_from_today_price(
 ) -> float:
     params = params or DepreciationParams()  # <-- instantiate here
     key = vehicle_key(type_of_vehicle)
-    grid = params.retention.get(key, RETENTION['PETROL'])
+    grid = params.retention.get(key, RETENTION["PETROL"])
     now_m = months_since_year(int(to_num(car_year, 0)), today=today)
     r_now = _retention_at(grid, now_m)
     if r_now <= 0:
@@ -60,7 +60,7 @@ def _retention_at(grid: dict[int, float], months: int) -> float:
         return max(SALVAGE_FLOOR, r0 + t * (r1 - r0))
 
     # Between anchors
-    for (m0, r0), (m1, r1) in zip(anchors[1:], anchors[2:]):
+    for (m0, r0), (m1, r1) in zip(anchors[1:], anchors[2:], strict=False):
         if m0 <= months <= m1:
             t = (months - m0) / (m1 - m0)
             return max(SALVAGE_FLOOR, r0 + t * (r1 - r0))
@@ -73,16 +73,16 @@ def _retention_at(grid: dict[int, float], months: int) -> float:
 
 
 def vehicle_key(type_of_vehicle: str | None) -> str:
-    t = (type_of_vehicle or '').upper()
-    if 'BEV' in t or t == 'EV' or 'ELECTRIC' in t:
-        return 'BEV'
-    if 'PHEV' in t or 'PLUG' in t:
-        return 'PHEV'
-    if 'HEV' in t or 'HYBRID' in t:
-        return 'HEV'
-    if 'DIESEL' in t:
-        return 'DIESEL'
-    return 'PETROL'
+    t = (type_of_vehicle or "").upper()
+    if "BEV" in t or t == "EV" or "ELECTRIC" in t:
+        return "BEV"
+    if "PHEV" in t or "PLUG" in t:
+        return "PHEV"
+    if "HEV" in t or "HYBRID" in t:
+        return "HEV"
+    if "DIESEL" in t:
+        return "DIESEL"
+    return "PETROL"
 
 
 def months_since_year(year: int, today: date | None = None) -> int:
@@ -121,12 +121,12 @@ def predict_future_value_from_today_price(
 ) -> float:
     params = params or DepreciationParams()  # <-- instantiate here
     key = vehicle_key(type_of_vehicle)
-    grid = params.retention.get(key, RETENTION['PETROL'])
+    grid = params.retention.get(key, RETENTION["PETROL"])
     now_m = months_since_year(int(to_num(car_year, 0)), today=today)
     fut_m = now_m + years_ahead * 12
     r_now = _retention_at(grid, now_m)
     r_fut = _retention_at(grid, fut_m)
-    if key in ('BEV', 'PHEV') and now_m < WARRANTY_MONTHS <= fut_m:
+    if key in ("BEV", "PHEV") and now_m < WARRANTY_MONTHS <= fut_m:
         r_fut = max(params.salvage_floor, r_fut - params.bev_warranty_kink_pp)
     ratio = (r_fut / r_now) if r_now > 0 else 0.0
     expected = today_price * ratio

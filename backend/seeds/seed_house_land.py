@@ -1,4 +1,5 @@
 # backend/seeds/seed_house_land.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import argparse
@@ -14,7 +15,9 @@ from sqlalchemy import delete as sa_delete
 # --- Paths: make "from backend.*" resolvable whether run from repo root or backend/ ---
 THIS_FILE = Path(__file__).resolve()
 SCRIPT_DIR = THIS_FILE.parent
-BACKEND_DIR = SCRIPT_DIR if SCRIPT_DIR.name == "backend" else SCRIPT_DIR.parent  # works for backend/seeds or backend/scripts
+BACKEND_DIR = (
+    SCRIPT_DIR if SCRIPT_DIR.name == "backend" else SCRIPT_DIR.parent
+)  # works for backend/seeds or backend/scripts
 REPO_ROOT = BACKEND_DIR.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -22,7 +25,13 @@ if str(REPO_ROOT) not in sys.path:
 # --- Optional .env ---
 try:
     from dotenv import load_dotenv  # type: ignore
-    for env in (REPO_ROOT / ".env", BACKEND_DIR / ".env", REPO_ROOT / ".env.local", BACKEND_DIR / ".env.local"):
+
+    for env in (
+        REPO_ROOT / ".env",
+        BACKEND_DIR / ".env",
+        REPO_ROOT / ".env.local",
+        BACKEND_DIR / ".env.local",
+    ):
         if env.exists():
             load_dotenv(env)
 except Exception:
@@ -40,6 +49,7 @@ CAND_FILENAMES = ("seed_house_land.json", "house_land.json")
 FALLBACK_LAND: list[dict] = []
 FALLBACK_HOUSE: list[dict] = []
 
+
 # --- Path resolution ---
 def _search_roots() -> Iterable[Path]:
     env_dir = os.getenv(ENV_DIR_VAR)
@@ -52,6 +62,7 @@ def _search_roots() -> Iterable[Path]:
     yield BACKEND_DIR / "data"
     yield REPO_ROOT / "seeds"
     yield REPO_ROOT / "data"
+
 
 def _resolve_seed_path(cli_path: str | None) -> Path | None:
     if cli_path:
@@ -82,11 +93,12 @@ def _resolve_seed_path(cli_path: str | None) -> Path | None:
                 return cand
     return None
 
+
 # --- Data loading ---
 def _to_amount(v) -> float:
     if v is None or v == "":
         return 0.0
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return float(v)
     if isinstance(v, str):
         s = v.strip().replace(",", ".")
@@ -96,9 +108,11 @@ def _to_amount(v) -> float:
             return 0.0
     return 0.0
 
+
 def _norm_status(v) -> str:
     s = "pending" if v is None else str(v).strip()
     return s or "pending"
+
 
 def _coerce_item(it: dict) -> dict:
     return {
@@ -106,6 +120,7 @@ def _coerce_item(it: dict) -> dict:
         "amount": _to_amount(it.get("amount", 0)),
         "status": _norm_status(it.get("status", "pending")),
     }
+
 
 def _load_payload(seed_file: Path | None) -> tuple[list[dict], list[dict]]:
     if not (seed_file and seed_file.exists()):
@@ -138,8 +153,11 @@ def _load_payload(seed_file: Path | None) -> tuple[list[dict], list[dict]]:
     else:
         return (FALLBACK_LAND, FALLBACK_HOUSE)
 
-    return ([_coerce_item(x) for x in land if isinstance(x, dict)],
-            [_coerce_item(x) for x in house if isinstance(x, dict)])
+    return (
+        [_coerce_item(x) for x in land if isinstance(x, dict)],
+        [_coerce_item(x) for x in house if isinstance(x, dict)],
+    )
+
 
 # --- Seeding ---
 def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = False) -> None:
@@ -147,7 +165,9 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
     seed_file = _resolve_seed_path(seed_path)
     print(f"📂 CWD: {Path.cwd()}")
     print(f"📄 Seed file: {seed_file if seed_file else '(missing → seeding nothing)'}")
-    print(f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}")
+    print(
+        f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}"
+    )
 
     land_costs, house_costs = _load_payload(seed_file)
     print(f"📦 Parsed: land={len(land_costs)} item(s), house={len(house_costs)} item(s)")
@@ -175,14 +195,23 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
             db.session.commit()
             print(f"✅ Seeded {ins_land} land and {ins_house} house rows.")
 
+
 # --- CLI ---
 def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Seed LandCost and HouseCost rows.")
-    ap.add_argument("--file", default=None,
-                    help=f"Path to seed file (overrides ${ENV_FILE_VAR_PRIMARY} / ${ENV_FILE_VAR_LEGACY})")
+    ap.add_argument(
+        "--file",
+        default=None,
+        help=f"Path to seed file (overrides ${ENV_FILE_VAR_PRIMARY} / ${ENV_FILE_VAR_LEGACY})",
+    )
     ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
-    ap.add_argument("--dry-run", action="store_true", help="Validate and show counts without writing")
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and show counts without writing",
+    )
     return ap.parse_args()
+
 
 if __name__ == "__main__":
     args = _parse_args()

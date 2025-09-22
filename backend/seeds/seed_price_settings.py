@@ -1,4 +1,5 @@
 # backend/seeds/seed_price_settings.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import argparse
@@ -20,8 +21,13 @@ if str(REPO_ROOT) not in sys.path:
 # --- Optional .env loading (both repo and backend dirs supported) ---
 try:
     from dotenv import load_dotenv  # type: ignore
-    for env in (REPO_ROOT / ".env", BACKEND_DIR / ".env",
-                REPO_ROOT / ".env.local", BACKEND_DIR / ".env.local"):
+
+    for env in (
+        REPO_ROOT / ".env",
+        BACKEND_DIR / ".env",
+        REPO_ROOT / ".env.local",
+        BACKEND_DIR / ".env.local",
+    ):
         if env.exists():
             load_dotenv(env)
 except Exception:
@@ -34,8 +40,8 @@ from backend.models.models import PriceSettings, db
 # ------------------------------------------------------------------------------
 # Config
 # ------------------------------------------------------------------------------
-ENV_FILE_VAR = "SEED_FILE_PRICE_SETTINGS"   # direct file override
-ENV_DIR_VAR  = "SEED_DIR"                   # directory override (demo/private/common)
+ENV_FILE_VAR = "SEED_FILE_PRICE_SETTINGS"  # direct file override
+ENV_DIR_VAR = "SEED_DIR"  # directory override (demo/private/common)
 
 CAND_FILENAMES = (
     "seed_price_settings.json",
@@ -44,13 +50,13 @@ CAND_FILENAMES = (
 )
 
 DEFAULTS: dict[str, Any] = {
-    "el_price_ore_kwh": 250,          # öre/kWh
-    "diesel_price_sek_litre": 15.0,   # SEK/litre
-    "bensin_price_sek_litre": 14.0,   # SEK/litre
-    "yearly_km": 18000,               # km/year
-    "daily_commute_km": 30,           # km/day
-    "downpayment_sek": 0,             # SEK amount
-    "interest_rate_pct": 5            # %
+    "el_price_ore_kwh": 250,  # öre/kWh
+    "diesel_price_sek_litre": 15.0,  # SEK/litre
+    "bensin_price_sek_litre": 14.0,  # SEK/litre
+    "yearly_km": 18000,  # km/year
+    "daily_commute_km": 30,  # km/day
+    "downpayment_sek": 0,  # SEK amount
+    "interest_rate_pct": 5,  # %
 }
 
 # Allow overriding single values via env vars
@@ -61,8 +67,9 @@ ENV_VALUE_MAP: dict[str, tuple[str, ...]] = {
     "yearly_km": ("YEARLY_KM", "YEARLY_DRIVING_KM"),
     "daily_commute_km": ("DAILY_COMMUTE_KM",),
     "downpayment_sek": ("DOWNPAYMENT_SEK",),
-    "interest_rate_pct": ("INTEREST_RATE_PCT",)
+    "interest_rate_pct": ("INTEREST_RATE_PCT",),
 }
+
 
 # ------------------------------------------------------------------------------
 # Seed file resolution
@@ -109,6 +116,7 @@ def _resolve_seed_path(cli_path: str | None) -> Path | None:
                 return cand
     return None
 
+
 # ------------------------------------------------------------------------------
 # Coercion helpers
 # ------------------------------------------------------------------------------
@@ -117,7 +125,7 @@ def _to_decimal(v: Any) -> Decimal:
         return Decimal("0")
     if isinstance(v, Decimal):
         return v
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return Decimal(str(v))
     if isinstance(v, str):
         s = v.strip().replace(",", ".")
@@ -140,6 +148,7 @@ def _to_int(v: Any) -> int:
             return int(float(_to_decimal(v)))
         except Exception:
             return 0
+
 
 # ------------------------------------------------------------------------------
 # Input loading
@@ -179,14 +188,14 @@ def _sanitize(values: dict[str, Any]) -> dict[str, Any]:
         "bensin_price_sek_litre": _to_float(
             values.get("bensin_price_sek_litre", DEFAULTS["bensin_price_sek_litre"])
         ),
-        "yearly_km": _to_int(values.get("yearly_km", DEFAULTS["yearly_km"])
+        "yearly_km": _to_int(values.get("yearly_km", DEFAULTS["yearly_km"])),
+        "daily_commute_km": _to_int(values.get("daily_commute_km", DEFAULTS["daily_commute_km"])),
+        "downpayment_sek": _to_int(values.get("downpayment_sek", DEFAULTS["downpayment_sek"])),
+        "interest_rate_pct": _to_int(
+            values.get("interest_rate_pct", DEFAULTS["interest_rate_pct"])
         ),
-        "daily_commute_km": _to_int(values.get("daily_commute_km", DEFAULTS["daily_commute_km"])
-        ),
-        "downpayment_sek": _to_int(values.get("downpayment_sek", DEFAULTS["downpayment_sek"])
-        ),
-        "interest_rate_pct": _to_int(values.get("interest_rate_pct", DEFAULTS["interest_rate_pct"])),
     }
+
 
 # ------------------------------------------------------------------------------
 # Seeding
@@ -253,13 +262,16 @@ def seed(
 
         if dry_run:
             db.session.rollback()
-            print(f"🔍 Dry-run complete: {'create' if created else 'update'} PriceSettings {row_id}")
+            print(
+                f"🔍 Dry-run complete: {'create' if created else 'update'} PriceSettings {row_id}"
+            )
             print(f"   Before: {before}")
             print(f"   After : {after}")
         else:
             db.session.commit()
             action = "Created" if created else "Updated"
             print(f"✅ {action} PriceSettings id={row_id}.")
+
 
 # ------------------------------------------------------------------------------
 # CLI
@@ -275,4 +287,9 @@ def _parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = _parse_args()
-    seed(seed_path=args.file, row_id=args.id, overwrite=args.overwrite, dry_run=args.dry_run)
+    seed(
+        seed_path=args.file,
+        row_id=args.id,
+        overwrite=args.overwrite,
+        dry_run=args.dry_run,
+    )

@@ -84,14 +84,20 @@ def bulk_insert_acc_info():
 
     items = payload if isinstance(payload, list) else payload.get("acc_info")
     if not isinstance(items, list):
-        return jsonify({"error": "Expected a list of entries or {'acc_info': [...] }"}), 400
+        return (
+            jsonify({"error": "Expected a list of entries or {'acc_info': [...] }"}),
+            400,
+        )
 
     required = ("person", "bank", "acc_number", "country")
     inserted = 0
     try:
         for item in items:
             if not all(k in item for k in required):
-                return jsonify({"error": f"Missing required keys. Need: {required}"}), 400
+                return (
+                    jsonify({"error": f"Missing required keys. Need: {required}"}),
+                    400,
+                )
 
             exists = AccInfo.query.filter_by(
                 person=item["person"],

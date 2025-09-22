@@ -64,16 +64,18 @@ def _prices() -> dict[str, float]:
         bensin_sek_l=_f(getattr(ps, "bensin_price_sek_litre", bensin_sek_l), bensin_sek_l),
         diesel_sek_l=_f(getattr(ps, "diesel_price_sek_litre", diesel_sek_l), diesel_sek_l),
         downpayment_sek=_f(getattr(ps, "downpayment_sek", downpayment_sek), downpayment_sek),
-        interest_rate_pct=_f(getattr(ps, "interest_rate_pct", interest_rate_pct), interest_rate_pct),
+        interest_rate_pct=_f(
+            getattr(ps, "interest_rate_pct", interest_rate_pct), interest_rate_pct
+        ),
     )
 
 
 # ---------- energy / recurring ----------
 def _energy_year(car, P):
-    tv = (getattr(car, "type_of_vehicle", None) or "EV")
+    tv = getattr(car, "type_of_vehicle", None) or "EV"
     kwh100 = _f(getattr(car, "consumption_kwh_per_100km", None))
-    l100   = _f(getattr(car, "consumption_l_per_100km", None))
-    km     = P["yearly_km"]
+    l100 = _f(getattr(car, "consumption_l_per_100km", None))
+    km = P["yearly_km"]
 
     if tv == "EV":
         return (km / 100.0) * kwh100 * P["el_sek_kwh"]
@@ -118,17 +120,19 @@ def _residuals(car, purchase: float) -> dict[str, float]:
     v8 = getattr(car, "expected_value_after_8y", None)
 
     if v3 is None:
-        v3 = purchase * 0.55   # ~45% depreciation after 3y
+        v3 = purchase * 0.55  # ~45% depreciation after 3y
     if v5 is None:
-        v5 = purchase * 0.40   # ~60% after 5y
+        v5 = purchase * 0.40  # ~60% after 5y
     if v8 is None:
-        v8 = purchase * 0.25   # ~75% after 8y
+        v8 = purchase * 0.25  # ~75% after 8y
 
     return dict(v3=_f(v3), v5=_f(v5), v8=_f(v8))
 
 
 # ---------- financing ----------
-def _amortized_totals(principal: float, interest_rate_pct: float, years: int) -> tuple[float, float]:
+def _amortized_totals(
+    principal: float, interest_rate_pct: float, years: int
+) -> tuple[float, float]:
     """
     Return (total_paid_over_term, interest_paid_over_term) for a standard
     annuity loan:
@@ -170,13 +174,13 @@ def compute_derived(car) -> dict[str, float]:
     P = _prices()
 
     purchase = _f(getattr(car, "estimated_purchase_price", 0))
-    down     = max(0.0, _f(P.get("downpayment_sek", 0.0)))
+    down = max(0.0, _f(P.get("downpayment_sek", 0.0)))
     rate_pct = max(0.0, _f(P.get("interest_rate_pct", 0.0)))
     principal = max(0.0, purchase - down)
 
-    energy_y    = _energy_year(car, P)
+    energy_y = _energy_year(car, P)
     recurring_y = _recurring_year(car, P)
-    res         = _residuals(car, purchase)
+    res = _residuals(car, purchase)
 
     dep3 = max(0.0, purchase - res["v3"])
     dep5 = max(0.0, purchase - res["v5"])
@@ -197,29 +201,24 @@ def compute_derived(car) -> dict[str, float]:
         "energy_fuel_year": round(energy_y),
         "energy_cost_month": round(energy_y / 12.0, 2),
         "recurring_year": round(recurring_y),
-
         # residuals
         "expected_value_after_3y": round(res["v3"]),
         "expected_value_after_5y": round(res["v5"]),
         "expected_value_after_8y": round(res["v8"]),
-
         # financing diagnostics
         "finance_downpayment_sek": round(down, 2),
         "finance_principal_sek": round(principal, 2),
         "finance_interest_cost_3y": round(i3, 2),
         "finance_interest_cost_5y": round(i5, 2),
         "finance_interest_cost_8y": round(i8, 2),
-
         # totals (include interest)
         "tco_total_3y": round(tco3),
         "tco_total_5y": round(tco5),
         "tco_total_8y": round(tco8),
-
         # aliases your UI might already bind to
         "tco_3_years": round(tco3),
         "tco_5_years": round(tco5),
         "tco_8_years": round(tco8),
-
         # per-month helpers
         "tco_per_month_3y": round(tco3 / 36),
         "tco_per_month_5y": round(tco5 / 60),

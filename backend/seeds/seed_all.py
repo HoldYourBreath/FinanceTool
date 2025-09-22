@@ -1,4 +1,5 @@
 # backend/seeds/seed_all.py
+# ruff: noqa: E402
 from __future__ import annotations
 
 import os
@@ -23,13 +24,17 @@ load_dotenv(BACKEND_DIR / ".env")
 
 DEFAULT_PYTHONPATH = os.environ.get("PYTHONPATH", "")
 ENV = os.environ.copy()
-ENV["PYTHONPATH"] = f"{REPO_ROOT}{os.pathsep}{DEFAULT_PYTHONPATH}" if DEFAULT_PYTHONPATH else str(REPO_ROOT)
+ENV["PYTHONPATH"] = (
+    f"{REPO_ROOT}{os.pathsep}{DEFAULT_PYTHONPATH}" if DEFAULT_PYTHONPATH else str(REPO_ROOT)
+)
+
 
 # ------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------
 def _is_demo(env: dict[str, str]) -> bool:
     return (env.get("APP_ENV") or "").lower() == "demo"
+
 
 def resolve_db_url(env: dict[str, str]) -> str | None:
     """
@@ -40,11 +45,13 @@ def resolve_db_url(env: dict[str, str]) -> str | None:
         return env.get("DEMO_DATABASE_URL") or env.get("DATABASE_URL")
     return env.get("DATABASE_URL")
 
+
 def _safe(url: str | None) -> str:
     if not url:
         return "<unset>"
     try:
         from urllib.parse import urlsplit, urlunsplit
+
         parts = urlsplit(url)
         if parts.password or parts.username:
             host = parts.hostname or ""
@@ -59,6 +66,7 @@ def _safe(url: str | None) -> str:
         pass
     return url
 
+
 def _run_module(module: str, message: str) -> None:
     print(message, flush=True)
     subprocess.run(
@@ -68,9 +76,11 @@ def _run_module(module: str, message: str) -> None:
         env=ENV,
     )
 
+
 def _has_flag(args: Iterable[str], *flags: str) -> bool:
     s = set(args)
     return any(f in s for f in flags)
+
 
 # ------------------------------------------------------------
 # Decide reset vs non-destructive schema bootstrap
@@ -82,35 +92,45 @@ def build_steps(env: dict[str, str], args: list[str]) -> list[tuple[str, str]]:
       We try to 'bootstrap' the schema by adding missing columns/tables (idempotent).
     - Otherwise (default): full reset + create tables.
     """
-    no_reset = (env.get("SEED_RESET", "1") in {"0", "false", "False"}) or _has_flag(args, "--no-reset", "-n")
+    no_reset = (env.get("SEED_RESET", "1") in {"0", "false", "False"}) or _has_flag(
+        args, "--no-reset", "-n"
+    )
     steps: list[tuple[str, str]] = []
 
     if no_reset:
         # Non-destructive path: ensure DB objects/columns exist
         # These modules should be idempotent and safe on existing DBs.
         # If a step/module is missing in your repo, it's skipped gracefully.
-        steps.append(("backend.seeds.bootstrap_schema", "🛠  Bootstrapping schema (non-destructive)..."))
-        steps.append(("backend.seeds.create_db",       "🧱 Ensuring tables exist..."))
+        steps.append(
+            (
+                "backend.seeds.bootstrap_schema",
+                "🛠  Bootstrapping schema (non-destructive)...",
+            )
+        )
+        steps.append(("backend.seeds.create_db", "🧱 Ensuring tables exist..."))
     else:
         # Destructive path: full reset
         steps.append(("backend.seeds.reset_db", "🔄 Resetting database (DROP & CREATE)..."))
         steps.append(("backend.seeds.create_db", "🧱 Creating tables..."))
 
     # Common seeders
-    steps.extend([
-        ("backend.seeds.seed_months",            "🌱 Seeding months..."),
-        ("backend.seeds.seed_investments",       "🌱 Seeding investments..."),
-        ("backend.seeds.seed_house_land",        "🌱 Seeding house and land costs..."),
-        ("backend.seeds.seed_planned_purchases", "🌱 Seeding planned purchases..."),
-        ("backend.seeds.seed_acc_info",          "🌱 Seeding Account Info values..."),
-        ("backend.seeds.seed_price_settings",    "🌱 Seeding price settings..."),
-        ("backend.seeds.seed_cars",              "🌱 Seeding cars..."),
-    ])
+    steps.extend(
+        [
+            ("backend.seeds.seed_months", "🌱 Seeding months..."),
+            ("backend.seeds.seed_investments", "🌱 Seeding investments..."),
+            ("backend.seeds.seed_house_land", "🌱 Seeding house and land costs..."),
+            ("backend.seeds.seed_planned_purchases", "🌱 Seeding planned purchases..."),
+            ("backend.seeds.seed_acc_info", "🌱 Seeding Account Info values..."),
+            ("backend.seeds.seed_price_settings", "🌱 Seeding price settings..."),
+            ("backend.seeds.seed_cars", "🌱 Seeding cars..."),
+        ]
+    )
 
     if _is_demo(env):
         steps.append(("backend.seeds.seed_incomes_demo", "🌱 Seeding demo net salaries..."))
 
     return steps
+
 
 def main() -> None:
     # Allow running a subset by passing module names as args
@@ -136,7 +156,10 @@ def main() -> None:
         print(f"⚙️  Flags:     {' '.join(flags)}")
 
     if not eff:
-        print("❌ No database URL set (DEMO_DATABASE_URL/DATABASE_URL). Aborting.", file=sys.stderr)
+        print(
+            "❌ No database URL set (DEMO_DATABASE_URL/DATABASE_URL). Aborting.",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     # Build plan, then optionally filter to only requested modules
@@ -156,10 +179,14 @@ def main() -> None:
                 # Allow optional steps like bootstrap_schema to be absent
                 print(f"⚠️  Optional step '{module}' not found: {mnfe}. Skipping.")
     except subprocess.CalledProcessError as e:
-        print(f"❌ Seed step failed: {e.args} (returncode={e.returncode})", file=sys.stderr)
+        print(
+            f"❌ Seed step failed: {e.args} (returncode={e.returncode})",
+            file=sys.stderr,
+        )
         sys.exit(e.returncode)
 
     print("✅ All data seeded successfully.")
+
 
 if __name__ == "__main__":
     main()
