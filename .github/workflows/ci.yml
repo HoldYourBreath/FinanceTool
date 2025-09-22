@@ -20,6 +20,10 @@ on:
       - "frontend/package-lock.json"
       - "playwright.config.*"
       - ".github/workflows/ci.yml"
+  schedule:
+    # Nightly at 02:30 UTC
+    - cron: "30 2 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -96,11 +100,12 @@ jobs:
           path: frontend/dist
           if-no-files-found: error
 
+  # Regular e2e for push/PR; skip on nightly schedule
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [backend, frontend]
-    if: ${{ needs.backend.result == 'success' && needs.frontend.result == 'success' }}
+    if: ${{ needs.backend.result == 'success' && needs.frontend.result == 'success' && github.event_name != 'schedule' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -161,17 +166,14 @@ jobs:
           done
           curl -fsS http://127.0.0.1:5000/api/health >/dev/null || { echo "---- backend.log ----"; tail -n +1 backend.log || true; exit 1; }
 
-      # Stabilize global pricing before UI/API tests (reduces flakiness)
+      # Stabilize global pricing / warm caches
       - name: Stabilize backend pricing + warm caches
         run: |
           set -euo pipefail
           base='http://127.0.0.1:5000'
-          # Set deterministic baseline
           curl -fsS -X POST "$base/api/settings/prices" \
             -H 'content-type: application/json' \
             --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' >/dev/null
-
-          # Wait until the GET reflects the POST (eventual consistency guard)
           for i in {1..50}; do
             got=$(curl -fsS "$base/api/settings/prices" | tr -d ' \n\r\t')
             echo "prices: $got"
@@ -180,8 +182,6 @@ jobs:
             fi
             sleep 0.1
           done
-
-          # Force recompute for car TCO then warm the endpoint (bust caches)
           curl -fsS -X POST "$base/api/cars/update" || true
           curl -fsS "$base/api/cars?ts=$(date +%s%N)" >/dev/null
 
@@ -197,15 +197,12 @@ jobs:
           set -euo pipefail
           PORT=5173
           ROOT="frontend/dist"
-
           echo "Starting SPA server with sirv…"
           (npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 &) || true
-
           for i in {1..60}; do
             curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1 && { echo "Frontend is up"; break; }
             sleep 1
           done
-
           curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1 || {
             echo "---- vite.log ----"; cat vite.log || true;
             echo "---- node processes ----"; ps -ef | grep -E "sirv|serve" | grep -v grep || true;
@@ -216,8 +213,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: tests/package-lock.json
+        # cache browsers below via actions/cache
 
       - name: Install test deps
         working-directory: tests
@@ -235,7 +231,6 @@ jobs:
         working-directory: tests
         run: npx playwright install --with-deps chromium
 
-      # Run everything single-worker in CI; tests themselves also gate stateful suites to serial
       - name: Run Playwright tests
         working-directory: tests
         env:
@@ -262,4 +257,151 @@ jobs:
           path: |
             playwright-report
             tests/playwright-report
+          if-no-files-found: ignore
+
+  # Nightly job that runs e2e twice back-to-back on the same runner
+  e2e-nightly:
+    name: Nightly e2e x2 (same runner)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [backend, frontend]
+    if: ${{ github.event_name == 'schedule' }}
+    concurrency:
+      group: nightly-e2e-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---------- Python / backend ----------
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements*.txt
+            requirements*.txt
+
+      - name: Install backend deps
+        run: |
+          python -m pip install -U pip
+          if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Init DB (sqlite nightly)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          SQLALCHEMY_DATABASE_URI: sqlite:///nightly.db
+          DATABASE_URL: sqlite:///nightly.db
+        run: |
+          python - <<'PY'
+          import os
+          os.environ.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///nightly.db")
+          from backend.app import create_app
+          from backend.models.models import db
+          app = create_app()
+          with app.app_context():
+              db.create_all()
+              print("✅ nightly DB ready")
+          PY
+
+      - name: Start backend and wait
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          FLASK_APP: backend.app:create_app
+          FLASK_DEBUG: "0"
+          SQLALCHEMY_DATABASE_URI: sqlite:///nightly.db
+        run: |
+          nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
+          for i in {1..90}; do
+            curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null && { echo "Backend is up!"; break; }
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null || { echo "---- backend.log ----"; tail -n +1 backend.log || true; exit 1; }
+
+      # ---------- Serve the built frontend ----------
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Serve SPA build
+        run: |
+          set -euo pipefail
+          PORT=5173
+          ROOT="frontend/dist"
+          (npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 &) || true
+          for i in {1..60}; do
+            curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1 && { echo "Frontend up"; break; }
+            sleep 1
+          done
+          curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1 || { echo "---- vite.log ----"; cat vite.log || true; exit 1; }
+
+      # ---------- Playwright ----------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+        # browsers cached via actions/cache
+
+      - name: Install test deps
+        working-directory: tests
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('tests/package-lock.json') }}
+          restore-keys: |
+            ms-playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers
+        working-directory: tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e twice (same runner)
+        working-directory: tests
+        env:
+          CI: true
+          BACKEND_ORIGIN: http://127.0.0.1:5000
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+        run: |
+          set +e
+          echo "---- Run #1 ----"
+          npx playwright test --reporter=line --workers=1
+          R1=$?
+          [ -d test-results ] && mv test-results test-results-run1 || true
+          [ -d playwright-report ] && mv playwright-report playwright-report-run1 || true
+
+          echo "Reset pricing baseline between runs…"
+          curl -fsS -X POST http://127.0.0.1:5000/api/settings/prices \
+            -H 'content-type: application/json' \
+            --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' >/dev/null || true
+          # optional: force recompute + warm
+          curl -fsS -X POST http://127.0.0.1:5000/api/cars/update || true
+          curl -fsS "http://127.0.0.1:5000/api/cars?ts=$(date +%s%N)" >/dev/null || true
+
+          echo "---- Run #2 ----"
+          npx playwright test --reporter=line --workers=1
+          R2=$?
+          [ -d test-results ] && mv test-results test-results-run2 || true
+          [ -d playwright-report ] && mv playwright-report playwright-report-run2 || true
+
+          echo "Run #1 exit=${R1}  Run #2 exit=${R2}"
+          if [ "$R1" -ne 0 ] || [ "$R2" -ne 0 ]; then
+            exit 1
+          fi
+          exit 0
+
+      - name: Upload Playwright artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-playwright-artifacts
+          path: |
+            tests/test-results-run1
+            tests/test-results-run2
+            tests/playwright-report-run1
+            tests/playwright-report-run2
+            backend.log
+            vite.log
           if-no-files-found: ignore
