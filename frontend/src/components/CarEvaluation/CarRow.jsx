@@ -22,7 +22,7 @@ export default function CarRow({
   NA,
   prices,
 }) {
-  const normalized = normType(car.type_of_vehicle);     // preferred normalization
+  const normalized = normType(car.type_of_vehicle); // preferred normalization
   const rawType = String(car.type_of_vehicle || "").toLowerCase();
   // Fallback heuristics if upstream normalization returns something unexpected:
   const type =
@@ -30,33 +30,36 @@ export default function CarRow({
     (rawType.includes("plug-in") && rawType.includes("hybrid")
       ? "phev"
       : rawType.includes("plugin") && rawType.includes("hybrid")
-      ? "phev"
-      : rawType.includes("phev")
-      ? "phev"
-      : rawType.includes("bev") || rawType === "ev"
-      ? "ev"
-      : rawType.includes("electric") && !rawType.includes("hybrid")
-      ? "ev"
-      : rawType);
+        ? "phev"
+        : rawType.includes("phev")
+          ? "phev"
+          : rawType.includes("bev") || rawType === "ev"
+            ? "ev"
+            : rawType.includes("electric") && !rawType.includes("hybrid")
+              ? "ev"
+              : rawType);
 
   const isEV = type === "ev";
   const isPHEV = type === "phev";
-  const isEVlike = isEV || isPHEV;                      // only EV & PHEV count as “EV-like”
+  const isEVlike = isEV || isPHEV; // only EV & PHEV count as “EV-like”
   const showDC = isEV || (isPHEV && Number(car.dc_peak_kw || 0) > 0);
-  const showKwh = isEVlike;                             // EV & PHEV
-  const showLitres = !isEV;                             // everything except pure EV
+  const showKwh = isEVlike; // EV & PHEV
+  const showLitres = !isEV; // everything except pure EV
   const rowBg = rowBgFor(car.type_of_vehicle);
 
   // Canonical range read; always write to range_km
   const rangeVal = car.range_km ?? null;
 
   return (
-    <tr className={`${rowBg} transition-colors`} data-type={car.type_of_vehicle}>
+    <tr
+      className={`${rowBg} transition-colors`}
+      data-type={car.type_of_vehicle}
+    >
       {/* Model (frozen) */}
       <td
         className={`border px-2 py-1 sticky left-0 z-30 w-[18rem]
                     shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.06)] ${brandBgClass(
-                      car.model
+                      car.model,
                     )}`}
         title={canonicalBrand(car.model) || undefined}
       >
@@ -97,7 +100,7 @@ export default function CarRow({
         <input
           type="number"
           className={`w-28 border px-1 text-right ${priceBg(
-            car.estimated_purchase_price
+            car.estimated_purchase_price,
           )} focus:ring-2 focus:ring-black/20`}
           value={car.estimated_purchase_price ?? ""}
           onChange={(e) => onChange("estimated_purchase_price", e.target.value)}
@@ -130,7 +133,7 @@ export default function CarRow({
             step="0.1"
             className={`w-24 border px-1 text-right ${fieldColor(
               "consumption_kwh_per_100km",
-              car.consumption_kwh_per_100km
+              car.consumption_kwh_per_100km,
             )}`}
             value={displayNum(car.consumption_kwh_per_100km)}
             onChange={(e) =>
@@ -152,7 +155,7 @@ export default function CarRow({
             step="0.1"
             className={`w-24 border px-1 text-right ${fieldColor(
               "consumption_l_per_100km",
-              car.consumption_l_per_100km
+              car.consumption_l_per_100km,
             )}`}
             value={displayNum(car.consumption_l_per_100km)}
             onChange={(e) =>
@@ -195,7 +198,7 @@ export default function CarRow({
             step="0.1"
             className={`w-24 border px-1 text-right ${fieldColor(
               "dc_peak_kw",
-              car.dc_peak_kw
+              car.dc_peak_kw,
             )}`}
             value={displayNum(car.dc_peak_kw)}
             onChange={(e) => onChange("dc_peak_kw", e.target.value)}
@@ -215,7 +218,7 @@ export default function CarRow({
             step="0.1"
             className={`w-24 border px-1 text-right ${fieldColor(
               "dc_time_min_10_80",
-              car.dc_time_min_10_80
+              car.dc_time_min_10_80,
             )}`}
             value={displayNum(car.dc_time_min_10_80)}
             onChange={(e) => onChange("dc_time_min_10_80", e.target.value)}
@@ -235,7 +238,7 @@ export default function CarRow({
             step="0.1"
             className={`w-24 border px-1 text-right ${fieldColor(
               "ac_onboard_kw",
-              car.ac_onboard_kw
+              car.ac_onboard_kw,
             )}`}
             value={displayNum(car.ac_onboard_kw)}
             onChange={(e) => onChange("ac_onboard_kw", e.target.value)}
@@ -255,7 +258,7 @@ export default function CarRow({
             step="0.1"
             className={`w-24 border px-1 text-right ${fieldColor(
               "ac_time_h_0_100",
-              car.ac_time_h_0_100
+              car.ac_time_h_0_100,
             )}`}
             value={displayNum(car.ac_time_h_0_100)}
             onChange={(e) => onChange("ac_time_h_0_100", e.target.value)}
@@ -279,11 +282,15 @@ export default function CarRow({
             type="number"
             className={`w-24 border px-1 text-right ${fieldColor(
               "range_km",
-              rangeVal
+              rangeVal,
             )}`}
             value={displayNum(rangeVal)}
             onChange={(e) => onChange("range_km", e.target.value)}
-            title={isPHEV ? "WLTP electric range (PHEV) (km)" : "WLTP electric range (km)"}
+            title={
+              isPHEV
+                ? "WLTP electric range (PHEV) (km)"
+                : "WLTP electric range (km)"
+            }
             min="0"
             step="1"
           />
@@ -298,7 +305,7 @@ export default function CarRow({
           type="number"
           className={`w-24 border px-1 text-right ${fieldColor(
             "acceleration_0_100",
-            car.acceleration_0_100
+            car.acceleration_0_100,
           )}`}
           value={car.acceleration_0_100 ?? ""}
           onChange={(e) => onChange("acceleration_0_100", e.target.value)}
@@ -313,7 +320,7 @@ export default function CarRow({
           type="number"
           className={`w-24 border px-1 text-right ${fieldColor(
             "trunk_size_litre",
-            car.trunk_size_litre
+            car.trunk_size_litre,
           )}`}
           value={car.trunk_size_litre ?? ""}
           onChange={(e) => onChange("trunk_size_litre", e.target.value)}
@@ -328,7 +335,7 @@ export default function CarRow({
           type="number"
           className={`w-24 border px-1 text-right ${fieldColor(
             "full_insurance_year",
-            car.full_insurance_year
+            car.full_insurance_year,
           )}`}
           value={car.full_insurance_year ?? ""}
           onChange={(e) => onChange("full_insurance_year", e.target.value)}
@@ -341,7 +348,7 @@ export default function CarRow({
           type="number"
           className={`w-24 border px-1 text-right ${fieldColor(
             "half_insurance_year",
-            car.half_insurance_year
+            car.half_insurance_year,
           )}`}
           value={car.half_insurance_year ?? ""}
           onChange={(e) => onChange("half_insurance_year", e.target.value)}
@@ -354,7 +361,7 @@ export default function CarRow({
           type="number"
           className={`w-24 border px-1 text-right ${fieldColor(
             "car_tax_year",
-            car.car_tax_year
+            car.car_tax_year,
           )}`}
           value={car.car_tax_year ?? ""}
           onChange={(e) => onChange("car_tax_year", e.target.value)}
@@ -367,7 +374,7 @@ export default function CarRow({
           type="number"
           className={`w-24 border px-1 text-right ${fieldColor(
             "repairs_year",
-            car.repairs_year
+            car.repairs_year,
           )}`}
           value={car.repairs_year ?? ""}
           onChange={(e) => onChange("repairs_year", e.target.value)}

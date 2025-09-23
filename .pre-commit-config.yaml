@@ -1,36 +1,35 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    rev: v0.6.7
     hooks:
       - id: ruff
-        args: ["--fix"]
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
 
   - repo: https://github.com/psf/black
     rev: 24.8.0
     hooks:
       - id: black
-        args: ["--line-length=100"]
 
-  # Frontend: eslint + prettier + typecheck
   - repo: local
     hooks:
       - id: eslint-frontend
         name: eslint (frontend)
-        entry: bash -lc 'cd frontend && npx eslint "src/**/*.{js,jsx,ts,tsx}"'
         language: system
         pass_filenames: false
-        types_or: [javascript, ts, tsx]
-        files: ^frontend/src/.*\.(js|jsx|ts|tsx)$
+        entry: bash -lc 'cd frontend && npm run -s lint'
+        types_or: [javascript, jsx, ts, tsx]
 
       - id: prettier-frontend
         name: prettier (frontend)
-        entry: bash -lc 'cd frontend && npx prettier --write .'
         language: system
         pass_filenames: false
-        files: ^frontend/.*
+        entry: bash -lc 'cd frontend && npm run -s format:check'
+        types_or: [javascript, jsx, ts, tsx, css, json, html, markdown, yaml]
 
       - id: tsc-frontend
         name: typecheck (frontend)
-        entry: bash -lc 'cd frontend && npx tsc --noEmit'
         language: system
         pass_filenames: false
+        entry: bash -lc 'cd frontend && npx tsc -p tsconfig.json --noEmit'
+        files: ^frontend/

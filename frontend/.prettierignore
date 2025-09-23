@@ -1,0 +1,17 @@
+# build artifacts
+dist/
+frontend/dist/
+build/
+coverage/
+playwright-report/
+test-results/
+
+# deps and virtual envs
+node_modules/
+.npm/
+.venv/
+venv/
+**/__pycache__/
+
+# misc
+*.min.js

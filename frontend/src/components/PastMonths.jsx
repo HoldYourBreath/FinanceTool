@@ -27,7 +27,8 @@ export default function PastMonths() {
         );
 
         // If a current month exists, take strictly earlier ones; else keep all as "past"
-        const pastMonths = currentIndex > -1 ? months.slice(0, currentIndex) : months;
+        const pastMonths =
+          currentIndex > -1 ? months.slice(0, currentIndex) : months;
         setMonthsData(pastMonths);
       } catch (err) {
         console.error("❌ Failed to fetch past months:", err);
@@ -128,7 +129,10 @@ export default function PastMonths() {
           (_, rowIndex) => {
             const rowMonths = monthsData.slice(rowIndex * 4, rowIndex * 4 + 4);
             return (
-              <div key={rowIndex} className="flex flex-wrap gap-4 justify-center">
+              <div
+                key={rowIndex}
+                className="flex flex-wrap gap-4 justify-center"
+              >
                 {rowMonths.map((month, idx) => {
                   const incomes = month?.incomes || [];
                   const expenses = month?.expenses || [];
@@ -140,8 +144,7 @@ export default function PastMonths() {
                   const expenseCategories = categorize(expenses, "expense");
 
                   const cardKey =
-                    month?.id ??
-                    `${month?.name || "month"}-${rowIndex}-${idx}`;
+                    month?.id ?? `${month?.name || "month"}-${rowIndex}-${idx}`;
 
                   return (
                     <div
@@ -203,27 +206,27 @@ export default function PastMonths() {
                         <div className="flex justify-between">
                           <span>Start:</span>
                           <span>
-                            {Number(
-                              month?.startingFunds || 0,
-                            ).toLocaleString("sv-SE")}{" "}
+                            {Number(month?.startingFunds || 0).toLocaleString(
+                              "sv-SE",
+                            )}{" "}
                             SEK
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>End:</span>
                           <span>
-                            {Number(
-                              month?.endingFunds || 0,
-                            ).toLocaleString("sv-SE")}{" "}
+                            {Number(month?.endingFunds || 0).toLocaleString(
+                              "sv-SE",
+                            )}{" "}
                             SEK
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Loan Remaining:</span>
                           <span>
-                            {Number(
-                              month?.loanRemaining || 0,
-                            ).toLocaleString("sv-SE")}{" "}
+                            {Number(month?.loanRemaining || 0).toLocaleString(
+                              "sv-SE",
+                            )}{" "}
                             SEK
                           </span>
                         </div>
@@ -251,10 +254,7 @@ function CategorySection({ title, categories, total, categoryColors }) {
         const list = items || [];
         if (!list.length) return null;
 
-        const subtotal = list.reduce(
-          (s, it) => s + Number(it?.amount || 0),
-          0,
-        );
+        const subtotal = list.reduce((s, it) => s + Number(it?.amount || 0), 0);
         const color = categoryColors?.[category] || "text-gray-700";
 
         return (
@@ -265,7 +265,9 @@ function CategorySection({ title, categories, total, categoryColors }) {
             {list.map((item, idx) => (
               <div key={idx} className="flex justify-between text-sm">
                 <span>{item?.name || item?.description}</span>
-                <span>{Number(item?.amount || 0).toLocaleString("sv-SE")} SEK</span>
+                <span>
+                  {Number(item?.amount || 0).toLocaleString("sv-SE")} SEK
+                </span>
               </div>
             ))}
           </div>

@@ -105,7 +105,9 @@ export default function Investments() {
                       step="0.01"
                       className={`${inputCls} w-48 text-right`}
                       value={row.value ?? ""}
-                      onChange={(e) => updateLocalCredit(row.id, e.target.value)}
+                      onChange={(e) =>
+                        updateLocalCredit(row.id, e.target.value)
+                      }
                       onBlur={(e) => saveCredit(row.id, e.target.value)}
                     />
                   ) : (
@@ -127,7 +129,9 @@ export default function Investments() {
         </h1>
 
         {investments.length === 0 ? (
-          <div className="text-center text-red-600">No investments available.</div>
+          <div className="text-center text-red-600">
+            No investments available.
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {investments.map((inv, index) => (

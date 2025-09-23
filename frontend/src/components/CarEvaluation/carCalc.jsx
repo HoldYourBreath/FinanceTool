@@ -6,7 +6,7 @@ const n = (v, d = 0) => {
 
 function elecSekKwh(prices) {
   const ore = n(prices.el_price_ore_kwh, 250);
-  const loss = 1 + n(prices.charging_loss_pct, 0.10);
+  const loss = 1 + n(prices.charging_loss_pct, 0.1);
   return (ore / 100) * loss;
 }
 
@@ -28,7 +28,8 @@ function energyYear(car, prices) {
     const batt = n(car.battery_capacity_kwh, 0);
     const evRange = batt > 0 && kwh100 > 0 ? (100 * batt) / kwh100 : 40;
     const evKmDay = Math.min(commute, evRange);
-    const evShare = yearlyKm > 0 ? Math.min(1, Math.max(0, (evKmDay * 22) / yearlyKm)) : 0.6;
+    const evShare =
+      yearlyKm > 0 ? Math.min(1, Math.max(0, (evKmDay * 22) / yearlyKm)) : 0.6;
     const evPart = evShare * kwh100 * el;
     const icePart = (1 - evShare) * l100 * bensin;
     return (yearlyKm / 100) * (evPart + icePart);
@@ -61,9 +62,18 @@ function recurringYear(car, prices) {
 }
 
 function residuals(car, purchase) {
-  const v3 = car.expected_value_after_3y != null ? n(car.expected_value_after_3y) : purchase * 0.55;
-  const v5 = car.expected_value_after_5y != null ? n(car.expected_value_after_5y) : purchase * 0.40;
-  const v8 = car.expected_value_after_8y != null ? n(car.expected_value_after_8y) : purchase * 0.25;
+  const v3 =
+    car.expected_value_after_3y != null
+      ? n(car.expected_value_after_3y)
+      : purchase * 0.55;
+  const v5 =
+    car.expected_value_after_5y != null
+      ? n(car.expected_value_after_5y)
+      : purchase * 0.4;
+  const v8 =
+    car.expected_value_after_8y != null
+      ? n(car.expected_value_after_8y)
+      : purchase * 0.25;
   return { v3, v5, v8 };
 }
 

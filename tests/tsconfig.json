@@ -5,7 +5,8 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
-    "types": ["node", "@playwright/test"]
+    "noEmit": true,
+    "types": ["node", "vite/client", "@playwright/test"]
   },
   "include": ["**/*.ts"]
 }

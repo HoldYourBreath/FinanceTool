@@ -1,5 +1,5 @@
 // src/components/MonthlyOverview.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import { fetchPlannedPurchases } from "../api/plannedPurchases";
 import FinanceChart from "./FinanceChart";
@@ -10,7 +10,7 @@ const hasWord = (text, word) =>
 
 const isChildcare = (s) =>
   /\b(day ?care|child ?care|childcare|preschool|förskola|dagis|barnomsorg)\b/i.test(
-    String(s || "")
+    String(s || ""),
   );
 
 const monthKey = (d) =>
@@ -107,7 +107,8 @@ const categorizeExpense = (expenses) => {
   return cats;
 };
 
-const sumAmounts = (items) => (items || []).reduce((s, it) => s + toNum(it?.amount), 0);
+const sumAmounts = (items) =>
+  (items || []).reduce((s, it) => s + toNum(it?.amount), 0);
 
 // Tailwind color map (ensure every category has a class so purge picks them)
 const categoryColors = {
@@ -131,7 +132,6 @@ export default function MonthlyOverview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-
     const controller = new AbortController();
     let canceled = false;
 
@@ -143,7 +143,8 @@ export default function MonthlyOverview() {
         const months = Array.isArray(res?.data) ? res.data : [];
 
         const currentIndex = months.findIndex((m) => m.is_current);
-        const futureMonths = currentIndex >= 0 ? months.slice(currentIndex) : months;
+        const futureMonths =
+          currentIndex >= 0 ? months.slice(currentIndex) : months;
 
         if (import.meta.env.DEV) {
           console.log("Fetched months:", months);
@@ -154,7 +155,8 @@ export default function MonthlyOverview() {
 
         // If you can, pass a signal to your fetchPlannedPurchases implementation
         const purchaseData = await fetchPlannedPurchases().catch(() => []);
-        if (!canceled) setPurchases(Array.isArray(purchaseData) ? purchaseData : []);
+        if (!canceled)
+          setPurchases(Array.isArray(purchaseData) ? purchaseData : []);
       } catch (err) {
         if (!controller.signal.aborted) {
           console.error("❌ Failed to fetch data:", err);
@@ -215,123 +217,158 @@ export default function MonthlyOverview() {
     <div data-testid="page-home" className="space-y-8">
       <FinanceChart data={chartData} />
 
-      {Array.from({ length: Math.ceil(monthsData.length / 4) }, (_, rowIndex) => {
-        const rowMonths = monthsData.slice(rowIndex * 4, rowIndex * 4 + 4);
-        return (
-          <div key={rowIndex} className="flex flex-wrap gap-4 justify-center">
-            {rowMonths.map((month) => {
-              const incomeCategories = categorizeIncome(month.incomes);
-              const expenseCategories = categorizeExpense(month.expenses);
+      {Array.from(
+        { length: Math.ceil(monthsData.length / 4) },
+        (_, rowIndex) => {
+          const rowMonths = monthsData.slice(rowIndex * 4, rowIndex * 4 + 4);
+          return (
+            <div key={rowIndex} className="flex flex-wrap gap-4 justify-center">
+              {rowMonths.map((month) => {
+                const incomeCategories = categorizeIncome(month.incomes);
+                const expenseCategories = categorizeExpense(month.expenses);
 
-              const totalIncome = sumAmounts(month.incomes);
-              const totalExpenses = sumAmounts(month.expenses);
-              const surplus = totalIncome - totalExpenses;
+                const totalIncome = sumAmounts(month.incomes);
+                const totalExpenses = sumAmounts(month.expenses);
+                const surplus = totalIncome - totalExpenses;
 
-              return (
-                <div
-                  key={month.id}
-                  className="w-[320px] border p-4 rounded-lg shadow space-y-4 bg-white"
-                >
-                  <h2 className="text-2xl font-bold text-blue-700">{month.name}</h2>
-
+                return (
                   <div
-                    className={`text-center font-bold text-white py-2 rounded ${
-                      surplus >= 0 ? "bg-green-500" : "bg-red-500"
-                    }`}
+                    key={month.id}
+                    className="w-[320px] border p-4 rounded-lg shadow space-y-4 bg-white"
                   >
-                    {surplus >= 0 ? "+" : "-"} {Math.abs(surplus).toLocaleString()} SEK
-                  </div>
+                    <h2 className="text-2xl font-bold text-blue-700">
+                      {month.name}
+                    </h2>
 
-                  {/* Incomes */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      💰 Income (Total {totalIncome.toLocaleString()} SEK)
-                    </h3>
-                    {Object.entries(incomeCategories).map(([category, items]) => {
-                      if (!items.length) return null;
-                      const color = categoryColors[category] || "text-gray-700";
-                      const total = sumAmounts(items);
-                      return (
-                        <div key={category} className="mb-2">
-                          <div className={`font-bold ${color}`}>
-                            {category} — {total.toLocaleString()} SEK
-                          </div>
-                          {items.map((inc, idx) => (
-                            <div key={idx} className="flex justify-between text-sm">
-                              <span>{inc.name}</span>
-                              <span>{toNum(inc.amount).toLocaleString()} SEK</span>
+                    <div
+                      className={`text-center font-bold text-white py-2 rounded ${
+                        surplus >= 0 ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    >
+                      {surplus >= 0 ? "+" : "-"}{" "}
+                      {Math.abs(surplus).toLocaleString()} SEK
+                    </div>
+
+                    {/* Incomes */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">
+                        💰 Income (Total {totalIncome.toLocaleString()} SEK)
+                      </h3>
+                      {Object.entries(incomeCategories).map(
+                        ([category, items]) => {
+                          if (!items.length) return null;
+                          const color =
+                            categoryColors[category] || "text-gray-700";
+                          const total = sumAmounts(items);
+                          return (
+                            <div key={category} className="mb-2">
+                              <div className={`font-bold ${color}`}>
+                                {category} — {total.toLocaleString()} SEK
+                              </div>
+                              {items.map((inc, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex justify-between text-sm"
+                                >
+                                  <span>{inc.name}</span>
+                                  <span>
+                                    {toNum(inc.amount).toLocaleString()} SEK
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+
+                    {/* Expenses */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">
+                        💸 Expenses (Total {totalExpenses.toLocaleString()} SEK)
+                      </h3>
+                      {Object.entries(expenseCategories).map(
+                        ([category, items]) => {
+                          if (!items.length) return null;
+                          const color =
+                            categoryColors[category] || "text-gray-700";
+                          const total = sumAmounts(items);
+                          return (
+                            <div key={category} className="mb-2">
+                              <div className={`font-bold ${color}`}>
+                                {category} — {total.toLocaleString()} SEK
+                              </div>
+                              {items.map((exp, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex justify-between text-sm"
+                                >
+                                  <span>{exp.description}</span>
+                                  <span>
+                                    - {toNum(exp.amount).toLocaleString()} SEK
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+
+                    {/* Loan Adjustments */}
+                    {Array.isArray(month.loanAdjustments) &&
+                      month.loanAdjustments.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          <h3 className="text-lg font-semibold text-green-700 flex items-center gap-2">
+                            🧮 Loan Adjustments
+                          </h3>
+                          {month.loanAdjustments.map((adj, idx) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between text-sm"
+                            >
+                              <span>{adj.name}</span>
+                              <span className="font-semibold">
+                                {toNum(adj.amount).toLocaleString("sv-SE")} SEK
+                              </span>
                             </div>
                           ))}
                         </div>
-                      );
-                    })}
-                  </div>
+                      )}
 
-                  {/* Expenses */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      💸 Expenses (Total {totalExpenses.toLocaleString()} SEK)
-                    </h3>
-                    {Object.entries(expenseCategories).map(([category, items]) => {
-                      if (!items.length) return null;
-                      const color = categoryColors[category] || "text-gray-700";
-                      const total = sumAmounts(items);
-                      return (
-                        <div key={category} className="mb-2">
-                          <div className={`font-bold ${color}`}>
-                            {category} — {total.toLocaleString()} SEK
-                          </div>
-                          {items.map((exp, idx) => (
-                            <div key={idx} className="flex justify-between text-sm">
-                              <span>{exp.description}</span>
-                              <span>- {toNum(exp.amount).toLocaleString()} SEK</span>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Loan Adjustments */}
-                  {Array.isArray(month.loanAdjustments) &&
-                    month.loanAdjustments.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <h3 className="text-lg font-semibold text-green-700 flex items-center gap-2">
-                          🧮 Loan Adjustments
-                        </h3>
-                        {month.loanAdjustments.map((adj, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span>{adj.name}</span>
-                            <span className="font-semibold">
-                              {toNum(adj.amount).toLocaleString("sv-SE")} SEK
-                            </span>
-                          </div>
-                        ))}
+                    {/* Funds */}
+                    <div className="mt-4 border-t pt-2 text-sm text-gray-700 space-y-1">
+                      <h3 className="text-base font-semibold flex items-center gap-2">
+                        💰 Funds
+                      </h3>
+                      <div className="flex justify-between">
+                        <span>Start:</span>
+                        <span>
+                          {toNum(month.startingFunds).toLocaleString("sv-SE")}{" "}
+                          SEK
+                        </span>
                       </div>
-                    )}
-
-                  {/* Funds */}
-                  <div className="mt-4 border-t pt-2 text-sm text-gray-700 space-y-1">
-                    <h3 className="text-base font-semibold flex items-center gap-2">💰 Funds</h3>
-                    <div className="flex justify-between">
-                      <span>Start:</span>
-                      <span>{toNum(month.startingFunds).toLocaleString("sv-SE")} SEK</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>End:</span>
-                      <span>{toNum(month.endingFunds).toLocaleString("sv-SE")} SEK</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Loan Remaining:</span>
-                      <span>{toNum(month.loanRemaining).toLocaleString("sv-SE")} SEK</span>
+                      <div className="flex justify-between">
+                        <span>End:</span>
+                        <span>
+                          {toNum(month.endingFunds).toLocaleString("sv-SE")} SEK
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Loan Remaining:</span>
+                        <span>
+                          {toNum(month.loanRemaining).toLocaleString("sv-SE")}{" "}
+                          SEK
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
+                );
+              })}
+            </div>
+          );
+        },
+      )}
     </div>
   );
 }

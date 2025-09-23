@@ -10,7 +10,8 @@ import { normType } from "../../utils/normalizers"; // "ev" | "phev" | "diesel" 
 
 export default function CarEvaluationPage() {
   const { prices, updatePrice, savingPrices, loadPrices } = usePrices();
-  const { cars, setCars, filters, setFilters, loadCars, catChoices } = useCars();
+  const { cars, setCars, filters, setFilters, loadCars, catChoices } =
+    useCars();
 
   const [sortBy, setSortBy] = useState("tco_per_month_8y");
   const [sortDir, setSortDir] = useState("asc");
@@ -39,7 +40,8 @@ export default function CarEvaluationPage() {
       if (q && !(c.model || "").toLowerCase().includes(q)) return false;
       if (yMin !== null && (c.year ?? 0) < yMin) return false;
       if (yMax !== null && (c.year ?? 9999) > yMax) return false;
-      if (typeSet.size && !typeSet.has(normType(c.type_of_vehicle))) return false;
+      if (typeSet.size && !typeSet.has(normType(c.type_of_vehicle)))
+        return false;
       if (bodySet.size && !bodySet.has(c.body_style)) return false;
       if (segSet.size && !segSet.has(c.eu_segment)) return false;
       if (suvSet.size && !suvSet.has(c.suv_tier)) return false;
@@ -51,7 +53,11 @@ export default function CarEvaluationPage() {
   const sortedCars = useMemo(() => {
     const getVal = (car, key) => {
       const v = car[key];
-      return Number.isFinite(v) ? v : typeof v === "string" ? v.toLowerCase() : 0;
+      return Number.isFinite(v)
+        ? v
+        : typeof v === "string"
+          ? v.toLowerCase()
+          : 0;
     };
     const list = [...filteredCars];
     list.sort((a, b) => {

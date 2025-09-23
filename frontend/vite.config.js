@@ -6,7 +6,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
   // Helper: first non-empty string
-  const pick = (...vals) => vals.find((v) => typeof v === "string" && v.trim()) || "";
+  const pick = (...vals) =>
+    vals.find((v) => typeof v === "string" && v.trim()) || "";
 
   // Default backend per mode (your demo backend runs on :5001)
   const fallbackPort = mode === "demo" ? "5001" : "5000";
@@ -17,7 +18,7 @@ export default defineConfig(({ mode }) => {
     env.VITE_API_BASE_URL,
     process.env.VITE_API_URL,
     env.VITE_API_URL,
-    defaultUrl
+    defaultUrl,
   ).replace(/\/+$/, ""); // no trailing slash
 
   console.log(`[Vite] mode=${mode} → proxy /api -> ${BACKEND_URL}`);

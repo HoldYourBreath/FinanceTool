@@ -11,8 +11,8 @@ const num = (v, d = 0) => {
 // ─── Energy / fuel ────────────────────────────────────────────────────────────
 export function energyFuelCostYear(car = {}, prices = {}) {
   const yearlyKm = num(prices.yearly_km, 18000);
-  const kwh100   = num(car.consumption_kwh_per_100km, 0);
-  const l100     = num(car.consumption_l_per_100km, 0);
+  const kwh100 = num(car.consumption_kwh_per_100km, 0);
+  const l100 = num(car.consumption_l_per_100km, 0);
 
   // Backend may apply charging loss; on FE we stick to öre→SEK for responsiveness
   const elecSekPerKwh = num(prices.el_price_ore_kwh, 250) / 100; // öre → SEK
@@ -22,18 +22,21 @@ export function energyFuelCostYear(car = {}, prices = {}) {
   if (yearlyKm <= 0) return 0;
 
   const t = normType(car.type_of_vehicle);
-  if (t === "ev")     return (yearlyKm / 100) * kwh100 * elecSekPerKwh;
-  if (t === "diesel") return (yearlyKm / 100) * l100   * dieselSekL;
-  if (t === "bensin") return (yearlyKm / 100) * l100   * bensinSekL;
+  if (t === "ev") return (yearlyKm / 100) * kwh100 * elecSekPerKwh;
+  if (t === "diesel") return (yearlyKm / 100) * l100 * dieselSekL;
+  if (t === "bensin") return (yearlyKm / 100) * l100 * bensinSekL;
   if (t === "phev") {
     // crude PHEV split based on commute vs. electric range
     const daily = num(prices.daily_commute_km, 30);
     const battKwh = num(car.battery_capacity_kwh, 0);
     const evRangeKm = battKwh > 0 && kwh100 > 0 ? (100 * battKwh) / kwh100 : 40;
     const evKmPerDay = Math.min(daily, evRangeKm);
-    const evShare = yearlyKm > 0 ? Math.min(1, Math.max(0, (evKmPerDay * 22) / yearlyKm)) : 0.6;
+    const evShare =
+      yearlyKm > 0
+        ? Math.min(1, Math.max(0, (evKmPerDay * 22) / yearlyKm))
+        : 0.6;
 
-    const evPart  = evShare     * kwh100 * elecSekPerKwh;
+    const evPart = evShare * kwh100 * elecSekPerKwh;
     const icePart = (1 - evShare) * l100 * bensinSekL;
     return (yearlyKm / 100) * (evPart + icePart);
   }
@@ -62,7 +65,12 @@ function recurringCostYear(car = {}, prices = {}) {
 }
 
 // ─── Financing (interest-only added to TCO) ──────────────────────────────────
-export function financingTotals(purchasePrice, downpaymentSek, interestRatePct, years) {
+export function financingTotals(
+  purchasePrice,
+  downpaymentSek,
+  interestRatePct,
+  years,
+) {
   const principal = Math.max(num(purchasePrice, 0) - num(downpaymentSek, 0), 0);
   const n = Math.max(1, num(years, 0) * 12);
   const rMonthly = Math.max(0, num(interestRatePct, 0)) / 100 / 12;
@@ -80,7 +88,7 @@ export function financingTotals(purchasePrice, downpaymentSek, interestRatePct, 
 // ─── Depreciation via residual values ────────────────────────────────────────
 function residuals(car, purchase) {
   const v3 = car.expected_value_after_3y ?? purchase * 0.55; // ~45% dep after 3y
-  const v5 = car.expected_value_after_5y ?? purchase * 0.40; // ~60% after 5y
+  const v5 = car.expected_value_after_5y ?? purchase * 0.4; // ~60% after 5y
   const v8 = car.expected_value_after_8y ?? purchase * 0.25; // ~75% after 8y
   return { v3: num(v3, 0), v5: num(v5, 0), v8: num(v8, 0) };
 }
@@ -91,9 +99,24 @@ export function recalcForCar(car = {}, prices = {}) {
   const recurY = recurringCostYear(car, prices);
 
   // Only interest is added; principal is captured by depreciation
-  const fin3 = financingTotals(purchase, prices.downpayment_sek, prices.interest_rate_pct, 3).interestTotal;
-  const fin5 = financingTotals(purchase, prices.downpayment_sek, prices.interest_rate_pct, 5).interestTotal;
-  const fin8 = financingTotals(purchase, prices.downpayment_sek, prices.interest_rate_pct, 8).interestTotal;
+  const fin3 = financingTotals(
+    purchase,
+    prices.downpayment_sek,
+    prices.interest_rate_pct,
+    3,
+  ).interestTotal;
+  const fin5 = financingTotals(
+    purchase,
+    prices.downpayment_sek,
+    prices.interest_rate_pct,
+    5,
+  ).interestTotal;
+  const fin8 = financingTotals(
+    purchase,
+    prices.downpayment_sek,
+    prices.interest_rate_pct,
+    8,
+  ).interestTotal;
 
   const { v3, v5, v8 } = residuals(car, purchase);
   const dep3 = Math.max(0, purchase - v3);
@@ -109,7 +132,7 @@ export function recalcForCar(car = {}, prices = {}) {
 
     // building blocks
     energy_fuel_year: Math.round(energyFuelCostYear(car, prices)),
-    recurring_year:   Math.round(recurY),
+    recurring_year: Math.round(recurY),
 
     // totals
     tco_total_3y: Math.round(tcoTotal3),

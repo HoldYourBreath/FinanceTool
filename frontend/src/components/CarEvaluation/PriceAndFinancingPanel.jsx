@@ -19,7 +19,11 @@ export default function EnergyFuelFinancingRow({ prices = {}, updatePrice }) {
   };
 
   return (
-    <section className="-mx-4 px-4 mb-3" data-testid="energy-bar" aria-label="Energy, Fuel & Financing">
+    <section
+      className="-mx-4 px-4 mb-3"
+      data-testid="energy-bar"
+      aria-label="Energy, Fuel & Financing"
+    >
       {/* One line on xl; wraps below */}
       <div className="grid gap-4 items-end grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         <Field
@@ -59,7 +63,9 @@ export default function EnergyFuelFinancingRow({ prices = {}, updatePrice }) {
           label="Yearly driving (km)"
           placeholder="18000"
           value={prices.yearly_km ?? F.yearly_km}
-          onCommit={(n) => updatePrice({ yearly_km: Math.max(0, Math.round(n)) })}
+          onCommit={(n) =>
+            updatePrice({ yearly_km: Math.max(0, Math.round(n)) })
+          }
           step="1"
           inputCls={inputCls}
           labelCls={labelCls}
@@ -70,7 +76,9 @@ export default function EnergyFuelFinancingRow({ prices = {}, updatePrice }) {
           label="Daily commute (km)"
           placeholder="30"
           value={prices.daily_commute_km ?? F.daily_commute_km}
-          onCommit={(n) => updatePrice({ daily_commute_km: Math.max(0, Math.round(n)) })}
+          onCommit={(n) =>
+            updatePrice({ daily_commute_km: Math.max(0, Math.round(n)) })
+          }
           step="1"
           inputCls={inputCls}
           labelCls={labelCls}
@@ -82,7 +90,9 @@ export default function EnergyFuelFinancingRow({ prices = {}, updatePrice }) {
           label="Downpayment (SEK)"
           placeholder="0"
           value={prices.downpayment_sek ?? F.downpayment_sek}
-          onCommit={(n) => updatePrice({ downpayment_sek: Math.max(0, Math.round(n)) })}
+          onCommit={(n) =>
+            updatePrice({ downpayment_sek: Math.max(0, Math.round(n)) })
+          }
           step="1"
           inputCls={inputCls}
           labelCls={labelCls}
@@ -135,8 +145,8 @@ function Field({
       </label>
       <input
         id={id}
-        type="text"            // allow commas and partial decimals
-        inputMode="decimal"    // numeric keyboard on mobile
+        type="text" // allow commas and partial decimals
+        inputMode="decimal" // numeric keyboard on mobile
         autoComplete="off"
         className={inputCls}
         value={raw}

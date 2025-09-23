@@ -23,7 +23,7 @@ export const fieldColor = (field, value) => {
 
     // DC charge time 10→80 min — lower is better
     case "dc_time_min_10_80":
-      if (v === 0) return "";         // no value → no color
+      if (v === 0) return ""; // no value → no color
       if (v <= 20) return COLORS.great;
       if (v <= 30) return COLORS.good;
       if (v <= 40) return COLORS.ok;
@@ -89,7 +89,6 @@ export const fieldColor = (field, value) => {
   }
 };
 
-
 export function NA({ hint }) {
   return (
     <span
@@ -115,7 +114,11 @@ export function NA({ hint }) {
 const COMMUTE_DAYS_PER_MONTH = 22;
 
 function num(x, d = 0) {
-  const n = Number(String(x ?? "").replace(",", ".").trim());
+  const n = Number(
+    String(x ?? "")
+      .replace(",", ".")
+      .trim(),
+  );
   return Number.isFinite(n) ? n : d;
 }
 
@@ -152,7 +155,7 @@ function lPer100(car) {
 function normalizeSettings(settings) {
   const elOre = num(
     settings?.el_price_ore_kwh ?? settings?.electricity_price_ore_kwh,
-    250
+    250,
   );
   const elecSEK = elOre / 100; // 250 öre => 2.50 SEK/kWh
   return {
@@ -201,11 +204,11 @@ function yearlyTireCost(car, settings) {
 
   const lifeSummer = num(
     car?.summer_tire_life_km ?? ps?.summer_tire_life_km,
-    40000
+    40000,
   );
   const lifeWinter = num(
     car?.winter_tire_life_km ?? ps?.winter_tire_life_km,
-    30000
+    30000,
   );
 
   const cpkSummer = lifeSummer > 0 ? (priceSummer / lifeSummer) * wearMult : 0;
@@ -277,7 +280,8 @@ export function monthlyConsumptionCost(car, kmPerMonth, settings) {
   const l100 = lPer100(car) ?? 0;
   if (!l100) return 0;
 
-  const sekPerLitre = type === "diesel" ? dieselSekL : bensinSekL || dieselSekL || 0;
+  const sekPerLitre =
+    type === "diesel" ? dieselSekL : bensinSekL || dieselSekL || 0;
   if (!sekPerLitre) return 0;
 
   return (km / 100) * l100 * sekPerLitre;
@@ -316,10 +320,10 @@ export function tco(car, settings, years = 3) {
     years <= 3
       ? ps.dep3yPct
       : years <= 5
-      ? ps.dep5yPct
-      : years <= 8
-      ? ps.dep8yPct
-      : Math.min(0.9, ps.dep8yPct + 0.03 * (years - 8));
+        ? ps.dep5yPct
+        : years <= 8
+          ? ps.dep8yPct
+          : Math.min(0.9, ps.dep8yPct + 0.03 * (years - 8));
 
   const dep = price * depPct;
   const recurring = yearlyRecurringCost(car, ps);

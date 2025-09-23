@@ -32,9 +32,12 @@ const normalizeServer = (d = {}) => ({
   diesel_price_sek_litre: toNum(d.diesel_price_sek_litre) ?? toNum(d.diesel),
 
   // driving
-  yearly_km: toNum(d.yearly_km) ?? toNum(d.yearlyKm) ?? toNum(d.yearly_driving_km),
+  yearly_km:
+    toNum(d.yearly_km) ?? toNum(d.yearlyKm) ?? toNum(d.yearly_driving_km),
   daily_commute_km:
-    toNum(d.daily_commute_km) ?? toNum(d.daily_commute) ?? toNum(d.dailyCommuteKm),
+    toNum(d.daily_commute_km) ??
+    toNum(d.daily_commute) ??
+    toNum(d.dailyCommuteKm),
 
   // financing
   downpayment_sek:
@@ -43,9 +46,7 @@ const normalizeServer = (d = {}) => ({
     toNum(d.downpayment) ??
     toNum(d.downPayment),
   interest_rate_pct:
-    toNum(d.interest_rate_pct) ??
-    toNum(d.interestRatePct) ??
-    toNum(d.interest),
+    toNum(d.interest_rate_pct) ?? toNum(d.interestRatePct) ?? toNum(d.interest),
 });
 
 const coerceNumbers = (obj = {}) => ({
@@ -83,7 +84,9 @@ export default function usePrices(debounceMs = 500) {
     }
   })();
 
-  const [prices, setPrices] = useState(() => mergeSettings({ saved: initialSaved }));
+  const [prices, setPrices] = useState(() =>
+    mergeSettings({ saved: initialSaved }),
+  );
   const [savingPrices, setSavingPrices] = useState(false);
   const timerRef = useRef(null);
 

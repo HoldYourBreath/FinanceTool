@@ -18,11 +18,9 @@ const fromNode =
   null;
 
 // Final backend origin (no trailing slash)
-const BACKEND =
-  String(fromWindow || fromVite || fromNode || "http://127.0.0.1:5000").replace(
-    /\/$/,
-    ""
-  );
+const BACKEND = String(
+  fromWindow || fromVite || fromNode || "http://127.0.0.1:5000",
+).replace(/\/$/, "");
 
 // Prefer same-origin + Vite proxy during dev unless explicitly overridden
 const useSameOrigin = DEV && !fromWindow && !fromVite && !fromNode;
@@ -55,7 +53,7 @@ api.interceptors.request.use((config) => {
 
 if (typeof window !== "undefined") {
   console.log(
-    `[api] base=${api.defaults.baseURL || "(same-origin via Vite proxy)"}`
+    `[api] base=${api.defaults.baseURL || "(same-origin via Vite proxy)"}`,
   );
 }
 

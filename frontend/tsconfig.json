@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src",
+    "index.html",
+    "vite.config.*",
+    "eslint.config.*",
+    "tailwind.config.*",
+    "postcss.config.*"
+  ]
+}
