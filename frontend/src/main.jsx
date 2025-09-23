@@ -1,4 +1,5 @@
 // src/main.jsx
+import "./sentry.ts";
 import "./api/intercept-all-axios";
 import "./index.css";
 import React from "react";

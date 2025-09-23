@@ -38,6 +38,7 @@
   },
   "keywords": [],
   "dependencies": {
+    "@sentry/react": "^10.14.0",
     "axios": "^1.10.0",
     "lucide-react": "^0.542.0",
     "papaparse": "^5.5.3",
@@ -49,7 +50,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.54.2",
+    "@sentry/cli": "^2.55.0",
+    "@sentry/vite-plugin": "^4.3.0",
     "@types/node": "^24.3.0",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.21",
