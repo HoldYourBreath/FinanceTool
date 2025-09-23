@@ -1,35 +1,60 @@
 repos:
+  # --- Python: Ruff (lint only; Black is the formatter) ---
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.7
+    rev: v0.6.9
     hooks:
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-      - id: ruff-format
+        name: ruff (lint)
+        args: [--fix]
+        files: '^backend/.*\.py$'
 
+  # --- Python: Black (formatter) ---
   - repo: https://github.com/psf/black
     rev: 24.8.0
     hooks:
       - id: black
+        name: black (backend)
+        args: [--config=pyproject.toml]
+        files: '^backend/.*\.py$'
 
+  # --- Frontend: self-contained Node hooks (no system eslint/prettier needed) ---
   - repo: local
     hooks:
       - id: eslint-frontend
         name: eslint (frontend)
-        language: system
-        pass_filenames: false
-        entry: bash -lc 'cd frontend && npm run -s lint'
-        types_or: [javascript, jsx, ts, tsx]
+        language: node
+        entry: eslint --max-warnings=0
+        pass_filenames: true
+        files: '^frontend/.*\.(ts|tsx|js|jsx)$'
+        exclude: '^frontend/(dist|build|node_modules)/'
+        additional_dependencies:
+          - 'eslint@^9'
+          - '@eslint/js@^9'
+          - 'eslint-plugin-react@^7'
+          - 'eslint-plugin-react-hooks@^4'
+          - '@typescript-eslint/parser@^8'
+          - '@typescript-eslint/eslint-plugin@^8'
 
       - id: prettier-frontend
         name: prettier (frontend)
-        language: system
-        pass_filenames: false
-        entry: bash -lc 'cd frontend && npm run -s format:check'
-        types_or: [javascript, jsx, ts, tsx, css, json, html, markdown, yaml]
+        language: node
+        entry: prettier --check
+        pass_filenames: true
+        files: '^frontend/.*\.(ts|tsx|js|jsx|json|css|html|md|yaml|yml)$'
+        exclude: '^frontend/(dist|build|node_modules)/|^playwright-report/'
+        additional_dependencies:
+          - 'prettier@^3'
 
       - id: tsc-frontend
         name: typecheck (frontend)
-        language: system
+        language: node
+        entry: tsc -p tsconfig.json --noEmit
         pass_filenames: false
-        entry: bash -lc 'cd frontend && npx tsc -p tsconfig.json --noEmit'
-        files: ^frontend/
+        files: '^(frontend/|tsconfig\.json)$'
+        additional_dependencies:
+          - 'typescript@~5.6'
+          - '@types/node@^20'
+          - '@types/react@^18'
+          - '@types/react-dom@^18'
+          - 'vite@^5'
+          - '@playwright/test@^1.47'
