@@ -1,5 +1,5 @@
 repos:
-  # --- Python: Ruff (lint only; Black is the formatter) ---
+  # --- Python: Ruff (lint) ---
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.9
     hooks:
@@ -8,25 +8,26 @@ repos:
         args: [--fix]
         files: '^backend/.*\.py$'
 
-  # --- Python: Black (formatter) ---
+  # --- Python: Black (use the backend config path) ---
   - repo: https://github.com/psf/black
     rev: 24.8.0
     hooks:
       - id: black
         name: black (backend)
-        args: [--config=pyproject.toml]
+        args: ['--config=backend/pyproject.toml']
         files: '^backend/.*\.py$'
 
-  # --- Frontend: self-contained Node hooks (no system eslint/prettier needed) ---
+  # --- Frontend: eslint, prettier, tsc ---
+  # Use node-managed hooks so CI doesn’t need your repo’s node_modules
   - repo: local
     hooks:
       - id: eslint-frontend
         name: eslint (frontend)
         language: node
-        entry: eslint --max-warnings=0
+        entry: eslint --max-warnings=0 --config frontend/eslint.config.js
         pass_filenames: true
         files: '^frontend/.*\.(ts|tsx|js|jsx)$'
-        exclude: '^frontend/(dist|build|node_modules)/'
+        exclude: '^frontend/(dist|build|node_modules)/|^playwright-report/'
         additional_dependencies:
           - 'eslint@^9'
           - '@eslint/js@^9'
@@ -48,11 +49,11 @@ repos:
       - id: tsc-frontend
         name: typecheck (frontend)
         language: node
-        entry: tsc -p tsconfig.json --noEmit
+        entry: tsc -p frontend/tsconfig.json --noEmit
         pass_filenames: false
-        files: '^(frontend/|tsconfig\.json)$'
+        files: '^frontend/'
         additional_dependencies:
-          - 'typescript@~5.6'
+          - typescript@~5.6
           - '@types/node@^20'
           - '@types/react@^18'
           - '@types/react-dom@^18'

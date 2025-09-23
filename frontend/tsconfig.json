@@ -10,5 +10,13 @@
     "eslint.config.*",
     "tailwind.config.*",
     "postcss.config.*"
+  ],
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "../tests",
+    "../playwright.config.*",
+    "../e2e"
   ]
 }
