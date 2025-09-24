@@ -309,7 +309,8 @@ jobs:
           done
           if ! curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
             echo "---- vite.log ----"; cat vite.log || true
-            echo "---- node processes ----"; ps -ef | grep -E "sirv|serve" | grep -v grep || true
+            echo "---- node processes ----"
+            pgrep -a -f "sirv|serve" || true
             exit 1
           fi
 
