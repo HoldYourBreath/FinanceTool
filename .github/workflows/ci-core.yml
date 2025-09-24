@@ -201,14 +201,14 @@ jobs:
       - name: Download dist
         uses: actions/download-artifact@v4
         with:
-          name: frontend-dist
-        # default extraction path: ./frontend-dist
+            name: frontend-dist
+            path: frontend-dist
 
       - name: Run Lighthouse (staticDistDir)
         env:
-          LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
+            LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
         run: |
-          npx --yes @lhci/cli autorun \
+            npx --yes @lhci/cli autorun \
             --collect.staticDistDir=frontend-dist \
             --upload.target=temporary-public-storage \
             --config=./lighthouserc.json || echo "LHCI non-zero exit tolerated"
@@ -292,27 +292,37 @@ jobs:
       - name: Download dist
         uses: actions/download-artifact@v4
         with:
-          name: frontend-dist
+            name: frontend-dist
+            path: frontend-dist   # ← ensure this directory exists/populates
+
+      - name: Verify dist contents
+        run: |
+            set -euo pipefail
+            echo "Tree of downloaded dist:"
+            ls -la frontend-dist || true
+            test -e frontend-dist/index.html || {
+            echo "Expected frontend-dist/index.html not found"
+            exit 1
+            }
 
       - name: Serve SPA
         run: |
-          set -euo pipefail
-          PORT=5173
-          ROOT="frontend-dist"
-          (npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 &) || true
-          for attempt in $(seq 1 60); do
+            set -euo pipefail
+            PORT=5173
+            ROOT="frontend-dist"
+            (npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 &) || true
+            for attempt in $(seq 1 60); do
             if curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
-              echo "Frontend is up (attempt ${attempt}/60)"
-              break
+                echo "Frontend is up (attempt ${attempt}/60)"
+                break
             fi
             sleep 1
-          done
-          if ! curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+            done
+            if ! curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
             echo "---- vite.log ----"; cat vite.log || true
-            echo "---- node processes ----"
-            pgrep -a -f "sirv|serve" || true
+            echo "---- node processes ----"; pgrep -a -f "sirv|serve" || true
             exit 1
-          fi
+            fi
 
       - uses: actions/setup-node@v4
         with:
