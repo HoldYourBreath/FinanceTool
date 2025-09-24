@@ -99,7 +99,7 @@ jobs:
           else
             echo "No tsconfig.json; skipping tsc."
           fi
-          
+
   workflows-lint:
     name: Lint workflows (actionlint)
     runs-on: ubuntu-latest
@@ -202,14 +202,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
-          path: frontend/dist
+        # keep the default extraction path (./frontend-dist) to avoid conflicts
 
       - name: Run Lighthouse (staticDistDir)
         env:
           LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
         run: |
           npx --yes @lhci/cli autorun \
-            --collect.staticDistDir=frontend/dist \
+            --collect.staticDistDir=frontend-dist \
             --upload.target=temporary-public-storage \
             --config=./lighthouserc.json || echo "LHCI non-zero exit tolerated"
 
@@ -260,20 +260,27 @@ jobs:
           SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
         run: |
           nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
-          for i in {1..90}; do
-            curl -fsS http://127.0.0.1:5000/api/health >/dev/null && { echo "Backend is up!"; break; }
+          for attempt in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:5000/api/health >/dev/null; then
+              echo "Backend is up! (attempt ${attempt}/90)"
+              break
+            fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:5000/api/health >/dev/null || { echo "---- backend.log ----"; tail -n +1 backend.log || true; exit 1; }
+          if ! curl -fsS http://127.0.0.1:5000/api/health >/dev/null; then
+            echo "---- backend.log ----"
+            tail -n +1 backend.log || true
+            exit 1
+          fi
 
       - name: Stabilize pricing + warm caches
         run: |
           set -euo pipefail
           base='http://127.0.0.1:5000'
           curl -fsS -X POST "$base/api/settings/prices" -H 'content-type: application/json' --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' >/dev/null
-          for i in {1..50}; do
+          for attempt in $(seq 1 50); do
             got=$(curl -fsS "$base/api/settings/prices" | tr -d ' \n\r\t')
-            echo "prices: $got"
+            echo "prices (attempt ${attempt}/50): $got"
             if echo "$got" | grep -q '"interest_rate_pct":5' && echo "$got" | grep -q '"downpayment_sek":0'; then
               break
             fi
@@ -286,19 +293,25 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
-          path: frontend/dist
 
       - name: Serve SPA
         run: |
           set -euo pipefail
           PORT=5173
-          ROOT="frontend/dist"
+          ROOT="frontend-dist"
           (npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 &) || true
-          for i in {1..60}; do
-            curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1 && { echo "Frontend is up"; break; }
+          for attempt in $(seq 1 60); do
+            if curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+              echo "Frontend is up (attempt ${attempt}/60)"
+              break
+            fi
             sleep 1
           done
-          curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1 || { echo "---- vite.log ----"; cat vite.log || true; exit 1; }
+          if ! curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
+            echo "---- vite.log ----"; cat vite.log || true
+            echo "---- node processes ----"; ps -ef | grep -E "sirv|serve" | grep -v grep || true
+            exit 1
+          fi
 
       - uses: actions/setup-node@v4
         with:
