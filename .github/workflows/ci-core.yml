@@ -54,14 +54,10 @@ jobs:
 
       - name: Install frontend deps (for hooks)
         working-directory: frontend
-        run: |
-          if [ -f package.json ]; then
-            npm ci --no-audit --no-fund
-          fi
+        run: npm ci --no-audit --no-fund
 
       - name: Run pre-commit
         run: |
-          set -euo pipefail
           python -m pip install -U pip pre-commit
           pre-commit --version
           pre-commit install-hooks
@@ -73,6 +69,7 @@ jobs:
     needs: pre-commit
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -164,18 +161,7 @@ jobs:
 
       - name: Install deps
         working-directory: frontend
-        run: |
-          set -e
-          npm ci --no-audit --no-fund || {
-            echo "Lockfile out of sync → regenerating…"
-            rm -f package-lock.json
-            npm install --package-lock-only --no-audit --no-fund
-            npm ci --no-audit --no-fund || {
-              echo "Fallback to npm install (non-strict)"
-              rm -rf node_modules
-              npm install --no-audit --no-fund
-            }
-          }
+        run: scripts/ci/install_frontend.sh
 
       - name: Build
         working-directory: frontend
@@ -201,17 +187,13 @@ jobs:
       - name: Download dist
         uses: actions/download-artifact@v4
         with:
-            name: frontend-dist
-            path: frontend-dist
+          name: frontend-dist
+          path: frontend-dist
 
       - name: Run Lighthouse (staticDistDir)
         env:
-            LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
-        run: |
-            npx --yes @lhci/cli autorun \
-            --collect.staticDistDir=frontend-dist \
-            --upload.target=temporary-public-storage \
-            --config=./lighthouserc.json || echo "LHCI non-zero exit tolerated"
+          LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
+        run: scripts/ci/run_lhci.sh frontend-dist
 
   e2e:
     name: E2E (Playwright)
@@ -240,17 +222,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
           SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
           DATABASE_URL: sqlite:///ci.db
-        run: |
-          python - <<'PY'
-          import os
-          os.environ.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///ci.db")
-          from backend.app import create_app
-          from backend.models.models import db
-          app = create_app()
-          with app.app_context():
-              db.create_all()
-              print("✅ DB ready")
-          PY
+        run: python scripts/ci/init_db.py
 
       - name: Start backend & wait
         env:
@@ -258,71 +230,19 @@ jobs:
           FLASK_APP: backend.app:create_app
           FLASK_DEBUG: "0"
           SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
-        run: |
-          nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
-          for attempt in $(seq 1 90); do
-            if curl -fsS http://127.0.0.1:5000/api/health >/dev/null; then
-              echo "Backend is up! (attempt ${attempt}/90)"
-              break
-            fi
-            sleep 1
-          done
-          if ! curl -fsS http://127.0.0.1:5000/api/health >/dev/null; then
-            echo "---- backend.log ----"
-            tail -n +1 backend.log || true
-            exit 1
-          fi
+        run: scripts/ci/start_backend.sh 5000 http://127.0.0.1:5000/api/health
 
       - name: Stabilize pricing + warm caches
-        run: |
-          set -euo pipefail
-          base='http://127.0.0.1:5000'
-          curl -fsS -X POST "$base/api/settings/prices" -H 'content-type: application/json' --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' >/dev/null
-          for attempt in $(seq 1 50); do
-            got=$(curl -fsS "$base/api/settings/prices" | tr -d ' \n\r\t')
-            echo "prices (attempt ${attempt}/50): $got"
-            if echo "$got" | grep -q '"interest_rate_pct":5' && echo "$got" | grep -q '"downpayment_sek":0'; then
-              break
-            fi
-            sleep 0.1
-          done
-          curl -fsS -X POST "$base/api/cars/update" || true
-          curl -fsS "$base/api/cars?ts=$(date +%s%N)" >/dev/null
+        run: scripts/ci/warm_backend.sh http://127.0.0.1:5000
 
       - name: Download dist
         uses: actions/download-artifact@v4
         with:
-            name: frontend-dist
-            path: frontend-dist   # ← ensure this directory exists/populates
-
-      - name: Verify dist contents
-        run: |
-            set -euo pipefail
-            echo "Tree of downloaded dist:"
-            ls -la frontend-dist || true
-            test -e frontend-dist/index.html || {
-            echo "Expected frontend-dist/index.html not found"
-            exit 1
-            }
+          name: frontend-dist
+          path: frontend-dist
 
       - name: Serve SPA
-        run: |
-            set -euo pipefail
-            PORT=5173
-            ROOT="frontend-dist"
-            (npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 &) || true
-            for attempt in $(seq 1 60); do
-            if curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
-                echo "Frontend is up (attempt ${attempt}/60)"
-                break
-            fi
-            sleep 1
-            done
-            if ! curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
-            echo "---- vite.log ----"; cat vite.log || true
-            echo "---- node processes ----"; pgrep -a -f "sirv|serve" || true
-            exit 1
-            fi
+        run: scripts/ci/serve_spa.sh frontend-dist 5173
 
       - uses: actions/setup-node@v4
         with:
