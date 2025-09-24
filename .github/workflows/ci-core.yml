@@ -161,9 +161,11 @@ jobs:
         working-directory: frontend
         run: npm i --package-lock-only
 
-      - name: Install deps
-        working-directory: frontend
-        run: scripts/ci/install_frontend.sh
+      - name: Ensure exec bit
+        run: chmod +x scripts/ci/*.sh
+
+      - name: Install deps (frontend)
+        run: bash scripts/ci/install_frontend.sh frontend
 
       - name: Build
         working-directory: frontend

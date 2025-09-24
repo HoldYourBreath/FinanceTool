@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck shell=bash
 set -euo pipefail
 
 DIR="${1:-frontend}"
@@ -15,3 +14,4 @@ npm ci --no-audit --no-fund || {
     npm install --no-audit --no-fund
   }
 }
+
