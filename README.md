@@ -14,16 +14,6 @@ A personal finance dashboard built with **Flask** (Python backend) and **React**
 
 ---
 
-## 📸 Screenshots
-
-### Dashboard Overview  
-![Monthly Overview Screenshot](./docs/images/monthly-overview.png)
-
-### Spending Planner  
-![Spending Planner Screenshot](./docs/images/spending-planner.png)
-
----
-
 ## 🛠 Technologies Used
 
 - **Frontend**: React, Vite, Tailwind CSS, Recharts
