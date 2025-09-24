@@ -76,9 +76,11 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install deps
-        working-directory: frontend
-        run: npm ci --no-audit --no-fund
+      - name: Make CI scripts executable
+        run: chmod +x scripts/ci/*.sh
+
+      - name: Install deps (frontend)
+        run: bash scripts/ci/install_frontend.sh frontend
 
       - name: ESLint (strict)
         working-directory: frontend

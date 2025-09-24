@@ -2,7 +2,9 @@
 # shellcheck shell=bash
 set -euo pipefail
 
-# Run from repo root, with working-directory=frontend
+DIR="${1:-frontend}"
+cd "$DIR"
+
 npm ci --no-audit --no-fund || {
   echo "Lockfile out of sync → regenerating…"
   rm -f package-lock.json
