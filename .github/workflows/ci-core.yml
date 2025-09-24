@@ -196,8 +196,8 @@ jobs:
 
       - name: Run Lighthouse (staticDistDir)
         env:
-          LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
-        run: scripts/ci/run_lhci.sh frontend-dist
+            LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
+        run: bash scripts/ci/run_lhci.sh frontend-dist
 
   e2e:
     name: E2E (Playwright)

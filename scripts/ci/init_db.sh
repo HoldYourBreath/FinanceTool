@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 import os
 from backend.app import create_app
 from backend.models.models import db
