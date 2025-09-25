@@ -17,6 +17,7 @@ env:
 
 jobs:
   backend:
+    name: Prepare backend env
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +37,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
   frontend:
+    name: Build frontend
     runs-on: ubuntu-latest
     needs: backend
     steps:
@@ -67,10 +69,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [backend, frontend]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      # Force SQLite for nightly so we don't depend on a PG service
+      SQLALCHEMY_DATABASE_URI: sqlite:///nightly.db
+      DATABASE_URL: sqlite:///nightly.db
+      FLASK_APP: backend.app:create_app
+      FLASK_DEBUG: "0"
     steps:
       - uses: actions/checkout@v4
 
-      # Python + backend deps for this job too (fresh runner)
+      # Fresh runner → set up Python again
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -85,34 +94,27 @@ jobs:
           if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Init DB & start backend
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-          SQLALCHEMY_DATABASE_URI: sqlite:///nightly.db
-          FLASK_APP: backend.app:create_app
-          FLASK_DEBUG: "0"
+      - name: Init DB (SQLite) & start backend
         run: |
+          set -euo pipefail
           python - <<'PY'
           import os
-          os.environ.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///nightly.db")
           from backend.app import create_app
           from backend.models.models import db
           app = create_app()
           with app.app_context():
               db.create_all()
-              print("✅ nightly DB ready")
+              print("✅ nightly DB ready:", os.getenv("SQLALCHEMY_DATABASE_URI"))
           PY
 
           nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
-
-          for _ in {1..90}; do
+          for attempt in $(seq 1 90); do
             if curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
-              echo "Backend is up!"
+              echo "Backend is up! (attempt ${attempt}/90)"
               break
             fi
             sleep 1
           done
-
           if ! curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
             echo "---- backend.log ----"
             tail -n +1 backend.log || true
@@ -124,31 +126,28 @@ jobs:
         with:
           node-version: 20
 
-      - uses: actions/download-artifact@v4
+      - name: Download built frontend
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist
 
       - name: Serve SPA
         run: |
+          set -euo pipefail
           PORT=5173
           ROOT="frontend/dist"
           (npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 &) || true
-
-          for _ in {1..60}; do
+          for attempt in $(seq 1 60); do
             if curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
-              echo "Frontend up"
+              echo "Frontend up (attempt ${attempt}/60)"
               break
             fi
             sleep 1
           done
-
           if ! curl -fsS "http://127.0.0.1:${PORT}/" >/dev/null 2>&1; then
-            echo "---- vite.log ----"
-            cat vite.log || true
-            echo "---- node processes ----"
-            pgrep -a -f 'sirv-cli' || true
-            pgrep -a -f 'serve' || true
+            echo "---- vite.log ----"; cat vite.log || true
+            echo "---- node processes ----"; pgrep -a -f 'sirv|serve' || true
             exit 1
           fi
 
@@ -180,11 +179,10 @@ jobs:
           echo "---- Run #1 ----"
           npx playwright test --reporter=line --workers=1
           R1=$?
+          [ -d test-results ] && mv test-results test-results-run1 || true
+          [ -d playwright-report ] && mv playwright-report playwright-report-run1 || true
 
-          if [ -d test-results ]; then mv test-results test-results-run1; fi
-          if [ -d playwright-report ]; then mv playwright-report playwright-report-run1; fi
-
-          # Reset baseline between runs
+          echo "Reset pricing baseline between runs…"
           curl -fsS -X POST http://127.0.0.1:5000/api/settings/prices \
             -H 'content-type: application/json' \
             --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' >/dev/null || true
@@ -195,8 +193,8 @@ jobs:
           npx playwright test --reporter=line --workers=1
           R2=$?
 
-          if [ -d test-results ]; then mv test-results test-results-run2; fi
-          if [ -d playwright-report ]; then mv playwright-report playwright-report-run2; fi
+          [ -d test-results ] && mv test-results test-results-run2 || true
+          [ -d playwright-report ] && mv playwright-report playwright-report-run2 || true
 
           echo "Run #1 exit=${R1}  Run #2 exit=${R2}"
           if [ "$R1" -ne 0 ] || [ "$R2" -ne 0 ]; then
