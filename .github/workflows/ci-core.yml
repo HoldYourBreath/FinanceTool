@@ -234,7 +234,7 @@ jobs:
           FLASK_APP: backend.app:create_app
           FLASK_DEBUG: "0"
           SQLALCHEMY_DATABASE_URI: sqlite:///ci.db
-        run: scripts/ci/start_backend.sh 5000 http://127.0.0.1:5000/api/health
+        run: bash scripts/ci/start_backend.sh 5000 http://127.0.0.1:5000/api/health
 
       - name: Stabilize pricing + warm caches
         run: scripts/ci/warm_backend.sh http://127.0.0.1:5000
@@ -246,7 +246,7 @@ jobs:
           path: frontend-dist
 
       - name: Serve SPA
-        run: scripts/ci/serve_spa.sh frontend-dist 5173
+        run: bash scripts/ci/serve_spa.sh frontend-dist 5173
 
       - uses: actions/setup-node@v4
         with:
