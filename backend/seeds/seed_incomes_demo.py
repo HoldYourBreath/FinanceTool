@@ -38,7 +38,9 @@ def main() -> None:
     # Enforce PostgreSQL only
     dialect = db.engine.dialect.name  # e.g. 'postgresql'
     if dialect != "postgresql":
-        raise SystemExit(f"Refusing to run: demo incomes expects PostgreSQL (got {dialect}).")
+        raise SystemExit(
+            f"Refusing to run: demo incomes expects PostgreSQL (got {dialect})."
+        )
 
     # Hard reset incomes
     db.session.execute(text("TRUNCATE TABLE incomes RESTART IDENTITY CASCADE;"))
@@ -83,7 +85,9 @@ def main() -> None:
     db.session.commit()
 
     url = str(db.engine.url)
-    print(f"✅ Seeded {total} net-salary incomes into {url} across {len(months)} months.")
+    print(
+        f"✅ Seeded {total} net-salary incomes into {url} across {len(months)} months."
+    )
 
 
 if __name__ == "__main__":

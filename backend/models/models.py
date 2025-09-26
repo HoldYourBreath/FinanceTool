@@ -7,7 +7,9 @@ from sqlalchemy import Numeric, func
 
 db = SQLAlchemy()
 
-vehicle_type_enum = SAEnum("EV", "Bensin", "Diesel", "PHEV", name="vehicle_type", native_enum=True)
+vehicle_type_enum = SAEnum(
+    "EV", "Bensin", "Diesel", "PHEV", name="vehicle_type", native_enum=True
+)
 
 
 # ----------------------------- Utility -----------------------------
@@ -112,7 +114,9 @@ class HouseCost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     amount = db.Column(db.Numeric, nullable=False)
-    status = db.Column(SAEnum("done", "todo", name="cost_status"), nullable=False, default="todo")
+    status = db.Column(
+        SAEnum("done", "todo", name="cost_status"), nullable=False, default="todo"
+    )
     created_at = db.Column(db.DateTime, server_default=func.now())
 
 
@@ -252,7 +256,10 @@ class Car(db.Model):
             "estimated_purchase_price": self.estimated_purchase_price,
             "summer_tires_price": self.summer_tires_price,
             "winter_tires_price": self.winter_tires_price,
-            "tire_replacement_interval_years": _as_float(self.tire_replacement_interval_years) or 3,
+            "tire_replacement_interval_years": _as_float(
+                self.tire_replacement_interval_years
+            )
+            or 3,
             # Preferred snake_case + back-compat key for frontend
             "consumption_kwh_100km": _as_float(self.consumption_kwh_per_100km),
             "consumption_kwh_per_100km": _as_float(self.consumption_kwh_per_100km),
@@ -293,8 +300,12 @@ class Car(db.Model):
             if change_fee is None:
                 # Safe fallback: read AppSettings(1) if present; otherwise 0
                 app = AppSettings.query.get(1)
-                change_fee = Decimal(str(app.tire_change_price_year or 0)) if app else Decimal(0)
-            d["tires_year_effective"] = float(self.annual_tire_cost(Decimal(str(change_fee or 0))))
+                change_fee = (
+                    Decimal(str(app.tire_change_price_year or 0)) if app else Decimal(0)
+                )
+            d["tires_year_effective"] = float(
+                self.annual_tire_cost(Decimal(str(change_fee or 0)))
+            )
         except Exception:
             # In case of session context issues, omit derived value rather than crashing
             d["tires_year_effective"] = None

@@ -44,12 +44,18 @@ def car_categories():
     """
     try:
         body_styles = [
-            r[0] for r in db.session.query(Car.body_style).distinct() if r[0] is not None
+            r[0]
+            for r in db.session.query(Car.body_style).distinct()
+            if r[0] is not None
         ]
         eu_segments = [
-            r[0] for r in db.session.query(Car.eu_segment).distinct() if r[0] is not None
+            r[0]
+            for r in db.session.query(Car.eu_segment).distinct()
+            if r[0] is not None
         ]
-        suv_tiers = [r[0] for r in db.session.query(Car.suv_tier).distinct() if r[0] is not None]
+        suv_tiers = [
+            r[0] for r in db.session.query(Car.suv_tier).distinct() if r[0] is not None
+        ]
         resp = jsonify(
             {
                 "body_styles": sorted({str(b) for b in body_styles if b}),
@@ -60,7 +66,9 @@ def car_categories():
         resp.headers["X-Cars-Handler"] = "car_evaluation"
         return resp, 200
     except Exception as e:
-        current_app.logger.warning("GET /api/cars/categories failed, returning empty sets: %s", e)
+        current_app.logger.warning(
+            "GET /api/cars/categories failed, returning empty sets: %s", e
+        )
         resp = jsonify({"body_styles": [], "eu_segments": [], "suv_tiers": []})
         resp.headers["X-Cars-Handler"] = "car_evaluation"
         return resp, 200

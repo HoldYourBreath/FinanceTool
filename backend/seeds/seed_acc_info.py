@@ -18,7 +18,9 @@ from backend.models.models import AccInfo, db
 # --- Make repo imports work whether run from repo root or backend/ ---
 THIS_FILE = Path(__file__).resolve()
 SCRIPT_DIR = THIS_FILE.parent
-BACKEND_DIR = SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
+BACKEND_DIR = (
+    SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
+)
 REPO_ROOT = BACKEND_DIR.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -128,9 +130,13 @@ def _load_rows(seed_file: Path | None) -> list[dict]:
         with seed_file.open(encoding="utf-8") as f:
             data = json.load(f)
         # Support both {"acc_info": [...]} and plain [...]
-        rows = data["acc_info"] if isinstance(data, dict) and "acc_info" in data else data
+        rows = (
+            data["acc_info"] if isinstance(data, dict) and "acc_info" in data else data
+        )
         if not isinstance(rows, list):
-            raise ValueError("Seed JSON must be a list or contain key 'acc_info' as a list.")
+            raise ValueError(
+                "Seed JSON must be a list or contain key 'acc_info' as a list."
+            )
         return rows
     return FALLBACK_ROWS
 
@@ -138,7 +144,9 @@ def _load_rows(seed_file: Path | None) -> list[dict]:
 # -------------------------------------------------------------------
 # Seeding
 # -------------------------------------------------------------------
-def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = False) -> None:
+def seed(
+    seed_path: str | None = None, truncate: bool = True, dry_run: bool = False
+) -> None:
     app = create_app()
     seed_file = _resolve_seed_path(seed_path)
 
@@ -181,8 +189,12 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
 # -------------------------------------------------------------------
 def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Seed AccInfo rows.")
-    ap.add_argument("--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})")
-    ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
+    ap.add_argument(
+        "--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})"
+    )
+    ap.add_argument(
+        "--no-truncate", action="store_true", help="Do not delete existing rows first"
+    )
     ap.add_argument(
         "--dry-run",
         action="store_true",

@@ -23,7 +23,8 @@ def list_house_costs():
     try:
         rows = HouseCost.query.order_by(HouseCost.id.asc()).all()
         data = [
-            {"id": r.id, "name": r.name, "amount": _f(r.amount), "status": r.status} for r in rows
+            {"id": r.id, "name": r.name, "amount": _f(r.amount), "status": r.status}
+            for r in rows
         ]
         return jsonify(data), 200
     except Exception as e:
@@ -62,7 +63,9 @@ def delete_house_cost(item_id: int):
         return jsonify({"message": "House cost deleted"}), 200
     except Exception as e:
         db.session.rollback()
-        current_app.logger.exception("DELETE /api/house_costs/%s failed: %s", item_id, e)
+        current_app.logger.exception(
+            "DELETE /api/house_costs/%s failed: %s", item_id, e
+        )
         return jsonify({"error": "Internal Server Error"}), 500
 
 
@@ -76,7 +79,8 @@ def list_land_costs():
     try:
         rows = LandCost.query.order_by(LandCost.id.asc()).all()
         data = [
-            {"id": r.id, "name": r.name, "amount": _f(r.amount), "status": r.status} for r in rows
+            {"id": r.id, "name": r.name, "amount": _f(r.amount), "status": r.status}
+            for r in rows
         ]
         return jsonify(data), 200
     except Exception as e:

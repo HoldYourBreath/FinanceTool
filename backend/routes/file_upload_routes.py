@@ -49,7 +49,9 @@ def upload_csv():
         missing = required_cols - set(df.columns)
         if missing:
             return (
-                jsonify({"error": f'Missing required columns: {", ".join(sorted(missing))}'}),
+                jsonify(
+                    {"error": f'Missing required columns: {", ".join(sorted(missing))}'}
+                ),
                 400,
             )
 
@@ -61,7 +63,12 @@ def upload_csv():
         # Convert decimal comma to dot, handle thousands separators if present
         def _to_float(s):
             if isinstance(s, str):
-                s = s.replace(" ", "").replace("\u00a0", "").replace(".", "").replace(",", ".")
+                s = (
+                    s.replace(" ", "")
+                    .replace("\u00a0", "")
+                    .replace(".", "")
+                    .replace(",", ".")
+                )
             return float(s)
 
         df["Amount"] = df["Amount"].apply(_to_float)
@@ -76,7 +83,9 @@ def upload_csv():
             df["Booking date"] = pd.to_datetime(df["Booking date"], errors="raise")
 
         # --- filter rows for the target account number ---
-        df_acc = df[(df["Sender"] == target_number) | (df["Recipient"] == target_number)]
+        df_acc = df[
+            (df["Sender"] == target_number) | (df["Recipient"] == target_number)
+        ]
         if df_acc.empty:
             return (
                 jsonify(

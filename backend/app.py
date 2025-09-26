@@ -29,13 +29,16 @@ def _print_routes(app: Flask) -> None:
 
     print("Registered Routes:")
     rules = sorted(
-        app.url_map.iter_rules(), key=lambda r: (str(r.rule), ",".join(sorted(r.methods)))
+        app.url_map.iter_rules(),
+        key=lambda r: (str(r.rule), ",".join(sorted(r.methods))),
     )
     for r in rules:
         if r.endpoint == "static":
             continue
         methods = ",".join(
-            sorted(m for m in r.methods if m in {"GET", "POST", "PUT", "PATCH", "DELETE"})
+            sorted(
+                m for m in r.methods if m in {"GET", "POST", "PUT", "PATCH", "DELETE"}
+            )
         )
         print(f"{r.rule}  [{methods}]  -> {r.endpoint}")
 
@@ -65,7 +68,9 @@ def create_app() -> Flask:
 
     # DB + routes
     db.init_app(app)
-    register_routes(app)  # blueprints defined without url_prefix; mounted here under "/api"
+    register_routes(
+        app
+    )  # blueprints defined without url_prefix; mounted here under "/api"
 
     # Helpful startup log (password redacted)
     with app.app_context():
@@ -100,6 +105,8 @@ if __name__ == "__main__":
 
     app.run(
         host=os.getenv("FLASK_RUN_HOST", "127.0.0.1"),
-        port=int(os.getenv("FLASK_RUN_PORT", "5000")),  # demo script may set this to 5001
+        port=int(
+            os.getenv("FLASK_RUN_PORT", "5000")
+        ),  # demo script may set this to 5001
         debug=_as_bool(os.getenv("FLASK_DEBUG")),
     )

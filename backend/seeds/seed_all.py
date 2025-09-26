@@ -25,7 +25,9 @@ load_dotenv(BACKEND_DIR / ".env")
 DEFAULT_PYTHONPATH = os.environ.get("PYTHONPATH", "")
 ENV = os.environ.copy()
 ENV["PYTHONPATH"] = (
-    f"{REPO_ROOT}{os.pathsep}{DEFAULT_PYTHONPATH}" if DEFAULT_PYTHONPATH else str(REPO_ROOT)
+    f"{REPO_ROOT}{os.pathsep}{DEFAULT_PYTHONPATH}"
+    if DEFAULT_PYTHONPATH
+    else str(REPO_ROOT)
 )
 
 
@@ -61,7 +63,9 @@ def _safe(url: str | None) -> str:
                 netloc = f"{user}:***@{netloc}"
             if parts.port:
                 netloc = f"{netloc}:{parts.port}"
-            return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+            return urlunsplit(
+                (parts.scheme, netloc, parts.path, parts.query, parts.fragment)
+            )
     except Exception:
         pass
     return url
@@ -110,7 +114,9 @@ def build_steps(env: dict[str, str], args: list[str]) -> list[tuple[str, str]]:
         steps.append(("backend.seeds.create_db", "🧱 Ensuring tables exist..."))
     else:
         # Destructive path: full reset
-        steps.append(("backend.seeds.reset_db", "🔄 Resetting database (DROP & CREATE)..."))
+        steps.append(
+            ("backend.seeds.reset_db", "🔄 Resetting database (DROP & CREATE)...")
+        )
         steps.append(("backend.seeds.create_db", "🧱 Creating tables..."))
 
     # Common seeders
@@ -127,7 +133,9 @@ def build_steps(env: dict[str, str], args: list[str]) -> list[tuple[str, str]]:
     )
 
     if _is_demo(env):
-        steps.append(("backend.seeds.seed_incomes_demo", "🌱 Seeding demo net salaries..."))
+        steps.append(
+            ("backend.seeds.seed_incomes_demo", "🌱 Seeding demo net salaries...")
+        )
 
     return steps
 

@@ -78,7 +78,9 @@ def list_planned_purchases():
         rows = PlannedPurchase.query.order_by(PlannedPurchase.id.asc()).all()
         return jsonify([_row_to_dict(p) for p in rows]), 200
     except Exception as e:
-        current_app.logger.warning("GET /api/planned_purchases failed; returning []: %s", e)
+        current_app.logger.warning(
+            "GET /api/planned_purchases failed; returning []: %s", e
+        )
         return jsonify([]), 200
 
 
@@ -135,5 +137,7 @@ def update_planned_purchase(id: int):
         return jsonify({"message": "updated"}), 200
     except Exception as e:
         db.session.rollback()
-        current_app.logger.exception("PUT/PATCH /api/planned_purchases/%s failed: %s", id, e)
+        current_app.logger.exception(
+            "PUT/PATCH /api/planned_purchases/%s failed: %s", id, e
+        )
         return jsonify({"error": "Internal Server Error"}), 500

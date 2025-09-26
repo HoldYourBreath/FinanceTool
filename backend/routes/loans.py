@@ -49,7 +49,9 @@ def list_loan_adjustments():
             200,
         )
     except Exception as e:
-        current_app.logger.warning("GET /api/loan_adjustments failed; returning []: %s", e)
+        current_app.logger.warning(
+            "GET /api/loan_adjustments failed; returning []: %s", e
+        )
         return jsonify([]), 200
 
 

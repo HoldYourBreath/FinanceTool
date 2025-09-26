@@ -57,7 +57,9 @@ def main() -> None:
         engine = db.engine
 
         # ---- cars.tire_replacement_interval_years ----
-        _add_col_if_missing(engine, "cars", "tire_replacement_interval_years", "NUMERIC(4,2)")
+        _add_col_if_missing(
+            engine, "cars", "tire_replacement_interval_years", "NUMERIC(4,2)"
+        )
 
         # Default to 3 years where NULL (safe to run repeatedly)
         if _has_table(engine, "cars"):

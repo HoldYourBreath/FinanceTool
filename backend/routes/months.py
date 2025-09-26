@@ -91,7 +91,9 @@ def build_months_data(
         incomes_by_person: dict[str, float] = {}
         for item in incomes_list:
             key = item["person"] or "Unknown"
-            incomes_by_person[key] = incomes_by_person.get(key, 0.0) + _f(item["amount"])
+            incomes_by_person[key] = incomes_by_person.get(key, 0.0) + _f(
+                item["amount"]
+            )
 
         total_income = sum(x["amount"] for x in incomes_list)
         total_expenses = sum(_f(e.amount) for e in getattr(month, "expenses", []) or [])
@@ -102,7 +104,9 @@ def build_months_data(
             starting_funds = _f(month.starting_funds)  # keep DB value for first row
         else:
             starting_funds = (
-                prev_ending_funds if prev_ending_funds is not None else _f(month.starting_funds)
+                prev_ending_funds
+                if prev_ending_funds is not None
+                else _f(month.starting_funds)
             )
 
         # ---- loan remaining (+ adjustments) ----
@@ -211,7 +215,9 @@ def get_months():
         financing_data = {f.name: _f(f.value) for f in financing_entries}
 
         all_months_data = build_months_data(months, financing_data, is_past=False)
-        current_index = next((i for i, m in enumerate(all_months_data) if m.get("is_current")), 0)
+        current_index = next(
+            (i for i, m in enumerate(all_months_data) if m.get("is_current")), 0
+        )
         future_months_data = all_months_data[current_index:]
         return jsonify(future_months_data), 200
     except Exception as e:

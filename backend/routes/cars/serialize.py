@@ -73,12 +73,16 @@ def _energy_year(car: Car, P: dict[str, Any]) -> float:
         return (km / 100.0) * l100 * float(P["bensin_sek_l"])
     if tv == "PHEV":
         # Simple blended model (can be improved later with commute-based split)
-        return (km / 100.0) * (l100 * float(P["bensin_sek_l"]) + kwh100 * float(P["elec_sek_kwh"]))
+        return (km / 100.0) * (
+            l100 * float(P["bensin_sek_l"]) + kwh100 * float(P["elec_sek_kwh"])
+        )
     return 0.0
 
 
 def _tires_year(car: Car, P: dict[str, Any]) -> float:
-    total = _f(getattr(car, "summer_tires_price", 0)) + _f(getattr(car, "winter_tires_price", 0))
+    total = _f(getattr(car, "summer_tires_price", 0)) + _f(
+        getattr(car, "winter_tires_price", 0)
+    )
     life = int(getattr(car, "tire_replacement_interval_years", 0) or 0)
     if life <= 0:
         life = int(P.get("tire_lifespan_years", 3)) or 3
@@ -177,7 +181,9 @@ def serialize_car(c: Car, ps: PriceSettings | None) -> dict[str, Any]:
     try:
         derived = compute_derived(c, ps)
     except Exception as e:
-        current_app.logger.debug("compute_derived failed for car %s: %s", getattr(c, "id", "?"), e)
+        current_app.logger.debug(
+            "compute_derived failed for car %s: %s", getattr(c, "id", "?"), e
+        )
 
     out: dict[str, Any] = {
         "id": c.id,

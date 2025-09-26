@@ -204,7 +204,9 @@ def _load_months(seed_file: Path | None) -> list[dict[str, Any]]:
         data = json.loads(seed_file.read_text(encoding="utf-8") or "[]")
         rows = data["months"] if isinstance(data, dict) and "months" in data else data
         if not isinstance(rows, list):
-            raise ValueError("Seed JSON must be a list or contain key 'months' as a list.")
+            raise ValueError(
+                "Seed JSON must be a list or contain key 'months' as a list."
+            )
         return rows
     return FALLBACK_MONTHS
 
@@ -212,7 +214,9 @@ def _load_months(seed_file: Path | None) -> list[dict[str, Any]]:
 # ------------------------------------------------------------------------------
 # Seeding
 # ------------------------------------------------------------------------------
-def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool = False) -> None:
+def seed(
+    seed_path: str | None = None, *, truncate: bool = True, dry_run: bool = False
+) -> None:
     app = create_app()
     seed_file = _resolve_seed_path(seed_path)
 
@@ -300,8 +304,12 @@ def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description="Seed Month, Income, Expense, and LoanAdjustment rows."
     )
-    ap.add_argument("--file", help=f"Path to seed file (overrides ${ENV_FILE_VAR})", default=None)
-    ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
+    ap.add_argument(
+        "--file", help=f"Path to seed file (overrides ${ENV_FILE_VAR})", default=None
+    )
+    ap.add_argument(
+        "--no-truncate", action="store_true", help="Do not delete existing rows first"
+    )
     ap.add_argument(
         "--dry-run",
         action="store_true",

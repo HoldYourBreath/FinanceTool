@@ -160,7 +160,9 @@ def _load_payload(seed_file: Path | None) -> tuple[list[dict], list[dict]]:
 
 
 # --- Seeding ---
-def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = False) -> None:
+def seed(
+    seed_path: str | None = None, truncate: bool = True, dry_run: bool = False
+) -> None:
     app = create_app()
     seed_file = _resolve_seed_path(seed_path)
     print(f"📂 CWD: {Path.cwd()}")
@@ -170,7 +172,9 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
     )
 
     land_costs, house_costs = _load_payload(seed_file)
-    print(f"📦 Parsed: land={len(land_costs)} item(s), house={len(house_costs)} item(s)")
+    print(
+        f"📦 Parsed: land={len(land_costs)} item(s), house={len(house_costs)} item(s)"
+    )
 
     with app.app_context():
         if truncate and not dry_run:
@@ -190,7 +194,9 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
 
         if dry_run:
             db.session.rollback()
-            print(f"🔍 Dry-run complete: would insert {ins_land} land and {ins_house} house rows.")
+            print(
+                f"🔍 Dry-run complete: would insert {ins_land} land and {ins_house} house rows."
+            )
         else:
             db.session.commit()
             print(f"✅ Seeded {ins_land} land and {ins_house} house rows.")
@@ -204,7 +210,9 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help=f"Path to seed file (overrides ${ENV_FILE_VAR_PRIMARY} / ${ENV_FILE_VAR_LEGACY})",
     )
-    ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
+    ap.add_argument(
+        "--no-truncate", action="store_true", help="Do not delete existing rows first"
+    )
     ap.add_argument(
         "--dry-run",
         action="store_true",

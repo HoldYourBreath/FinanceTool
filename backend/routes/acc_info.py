@@ -38,7 +38,9 @@ def list_acc_info():
         ]
         return jsonify(data), 200
     except Exception as e:
-        current_app.logger.warning("GET /api/acc_info failed, returning empty list: %s", e)
+        current_app.logger.warning(
+            "GET /api/acc_info failed, returning empty list: %s", e
+        )
         return jsonify([]), 200
 
 

@@ -72,7 +72,9 @@ def _prices_row_or_none() -> PriceSettings | None:
             db.session.commit()
         return row
     except Exception as e:
-        current_app.logger.warning("PriceSettings unavailable (CI-safe fallback): %s", e)
+        current_app.logger.warning(
+            "PriceSettings unavailable (CI-safe fallback): %s", e
+        )
         return None
 
 
@@ -82,11 +84,17 @@ def _serialize_prices(row: PriceSettings | None) -> dict[str, Any]:
         return _default_prices()
     return {
         "el_price_ore_kwh": _to_int(getattr(row, "el_price_ore_kwh", 0), 0),
-        "diesel_price_sek_litre": _to_float(getattr(row, "diesel_price_sek_litre", 0.0), 0.0),
-        "bensin_price_sek_litre": _to_float(getattr(row, "bensin_price_sek_litre", 0.0), 0.0),
+        "diesel_price_sek_litre": _to_float(
+            getattr(row, "diesel_price_sek_litre", 0.0), 0.0
+        ),
+        "bensin_price_sek_litre": _to_float(
+            getattr(row, "bensin_price_sek_litre", 0.0), 0.0
+        ),
         "yearly_km": _to_int(getattr(row, "yearly_km", 18000), 18000),
         "daily_commute_km": _to_int(getattr(row, "daily_commute_km", 30), 30),
-        "downpayment_sek": _to_float(getattr(row, "downpayment_sek", 100000.0), 100000.0),
+        "downpayment_sek": _to_float(
+            getattr(row, "downpayment_sek", 100000.0), 100000.0
+        ),
         "interest_rate_pct": _to_float(getattr(row, "interest_rate_pct", 5.0), 5.0),
     }
 
@@ -179,7 +187,9 @@ def get_prices():
         row = _prices_row_or_none()
         return jsonify(_serialize_prices(row)), 200
     except Exception as e:
-        current_app.logger.warning("GET /api/settings/prices failed; returning defaults: %s", e)
+        current_app.logger.warning(
+            "GET /api/settings/prices failed; returning defaults: %s", e
+        )
         return jsonify(_default_prices()), 200
 
 
@@ -207,7 +217,9 @@ def save_prices():
 
         # Accept and coerce fields
         if "el_price_ore_kwh" in data:
-            row.el_price_ore_kwh = _to_int(data["el_price_ore_kwh"], row.el_price_ore_kwh or 0) or 0
+            row.el_price_ore_kwh = (
+                _to_int(data["el_price_ore_kwh"], row.el_price_ore_kwh or 0) or 0
+            )
         if "diesel_price_sek_litre" in data:
             row.diesel_price_sek_litre = _to_float(
                 data["diesel_price_sek_litre"], row.diesel_price_sek_litre or 0.0
@@ -219,9 +231,13 @@ def save_prices():
         if "yearly_km" in data:
             row.yearly_km = _to_int(data["yearly_km"], row.yearly_km or 0) or 0
         if "daily_commute_km" in data:
-            row.daily_commute_km = _to_int(data["daily_commute_km"], row.daily_commute_km or 0) or 0
+            row.daily_commute_km = (
+                _to_int(data["daily_commute_km"], row.daily_commute_km or 0) or 0
+            )
         if "downpayment_sek" in data:
-            row.downpayment_sek = _to_float(data["downpayment_sek"], row.downpayment_sek or 0.0)
+            row.downpayment_sek = _to_float(
+                data["downpayment_sek"], row.downpayment_sek or 0.0
+            )
         if "interest_rate_pct" in data:
             row.interest_rate_pct = _to_float(
                 data["interest_rate_pct"], row.interest_rate_pct or 0.0

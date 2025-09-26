@@ -17,7 +17,9 @@ from sqlalchemy import delete as sa_delete
 # --- Make "from backend.*" resolvable no matter where we run from ---
 THIS_FILE = Path(__file__).resolve()
 SCRIPT_DIR = THIS_FILE.parent
-BACKEND_DIR = SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
+BACKEND_DIR = (
+    SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
+)
 REPO_ROOT = BACKEND_DIR.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -163,7 +165,9 @@ def _sanitize_item(item: dict) -> dict | None:
       - {"item": "...", "amount": 123, "date": "YYYY-MM-DD"}
       - {"name": "..."} or {"description": "..."} as fallback for item
     """
-    item_name = str(item.get("item") or item.get("name") or item.get("description") or "").strip()
+    item_name = str(
+        item.get("item") or item.get("name") or item.get("description") or ""
+    ).strip()
     if not item_name:
         return None  # skip empty entries
 
@@ -208,7 +212,9 @@ def _load_rows(seed_file: Path | None) -> list[dict]:
 # ------------------------------------------------------------------------------
 # Seeding
 # ------------------------------------------------------------------------------
-def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = False) -> None:
+def seed(
+    seed_path: str | None = None, truncate: bool = True, dry_run: bool = False
+) -> None:
     app = create_app()
     seed_file = _resolve_seed_path(seed_path)
 
@@ -235,7 +241,9 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
 
         if dry_run:
             db.session.rollback()
-            print(f"🔍 Dry-run complete: would insert {inserted} planned purchase row(s).")
+            print(
+                f"🔍 Dry-run complete: would insert {inserted} planned purchase row(s)."
+            )
         else:
             db.session.commit()
             print(f"✅ Seeded {inserted} planned purchase row(s).")
@@ -246,8 +254,12 @@ def seed(seed_path: str | None = None, truncate: bool = True, dry_run: bool = Fa
 # ------------------------------------------------------------------------------
 def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Seed PlannedPurchase rows.")
-    ap.add_argument("--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})")
-    ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
+    ap.add_argument(
+        "--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})"
+    )
+    ap.add_argument(
+        "--no-truncate", action="store_true", help="Do not delete existing rows first"
+    )
     ap.add_argument(
         "--dry-run",
         action="store_true",

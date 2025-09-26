@@ -183,12 +183,16 @@ def _load_rows(seed_file: Path | None) -> list[dict]:
 
 
 # ---- Seeding ----
-def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool = False) -> None:
+def seed(
+    seed_path: str | None = None, *, truncate: bool = True, dry_run: bool = False
+) -> None:
     app = create_app()
     with app.app_context():
         seed_file = _resolve_seed_path(seed_path)
         rows = _load_rows(seed_file)
-        print(f"📄 investments seed: {seed_file if seed_file else '(missing → seeding nothing)'}")
+        print(
+            f"📄 investments seed: {seed_file if seed_file else '(missing → seeding nothing)'}"
+        )
         print(
             f"🧪 Dry run: {'yes' if dry_run else 'no'} / Truncate first: {'yes' if truncate else 'no'}"
         )
@@ -216,8 +220,12 @@ def seed(seed_path: str | None = None, *, truncate: bool = True, dry_run: bool =
 # ---- CLI ----
 def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Seed Investment rows.")
-    ap.add_argument("--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})")
-    ap.add_argument("--no-truncate", action="store_true", help="Do not delete existing rows first")
+    ap.add_argument(
+        "--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})"
+    )
+    ap.add_argument(
+        "--no-truncate", action="store_true", help="Do not delete existing rows first"
+    )
     ap.add_argument(
         "--dry-run",
         action="store_true",

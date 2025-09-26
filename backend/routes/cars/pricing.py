@@ -59,8 +59,12 @@ def normalize_prices(ps: PriceSettings | None) -> dict[str, Any]:
 
     return {
         "elec_sek_kwh": (ore / 100.0) * loss,
-        "diesel_sek_l": _pos(getattr(ps, "diesel_price_sek_litre", None), DEFAULTS["diesel_sek_l"]),
-        "bensin_sek_l": _pos(getattr(ps, "bensin_price_sek_litre", None), DEFAULTS["bensin_sek_l"]),
+        "diesel_sek_l": _pos(
+            getattr(ps, "diesel_price_sek_litre", None), DEFAULTS["diesel_sek_l"]
+        ),
+        "bensin_sek_l": _pos(
+            getattr(ps, "bensin_price_sek_litre", None), DEFAULTS["bensin_sek_l"]
+        ),
         "yearly_km": int(_pos(getattr(ps, "yearly_km", None), DEFAULTS["yearly_km"])),
         "daily_commute_km": int(
             _pos(getattr(ps, "daily_commute_km", None), DEFAULTS["daily_commute_km"])

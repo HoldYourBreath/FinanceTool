@@ -60,10 +60,19 @@ def _prices() -> dict[str, float]:
 
     return dict(
         yearly_km=_safe_int(getattr(ps, "yearly_km", yearly_km), yearly_km),
-        el_sek_kwh=_f(getattr(ps, "el_price_ore_kwh", el_price_ore_kwh), el_price_ore_kwh) / 100.0,
-        bensin_sek_l=_f(getattr(ps, "bensin_price_sek_litre", bensin_sek_l), bensin_sek_l),
-        diesel_sek_l=_f(getattr(ps, "diesel_price_sek_litre", diesel_sek_l), diesel_sek_l),
-        downpayment_sek=_f(getattr(ps, "downpayment_sek", downpayment_sek), downpayment_sek),
+        el_sek_kwh=_f(
+            getattr(ps, "el_price_ore_kwh", el_price_ore_kwh), el_price_ore_kwh
+        )
+        / 100.0,
+        bensin_sek_l=_f(
+            getattr(ps, "bensin_price_sek_litre", bensin_sek_l), bensin_sek_l
+        ),
+        diesel_sek_l=_f(
+            getattr(ps, "diesel_price_sek_litre", diesel_sek_l), diesel_sek_l
+        ),
+        downpayment_sek=_f(
+            getattr(ps, "downpayment_sek", downpayment_sek), downpayment_sek
+        ),
         interest_rate_pct=_f(
             getattr(ps, "interest_rate_pct", interest_rate_pct), interest_rate_pct
         ),
@@ -91,7 +100,9 @@ def _energy_year(car, P):
 
 def _tires_year(car):
     # amortize summer + winter over 4 seasons (simple/tweakable)
-    total = _f(getattr(car, "summer_tires_price", 0)) + _f(getattr(car, "winter_tires_price", 0))
+    total = _f(getattr(car, "summer_tires_price", 0)) + _f(
+        getattr(car, "winter_tires_price", 0)
+    )
     return total / 4.0 if total > 0 else 0.0
 
 

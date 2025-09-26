@@ -36,7 +36,9 @@ def _safe_url(url: str) -> str:
                 netloc = f"{parts.username}:***@{netloc}"
             if parts.port:
                 netloc = f"{netloc}:{parts.port}"
-            return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+            return urlunsplit(
+                (parts.scheme, netloc, parts.path, parts.query, parts.fragment)
+            )
     except Exception:
         pass
     return url
@@ -47,7 +49,9 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "default-secret-key")
 
     # Accept either CORS_ORIGIN or CORS_ORIGINS (comma-separated)
-    _cors = os.getenv("CORS_ORIGIN") or os.getenv("CORS_ORIGINS") or "http://localhost:5173"
+    _cors = (
+        os.getenv("CORS_ORIGIN") or os.getenv("CORS_ORIGINS") or "http://localhost:5173"
+    )
     CORS_ORIGIN = _cors  # keep string for simple setups
     CORS_ORIGINS_LIST = (
         [x.strip() for x in _cors.split(",")] if _cors else ["http://localhost:5173"]
@@ -72,7 +76,9 @@ class Config:
     # Final fallback (avoid SQLite to keep parity with prod)
     if not _chosen:
         # Adjust the host/creds if needed for your local PG
-        _chosen = "postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker"
+        _chosen = (
+            "postgresql+psycopg2://postgres:admin@localhost:5432/financial_tracker"
+        )
 
     SQLALCHEMY_DATABASE_URI = _chosen
     SQLALCHEMY_TRACK_MODIFICATIONS = False

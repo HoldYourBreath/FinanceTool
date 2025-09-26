@@ -11,7 +11,9 @@ from typing import Any
 
 THIS_FILE = Path(__file__).resolve()
 SCRIPT_DIR = THIS_FILE.parent
-BACKEND_DIR = SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
+BACKEND_DIR = (
+    SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
+)
 REPO_ROOT = BACKEND_DIR.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -292,17 +294,23 @@ def seed(seed_path: str | None = None, dry_run: bool = False) -> None:
 
         if dry_run:
             db.session.rollback()
-            print(f"🔍 Dry-run: {inserted} insert, {updated} update, {skipped} skipped.")
+            print(
+                f"🔍 Dry-run: {inserted} insert, {updated} update, {skipped} skipped."
+            )
         else:
             db.session.commit()
-            print(f"✅ Done: {inserted} inserted, {updated} updated, {skipped} skipped.")
+            print(
+                f"✅ Done: {inserted} inserted, {updated} updated, {skipped} skipped."
+            )
 
 
 def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description="Seed/update Car rows from JSON (env-aware with common fallback)."
     )
-    ap.add_argument("--file", default=None, help=f"Path to seed JSON (overrides ${ENV_FILE_VAR}).")
+    ap.add_argument(
+        "--file", default=None, help=f"Path to seed JSON (overrides ${ENV_FILE_VAR})."
+    )
     ap.add_argument(
         "--dry-run",
         action="store_true",

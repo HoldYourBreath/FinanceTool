@@ -13,7 +13,9 @@ from typing import Any
 # --- Resolve paths so "backend.*" imports work from repo root or backend/ ---
 THIS_FILE = Path(__file__).resolve()
 SCRIPT_DIR = THIS_FILE.parent
-BACKEND_DIR = SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
+BACKEND_DIR = (
+    SCRIPT_DIR.parent if SCRIPT_DIR.name in {"seeds", "scripts"} else SCRIPT_DIR
+)
 REPO_ROOT = BACKEND_DIR.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -181,7 +183,9 @@ def _merge_env_overrides(values: dict[str, Any]) -> dict[str, Any]:
 
 def _sanitize(values: dict[str, Any]) -> dict[str, Any]:
     return {
-        "el_price_ore_kwh": _to_int(values.get("el_price_ore_kwh", DEFAULTS["el_price_ore_kwh"])),
+        "el_price_ore_kwh": _to_int(
+            values.get("el_price_ore_kwh", DEFAULTS["el_price_ore_kwh"])
+        ),
         "diesel_price_sek_litre": _to_float(
             values.get("diesel_price_sek_litre", DEFAULTS["diesel_price_sek_litre"])
         ),
@@ -189,8 +193,12 @@ def _sanitize(values: dict[str, Any]) -> dict[str, Any]:
             values.get("bensin_price_sek_litre", DEFAULTS["bensin_price_sek_litre"])
         ),
         "yearly_km": _to_int(values.get("yearly_km", DEFAULTS["yearly_km"])),
-        "daily_commute_km": _to_int(values.get("daily_commute_km", DEFAULTS["daily_commute_km"])),
-        "downpayment_sek": _to_int(values.get("downpayment_sek", DEFAULTS["downpayment_sek"])),
+        "daily_commute_km": _to_int(
+            values.get("daily_commute_km", DEFAULTS["daily_commute_km"])
+        ),
+        "downpayment_sek": _to_int(
+            values.get("downpayment_sek", DEFAULTS["downpayment_sek"])
+        ),
         "interest_rate_pct": _to_int(
             values.get("interest_rate_pct", DEFAULTS["interest_rate_pct"])
         ),
@@ -278,10 +286,18 @@ def seed(
 # ------------------------------------------------------------------------------
 def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Seed/Upsert PriceSettings.")
-    ap.add_argument("--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})")
-    ap.add_argument("--id", type=int, default=1, help="Primary key id to upsert (default: 1)")
-    ap.add_argument("--overwrite", action="store_true", help="Overwrite existing values")
-    ap.add_argument("--dry-run", action="store_true", help="Show changes without writing")
+    ap.add_argument(
+        "--file", default=None, help=f"Path to seed file (overrides ${ENV_FILE_VAR})"
+    )
+    ap.add_argument(
+        "--id", type=int, default=1, help="Primary key id to upsert (default: 1)"
+    )
+    ap.add_argument(
+        "--overwrite", action="store_true", help="Overwrite existing values"
+    )
+    ap.add_argument(
+        "--dry-run", action="store_true", help="Show changes without writing"
+    )
     return ap.parse_args()
 
 

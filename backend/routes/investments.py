@@ -60,7 +60,9 @@ def list_investments():
                         "value": value,
                     }
                 )
-            payload["summary"]["total_accounts"] = sum(a["value"] for a in payload["accounts"])
+            payload["summary"]["total_accounts"] = sum(
+                a["value"] for a in payload["accounts"]
+            )
 
         # Load properties if model/table exists (optional for your app)
         if Property is not None:
@@ -85,15 +87,20 @@ def list_investments():
             payload["summary"]["total_properties_paid"] = sum(
                 x["paid"] for x in payload["properties"]
             )
-            payload["summary"]["total_rent"] = sum(x["rent"] for x in payload["properties"])
+            payload["summary"]["total_rent"] = sum(
+                x["rent"] for x in payload["properties"]
+            )
 
         # Net worth = accounts + properties (you can refine if you track debts here)
         payload["summary"]["net_worth"] = (
-            payload["summary"]["total_accounts"] + payload["summary"]["total_properties_value"]
+            payload["summary"]["total_accounts"]
+            + payload["summary"]["total_properties_value"]
         )
 
     except Exception as e:
         # Stay green in CI: return empty payload with 200 instead of failing hard
-        current_app.logger.warning("GET /api/investments failed; returning empty payload: %s", e)
+        current_app.logger.warning(
+            "GET /api/investments failed; returning empty payload: %s", e
+        )
 
     return jsonify(payload), 200
