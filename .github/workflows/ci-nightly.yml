@@ -69,17 +69,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [backend, frontend]
-    env:
-      PYTHONPATH: ${{ github.workspace }}
-      # Force SQLite for nightly so we don't depend on a PG service
-      SQLALCHEMY_DATABASE_URI: sqlite:///nightly.db
-      DATABASE_URL: sqlite:///nightly.db
-      FLASK_APP: backend.app:create_app
-      FLASK_DEBUG: "0"
     steps:
       - uses: actions/checkout@v4
 
-      # Fresh runner → set up Python again
+      # Python + backend deps for this job too (fresh runner)
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -94,27 +87,33 @@ jobs:
           if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Init DB (SQLite) & start backend
+      - name: Init DB & start backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          SQLALCHEMY_DATABASE_URI: sqlite:///nightly.db
+          DATABASE_URL: sqlite:///nightly.db
+          FLASK_APP: backend.app:create_app
+          FLASK_DEBUG: "0"
         run: |
-          set -euo pipefail
           python - <<'PY'
-          import os
           from backend.app import create_app
           from backend.models.models import db
           app = create_app()
           with app.app_context():
               db.create_all()
-              print("✅ nightly DB ready:", os.getenv("SQLALCHEMY_DATABASE_URI"))
+              print("✅ nightly DB ready")
           PY
 
           nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
-          for attempt in $(seq 1 90); do
+
+          for _ in {1..90}; do
             if curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
-              echo "Backend is up! (attempt ${attempt}/90)"
+              echo "Backend is up!"
               break
             fi
             sleep 1
           done
+
           if ! curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
             echo "---- backend.log ----"
             tail -n +1 backend.log || true

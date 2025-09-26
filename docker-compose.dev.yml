@@ -1,0 +1,49 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: financetool
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    environment:
+      FLASK_DEBUG: "1"
+      FLASK_APP: backend.app:create_app
+      AUTO_CREATE_DB: "1"
+      SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://postgres:postgres@db:5432/financetool
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/financetool
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+    volumes:
+      - ./backend:/app/backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    environment:
+      # Make Vite talk to the backend container, not localhost
+      VITE_API_BASE_URL: http://backend:5000
+      # Helps file watching on Windows/WSL
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
