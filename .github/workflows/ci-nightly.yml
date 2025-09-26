@@ -87,40 +87,40 @@ jobs:
           if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-            - name: Init DB & start backend
+      - name: Init DB & start backend
         env:
           PYTHONPATH: ${{ github.workspace }}
           SQLALCHEMY_DATABASE_URI: sqlite:///nightly.db
           DATABASE_URL: sqlite:///nightly.db
           FLASK_APP: backend.app:create_app
           FLASK_DEBUG: "0"
-          run: |
-            set -euo pipefail
-            python - <<'PY'
-            from backend.app import create_app
-            from backend.models.models import db
-            app = create_app()
-            with app.app_context():
-                db.create_all()
-                print("✅ nightly DB ready")
-            PY
+        run: |
+          set -euo pipefail
 
-            nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
+          python - <<'PY'
+          from backend.app import create_app
+          from backend.models.models import db
+          app = create_app()
+          with app.app_context():
+              db.create_all()
+              print("✅ nightly DB ready")
+          PY
 
-            for attempt in $(seq 1 90); do
-              if curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
-                echo "Backend is up! (attempt ${attempt}/90)"
-                break
-              fi
-              sleep 1
-            done
+          nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
 
-            if ! curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
-              echo "---- backend.log ----"
-              tail -n +1 backend.log || true
-              exit 1
+          for attempt in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
+              echo "Backend is up! (attempt ${attempt}/90)"
+              break
             fi
+            sleep 1
+          done
 
+          if ! curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
+            echo "---- backend.log ----"
+            tail -n +1 backend.log || true
+            exit 1
+          fi
 
       # Node BEFORE serving SPA (sirv)
       - uses: actions/setup-node@v4
@@ -139,7 +139,7 @@ jobs:
           PORT=5173
           ROOT="frontend/dist"
 
-          # Start server; ignore immediate failure without chaining '||'
+          # Start server in background
           ( npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 & )
 
           for attempt in $(seq 1 60); do
@@ -181,6 +181,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
         run: |
           set +e
+
           echo "---- Run #1 ----"
           npx playwright test --reporter=line --workers=1
           R1=$?
@@ -188,12 +189,18 @@ jobs:
           if [ -d test-results ]; then mv test-results test-results-run1; fi
           if [ -d playwright-report ]; then mv playwright-report playwright-report-run1; fi
 
-          # Reset baseline between runs (these calls may fail; keep them optional)
-          curl -fsS -X POST http://127.0.0.1:5000/api/settings/prices \
-            -H 'content-type: application/json' \
-            --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' >/dev/null || true
-          curl -fsS -X POST http://127.0.0.1:5000/api/cars/update || true
-          curl -fsS "http://127.0.0.1:5000/api/cars?ts=$(date +%s%N)" >/dev/null || true
+          echo "Reset pricing baseline between runs…"
+          if ! curl -fsS -X POST http://127.0.0.1:5000/api/settings/prices \
+              -H 'content-type: application/json' \
+              --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' >/dev/null; then
+            echo "non-fatal: failed to reset prices"
+          fi
+          if ! curl -fsS -X POST http://127.0.0.1:5000/api/cars/update >/dev/null; then
+            echo "non-fatal: failed to trigger cars update"
+          fi
+          if ! curl -fsS "http://127.0.0.1:5000/api/cars?ts=$(date +%s%N)" >/dev/null; then
+            echo "non-fatal: failed to warm cars endpoint"
+          fi
 
           echo "---- Run #2 ----"
           npx playwright test --reporter=line --workers=1
@@ -206,8 +213,6 @@ jobs:
           if [ "$R1" -ne 0 ] || [ "$R2" -ne 0 ]; then
             exit 1
           fi
-          exit 0
-
           exit 0
 
       - name: Upload artifacts (on failure)
