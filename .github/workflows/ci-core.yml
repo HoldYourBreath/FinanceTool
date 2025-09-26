@@ -126,6 +126,7 @@ jobs:
     needs: pre-commit
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -152,6 +153,7 @@ jobs:
     needs: [backend, frontend-lint]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -178,6 +180,7 @@ jobs:
           name: frontend-dist
           path: frontend/dist
           if-no-files-found: error
+          retention-days: 7
 
   lighthouse:
     name: Lighthouse CI
@@ -185,9 +188,13 @@ jobs:
     needs: frontend
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Ensure exec bit
+        run: chmod +x scripts/ci/*.sh
 
       - name: Download dist
         uses: actions/download-artifact@v4
@@ -197,7 +204,7 @@ jobs:
 
       - name: Run Lighthouse (staticDistDir)
         env:
-            LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
+          LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
         run: bash scripts/ci/run_lhci.sh frontend-dist
 
   e2e:
@@ -207,6 +214,9 @@ jobs:
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Ensure exec bit
+        run: chmod +x scripts/ci/*.sh
 
       - uses: actions/setup-python@v5
         with:

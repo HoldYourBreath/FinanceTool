@@ -1,19 +1,31 @@
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-q --maxfail=1"
+# backend/pyproject.toml
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
 
-[tool.black]
-line-length = 100
-target-version = ["py312"]
+[project]
+name = "financetool-backend"
+version = "0.1.0"
+description = "FinanceTool Flask API"
+requires-python = ">=3.12"
+readme = "../README.md"
+license = { text = "MIT" }
 
-[tool.ruff]
-line-length = 100
-target-version = "py312"
+# Keep only hard runtime deps here (adjust to your real list)
+dependencies = [
+  "Flask>=3",
+  "Flask-Cors>=4",
+  "Flask-SQLAlchemy>=3",
+  "SQLAlchemy>=2",
+  "python-dotenv>=1",
+]
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+[project.optional-dependencies]
+postgres = ["psycopg2-binary>=2.9"]
 
-[tool.ruff.lint.per-file-ignores]
-# Seed + tools scripts legitimately adjust sys.path before imports.
-"backend/seeds/*.py" = ["E402"]
-"backend/tools/*.py" = ["E402"]
+[tool.hatch.build.targets.wheel]
+# Package the existing 'backend' module as-is
+packages = ["backend"]
+
+# If you have non-.py assets (migrations, JSON, etc.), include them, e.g.:
+# include = ["backend/**/migrations/**", "backend/**/*.json"]
