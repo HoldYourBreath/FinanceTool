@@ -72,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Python + backend deps for this job too (fresh runner)
+      # Fresh runner → set up Python again
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -109,14 +109,14 @@ jobs:
           nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
 
           for attempt in $(seq 1 90); do
-            if curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
+            if curl -fsS "http://127.0.0.1:5000/api/settings/prices" >/dev/null; then
               echo "Backend is up! (attempt ${attempt}/90)"
               break
             fi
             sleep 1
           done
 
-          if ! curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
+          if ! curl -fsS "http://127.0.0.1:5000/api/settings/prices" >/dev/null; then
             echo "---- backend.log ----"
             tail -n +1 backend.log || true
             exit 1
@@ -139,7 +139,6 @@ jobs:
           PORT=5173
           ROOT="frontend/dist"
 
-          # Start server in background
           ( npx --yes sirv-cli "$ROOT" --single --host 127.0.0.1 --port "$PORT" > vite.log 2>&1 & )
 
           for attempt in $(seq 1 60); do
@@ -156,7 +155,7 @@ jobs:
             exit 1
           fi
 
-      # Tests + Playwright
+      # Playwright
       - name: Install test deps
         working-directory: tests
         run: npm ci
@@ -186,34 +185,33 @@ jobs:
           npx playwright test --reporter=line --workers=1
           R1=$?
 
-          if [ -d test-results ]; then mv test-results test-results-run1; fi
-          if [ -d playwright-report ]; then mv playwright-report playwright-report-run1; fi
+          [ -d test-results ] && mv test-results test-results-run1
+          [ -d playwright-report ] && mv playwright-report playwright-report-run1
 
           echo "Reset pricing baseline between runs…"
-          if ! curl -fsS -X POST http://127.0.0.1:5000/api/settings/prices \
+          if ! curl -fsS -X POST \
+              "http://127.0.0.1:5000/api/settings/prices" \
               -H 'content-type: application/json' \
-              --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' >/dev/null; then
+              --data '{"data":{"interest_rate_pct":5,"downpayment_sek":0}}' \
+              >/dev/null
+          then
             echo "non-fatal: failed to reset prices"
           fi
-          if ! curl -fsS -X POST http://127.0.0.1:5000/api/cars/update >/dev/null; then
-            echo "non-fatal: failed to trigger cars update"
-          fi
-          if ! curl -fsS "http://127.0.0.1:5000/api/cars?ts=$(date +%s%N)" >/dev/null; then
-            echo "non-fatal: failed to warm cars endpoint"
-          fi
+          curl -fsS -X POST "http://127.0.0.1:5000/api/cars/update" >/dev/null || echo "non-fatal: cars update"
+          curl -fsS "http://127.0.0.1:5000/api/cars?ts=$(date +%s%N)" >/dev/null || echo "non-fatal: warm cars"
 
           echo "---- Run #2 ----"
           npx playwright test --reporter=line --workers=1
           R2=$?
 
-          if [ -d test-results ]; then mv test-results test-results-run2; fi
-          if [ -d playwright-report ]; then mv playwright-report playwright-report-run2; fi
+          [ -d test-results ] && mv test-results test-results-run2
+          [ -d playwright-report ] && mv playwright-report playwright-report-run2
 
           echo "Run #1 exit=${R1}  Run #2 exit=${R2}"
-          if [ "$R1" -ne 0 ] || [ "$R2" -ne 0 ]; then
-            exit 1
-          fi
-          exit 0
+          RC=0
+          [ "$R1" -eq 0 ] || RC=1
+          [ "$R2" -eq 0 ] || RC=1
+          exit "$RC"
 
       - name: Upload artifacts (on failure)
         if: failure()
