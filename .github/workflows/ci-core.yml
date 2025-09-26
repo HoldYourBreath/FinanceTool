@@ -237,7 +237,7 @@ jobs:
         run: bash scripts/ci/start_backend.sh 5000 http://127.0.0.1:5000/api/health
 
       - name: Stabilize pricing + warm caches
-        run: scripts/ci/warm_backend.sh http://127.0.0.1:5000
+        run: bash scripts/ci/warm_backend.sh http://127.0.0.1:5000
 
       - name: Download dist
         uses: actions/download-artifact@v4
