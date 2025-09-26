@@ -1,49 +1,44 @@
 version: "3.9"
-services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: financetool
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
 
+services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile.dev
+      dockerfile: backend/Dockerfile
+    working_dir: /app
+    command: bash -lc "FLASK_DEBUG=1 flask run --host 0.0.0.0 --port 5000"
     environment:
-      FLASK_DEBUG: "1"
       FLASK_APP: backend.app:create_app
-      AUTO_CREATE_DB: "1"
-      SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://postgres:postgres@db:5432/financetool
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/financetool
-      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      FLASK_DEBUG: "1"
+      # Persist DB under /app/data (mapped to a named volume)
+      SQLALCHEMY_DATABASE_URI: sqlite:////app/data/dev.db
+      DATABASE_URL: sqlite:////app/data/dev.db
+      PRINT_ROUTES: "1"
     volumes:
-      - ./backend:/app/backend
+      - ./backend:/app/backend:delegated
+      - backend_db:/app/data
     ports:
       - "5000:5000"
-    depends_on:
-      - db
 
   frontend:
     image: node:20-alpine
-    working_dir: /app
+    working_dir: /app/frontend
+    # Install once on container start, then run Vite
+    command: sh -lc "npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 5173"
     environment:
-      # Make Vite talk to the backend container, not localhost
-      VITE_API_BASE_URL: http://backend:5000
-      # Helps file watching on Windows/WSL
-      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_BASE_URL: http://localhost:5000
+      # Avoid huge downloads in dev container
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
     volumes:
-      - ./frontend:/app
-    command: sh -c "npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 5173"
+      # Mount repo at /app so ../tsconfig.json resolves
+      - ./frontend:/app/frontend:delegated
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      # Keep node_modules inside the container
+      - /app/frontend/node_modules
     ports:
       - "5173:5173"
     depends_on:
       - backend
 
 volumes:
-  pgdata:
+  backend_db:

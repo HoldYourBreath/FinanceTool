@@ -1,6 +1,6 @@
 {
-  "extends": "../tsconfig.json",
   "compilerOptions": {
+    "jsx": "react-jsx",
     "noEmit": true
   },
   "include": [
@@ -9,13 +9,13 @@
     "vite.config.*",
     "eslint.config.*",
     "tailwind.config.*",
-    "postcss.config.*"
+    "postcss.config.*",
+    "../tests"
   ],
   "exclude": [
     "dist",
     "build",
     "node_modules",
-    "../tests",
     "../playwright.config.*",
     "../e2e"
   ]
