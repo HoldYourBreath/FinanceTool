@@ -95,6 +95,7 @@ jobs:
           FLASK_APP: backend.app:create_app
           FLASK_DEBUG: "0"
         run: |
+          set -euo pipefail
           python - <<'PY'
           from backend.app import create_app
           from backend.models.models import db
@@ -106,9 +107,9 @@ jobs:
 
           nohup flask run --host 127.0.0.1 --port 5000 --no-reload > backend.log 2>&1 &
 
-          for _ in {1..90}; do
+          for attempt in $(seq 1 90); do
             if curl -fsS http://127.0.0.1:5000/api/settings/prices >/dev/null; then
-              echo "Backend is up!"
+              echo "Backend is up! (attempt ${attempt}/90)"
               break
             fi
             sleep 1
