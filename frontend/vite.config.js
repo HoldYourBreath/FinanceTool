@@ -1,95 +1,79 @@
 // vite.config.js
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-// Optional: enable Sentry upload when CI sets SENTRY_* envs
-// import { sentryVitePlugin } from "@sentry/vite-plugin";
+
+// helpers
+const pick = (...vals) => vals.find((v) => typeof v === "string" && v.trim()) || "";
+const truthy = (v) => /^(1|true|yes|on)$/i.test(String(v || ""));
 
 export default defineConfig(({ mode }) => {
-  // Load all env (no VITE_ prefix filter) so we can read CI-provided vars
   const env = loadEnv(mode, process.cwd(), "");
 
-  // Helper: first non-empty string
-  const pick = (...vals) =>
-    vals.find((v) => typeof v === "string" && v.trim()) || "";
-
-  // --- Backend origin detection -------------------------------------------------
-  // Default backend per mode (your demo backend runs on :5001)
-  const fallbackPort = mode === "demo" ? "5001" : "5000";
-  const defaultUrl = `http://127.0.0.1:${fallbackPort}`;
-
-  const BACKEND_URL = pick(
+  // URL the BROWSER uses (host → backend). Demo defaults to :5001.
+  const BACKEND_PUBLIC_URL = pick(
     process.env.VITE_API_BASE_URL,
     env.VITE_API_BASE_URL,
     process.env.VITE_API_URL,
     env.VITE_API_URL,
-    defaultUrl,
-  ).replace(/\/+$/, ""); // remove trailing slash
+    "http://localhost:5001"
+  ).replace(/\/+$/, "");
 
-  // --- Sentry (optional) -------------------------------------------------------
-  // Turn on when building in CI with secrets; safe to keep off locally
-  const enableSentry =
-    Boolean(
-      process.env.SENTRY_AUTH_TOKEN &&
-        process.env.SENTRY_ORG &&
-        process.env.SENTRY_PROJECT,
-    ) && mode !== "test";
+  // URL the Vite DEV SERVER uses for proxying (inside container).
+  // In Docker, "localhost" is the container itself, so default to service name.
+  const inDocker =
+    truthy(process.env.VITE_IN_DOCKER) ||
+    truthy(env.VITE_IN_DOCKER) ||
+    truthy(process.env.DOCKER) ||
+    truthy(env.DOCKER);
 
-  // Sentry plugin config (only used if you uncomment the import + push into plugins)
-  const sentryPlugin = enableSentry
-    ? [
-        // sentryVitePlugin({
-        //   org: process.env.SENTRY_ORG,
-        //   project: process.env.SENTRY_PROJECT,
-        //   authToken: process.env.SENTRY_AUTH_TOKEN,
-        //   release: process.env.SENTRY_RELEASE, // e.g. GITHUB_SHA
-        //   sourcemaps: { assets: "./frontend/dist/assets/**" },
-        //   include: ["./frontend/dist/assets"],
-        //   urlPrefix: "~/assets",
-        // }),
-      ]
-    : [];
+  const PROXY_TARGET = pick(
+    process.env.VITE_API_PROXY_TARGET,
+    env.VITE_API_PROXY_TARGET,
+    inDocker ? "http://backend:5000" : "",
+    BACKEND_PUBLIC_URL,           // fallback outside Docker
+    "http://127.0.0.1:5000"
+  ).replace(/\/+$/, "");
 
-  // --- Proxy shared between dev server & preview -------------------------------
-  const proxyConfig = {
-    target: BACKEND_URL,
-    changeOrigin: true,
-    secure: false,
-    // If your Flask app is mounted WITHOUT the "/api" prefix,
-    // you could strip it here:
-    // rewrite: (path) => path.replace(/^\/api/, ""),
-  };
+  // Optional HMR override when mapping 5174:5173, etc.
+  const HMR_HOST = pick(process.env.VITE_DEV_HMR_HOST, env.VITE_DEV_HMR_HOST);
+  const HMR_PORT = Number(pick(process.env.VITE_DEV_HMR_PORT, env.VITE_DEV_HMR_PORT)) || undefined;
 
-  // Friendly logs
-  console.log(
-    `[Vite] mode=${mode} • proxy /api → ${BACKEND_URL}${enableSentry ? " • Sentry ON" : ""}`,
-  );
+  console.log(`[Vite] mode=${mode} • browser base=${BACKEND_PUBLIC_URL} • proxy /api → ${PROXY_TARGET}`);
 
   return {
-    base: pick(env.VITE_BASE, "/"),
-    plugins: [react(), ...sentryPlugin],
+    plugins: [react()],
     server: {
-      host: "127.0.0.1",
+      host: "0.0.0.0",
       port: 5173,
       strictPort: true,
-      proxy: { "/api": proxyConfig },
+      proxy: {
+        "/api": {
+          target: PROXY_TARGET,
+          changeOrigin: true,
+          secure: false,
+          // If Flask has no "/api" prefix, enable:
+          // rewrite: (p) => p.replace(/^\/api/, ""),
+        },
+      },
+      hmr: HMR_HOST || HMR_PORT ? { protocol: "ws", host: HMR_HOST || "localhost", port: HMR_PORT } : undefined,
     },
     preview: {
-      host: "127.0.0.1",
+      host: "0.0.0.0",
       port: 5173,
       strictPort: true,
-      proxy: { "/api": proxyConfig },
+      proxy: {
+        "/api": {
+          target: PROXY_TARGET,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
     build: {
-      // Generate sourcemaps only when Sentry upload is enabled
-      sourcemap: enableSentry,
-      // Reasonable defaults; tweak as needed
       target: "es2020",
       outDir: "dist",
       assetsDir: "assets",
       emptyOutDir: true,
     },
-    // Quieter HMR overlay in dev if you prefer:
-    // clearScreen: false,
-    // esbuild: { logOverride: { "this-is-undefined-in-esm": "silent" } },
   };
 });

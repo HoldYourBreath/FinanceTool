@@ -14,7 +14,7 @@ from .loans import loans_bp
 from .months import months_bp
 from .planned_purchases import planned_purchases_bp
 from .settings import settings_bp
-
+from .my_new_tab import my_new_tab_bp
 
 def register_routes(app):
     app.register_blueprint(health_bp)
@@ -31,7 +31,8 @@ def register_routes(app):
     app.register_blueprint(cars_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(debug_bp)
-
+    app.register_blueprint(my_new_tab_bp)
+    
     print("Registered Routes:")
     for rule in app.url_map.iter_rules():
         print(rule)
