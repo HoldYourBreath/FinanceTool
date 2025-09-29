@@ -36,4 +36,4 @@ repos:
         name: typecheck (frontend)
         language: system
         pass_filenames: false
-        entry: bash -lc "cd frontend && npx tsc -p tsconfig.json --noEmit"
+        entry: bash -lc "cd frontend && npx tsc -p tsconfig.ci.json --noEmit"
