@@ -3,7 +3,8 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
 // helpers
-const pick = (...vals) => vals.find((v) => typeof v === "string" && v.trim()) || "";
+const pick = (...vals) =>
+  vals.find((v) => typeof v === "string" && v.trim()) || "";
 const truthy = (v) => /^(1|true|yes|on)$/i.test(String(v || ""));
 
 export default defineConfig(({ mode }) => {
@@ -15,7 +16,7 @@ export default defineConfig(({ mode }) => {
     env.VITE_API_BASE_URL,
     process.env.VITE_API_URL,
     env.VITE_API_URL,
-    "http://localhost:5001"
+    "http://localhost:5001",
   ).replace(/\/+$/, "");
 
   // URL the Vite DEV SERVER uses for proxying (inside container).
@@ -30,15 +31,19 @@ export default defineConfig(({ mode }) => {
     process.env.VITE_API_PROXY_TARGET,
     env.VITE_API_PROXY_TARGET,
     inDocker ? "http://backend:5000" : "",
-    BACKEND_PUBLIC_URL,           // fallback outside Docker
-    "http://127.0.0.1:5000"
+    BACKEND_PUBLIC_URL, // fallback outside Docker
+    "http://127.0.0.1:5000",
   ).replace(/\/+$/, "");
 
   // Optional HMR override when mapping 5174:5173, etc.
   const HMR_HOST = pick(process.env.VITE_DEV_HMR_HOST, env.VITE_DEV_HMR_HOST);
-  const HMR_PORT = Number(pick(process.env.VITE_DEV_HMR_PORT, env.VITE_DEV_HMR_PORT)) || undefined;
+  const HMR_PORT =
+    Number(pick(process.env.VITE_DEV_HMR_PORT, env.VITE_DEV_HMR_PORT)) ||
+    undefined;
 
-  console.log(`[Vite] mode=${mode} • browser base=${BACKEND_PUBLIC_URL} • proxy /api → ${PROXY_TARGET}`);
+  console.log(
+    `[Vite] mode=${mode} • browser base=${BACKEND_PUBLIC_URL} • proxy /api → ${PROXY_TARGET}`,
+  );
 
   return {
     plugins: [react()],
@@ -55,7 +60,10 @@ export default defineConfig(({ mode }) => {
           // rewrite: (p) => p.replace(/^\/api/, ""),
         },
       },
-      hmr: HMR_HOST || HMR_PORT ? { protocol: "ws", host: HMR_HOST || "localhost", port: HMR_PORT } : undefined,
+      hmr:
+        HMR_HOST || HMR_PORT
+          ? { protocol: "ws", host: HMR_HOST || "localhost", port: HMR_PORT }
+          : undefined,
     },
     preview: {
       host: "0.0.0.0",

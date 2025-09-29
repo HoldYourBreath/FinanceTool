@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+
 from backend.app import create_app
 from backend.models.models import db
 

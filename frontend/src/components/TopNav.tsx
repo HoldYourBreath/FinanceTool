@@ -1,6 +1,6 @@
 // src/components/TopNav.tsx
 import { NavLink } from "react-router-dom";
-import type { ReactNode } from "react";
+import type React from "react";
 import {
   Home,
   CalendarDays,
@@ -14,7 +14,7 @@ import {
 type Tab = {
   to: string;
   label: string;
-  icon: ReactNode.ElementType;
+  icon: React.ElementType;
   end?: boolean;
 };
 
