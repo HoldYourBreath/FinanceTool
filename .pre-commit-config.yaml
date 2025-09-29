@@ -24,21 +24,16 @@ repos:
         name: eslint (frontend)
         language: system
         pass_filenames: false
-        entry: bash -lc 'cd frontend && npm run -s lint'
-        files: '^frontend/.*\.(js|jsx|ts|tsx)$'
-        exclude: '^frontend/(dist|build|node_modules)/|^playwright-report/'
+        entry: bash -lc "cd frontend && npx eslint . --max-warnings=0"
 
       - id: prettier-frontend
         name: prettier (frontend)
         language: system
         pass_filenames: false
-        entry: bash -lc 'cd frontend && npm run -s format:check'
-        files: '^frontend/.*\.(js|jsx|ts|tsx|json|css|html|md|yml|yaml)$'
-        exclude: '^frontend/(dist|build|node_modules)/|^playwright-report/'
+        entry: bash -lc "cd frontend && npx prettier --check ."
 
       - id: tsc-frontend
         name: typecheck (frontend)
         language: system
         pass_filenames: false
-        entry: bash -lc 'cd frontend && npx tsc -p tsconfig.json --noEmit'
-        files: '^frontend/'
+        entry: bash -lc "cd frontend && npx tsc -p tsconfig.json --noEmit"
