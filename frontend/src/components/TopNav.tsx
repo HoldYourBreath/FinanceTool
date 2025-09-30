@@ -1,5 +1,5 @@
 // src/components/TopNav.tsx
-import { NavLink } from "react-router-dom";
+import { NavLink, useResolvedPath } from "react-router-dom";
 import type React from "react";
 import {
   Home,
@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 
 type Tab = {
-  to: string;
+  to: string; // absolute path ("/x") or relative ("x")
   label: string;
   icon: React.ElementType;
-  end?: boolean;
+  end?: boolean; // exact match? true only for "/"
 };
 
 const TABS: Tab[] = [
@@ -34,7 +34,23 @@ const idle =
   "bg-white/70 text-gray-700 ring-gray-200 hover:bg-white hover:shadow-sm";
 const active = "bg-indigo-600 text-white ring-indigo-700 shadow-md";
 
+// Safer helper to keep TS happy and avoid repeating the string concat
+function linkClasses({
+  isActive,
+  isPending,
+}: {
+  isActive: boolean;
+  isPending: boolean;
+  // (react-router v6.22+ also supplies isTransitioning; we don't need it here)
+}) {
+  return `${base} ${isActive ? active : idle} ${isPending ? "opacity-60" : ""}`;
+}
+
 export default function TopNav() {
+  // If your app uses <BrowserRouter basename="/app">, it’s safer to resolve paths.
+  // This lets absolute-looking "to" work under a basename.
+  const resolve = (to: string) => useResolvedPath(to).pathname;
+
   return (
     <nav className="sticky top-0 z-40 border-b bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600">
       <div className="mx-auto max-w-7xl px-3 py-3">
@@ -42,11 +58,10 @@ export default function TopNav() {
           {TABS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `${base} ${isActive ? active : idle}`
-              }
+              to={resolve(to)}
+              // pass `end` only when true (exact match for "/")
+              {...(end ? { end: true } : {})}
+              className={linkClasses}
               title={label}
             >
               <Icon size={16} className="opacity-90" />
