@@ -1,5 +1,15 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src", "sentry.ts", "vite-env.d.ts"],
-  "exclude": ["../tests", "../tests/**/*", "tests", "node_modules", "dist"]
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"] // app runtime types only
+  },
+  "include": ["src", "vite-env.d.ts"],
+  "exclude": [
+    "../tests",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "playwright.config.ts"
+  ]
 }
