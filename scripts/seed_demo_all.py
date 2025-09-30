@@ -10,6 +10,30 @@ from typing import Iterable, Sequence
 from sqlalchemy import MetaData, Table, text
 from sqlalchemy.exc import SQLAlchemyError
 from flask import Flask
+from sqlalchemy.sql.sqltypes import Integer, Float, Numeric, String, Boolean
+
+NULLISH = {"", "null", "none", "NaN", "N/A", "na", "n/a"}
+
+def _coerce_nullish(v):
+    if isinstance(v, str) and v.strip().lower() in NULLISH:
+        return None
+    return v
+
+def _default_for(col):
+    # Only used when a value is missing
+    if col.nullable:
+        return None
+    # Non-nullable: pick a safe default based on type
+    t = col.type
+    if isinstance(t, (Integer, Float, Numeric)):
+        return 0
+    if isinstance(t, Boolean):
+        return False
+    if isinstance(t, String):
+        return ""
+    # Fallback
+    return None
+
 
 # --- Path bootstrap so we can import backend.* no matter where we run this
 THIS_FILE = Path(__file__).resolve()
@@ -146,16 +170,31 @@ def seed_all(
                 print(f"ℹ️  '{name}': 0 rows (seed file empty).")
                 continue
 
-            # keep only known columns
-            cols = {c.name for c in tbl.columns}
-            insert_rows = [{k: v for k, v in r.items() if k in cols} for r in rows]
+            # keep only known columns + normalize
+            cols = {c.name: c for c in tbl.columns}
+            pk_names = {c.name for c in tbl.primary_key.columns}  # e.g., {"id"}
+            normalized_rows = []
+            for raw in rows:
+                r = {}
+                # include only columns that exist; coerce null-ish strings to None
+                for k, v in raw.items():
+                    if k in cols and k not in pk_names:
+                        r[k] = _coerce_nullish(v)
+                # ensure every column has a value so executemany doesn't choke
+                for cname, col in cols.items():
+                    if cname in pk_names:              # <-- never synthesize PKs
+                        continue
+                    if cname not in r:
+                        r[cname] = _default_for(col)
+                normalized_rows.append(r)
 
             try:
                 if truncate:
                     db.session.execute(tbl.delete())
-                db.session.execute(tbl.insert(), insert_rows)
+                # executemany with uniform keys
+                db.session.execute(tbl.insert(), normalized_rows)
                 db.session.commit()
-                print(f"✅ '{name}': inserted {len(insert_rows)} row(s).")
+                print(f"✅ '{name}': inserted {len(normalized_rows)} row(s).")
             except SQLAlchemyError as e:
                 db.session.rollback()
                 print(f"❌ '{name}': insert failed: {e}")
