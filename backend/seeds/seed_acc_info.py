@@ -246,6 +246,7 @@ def seed(
 
     app = create_app()
     with app.app_context():
+        db.create_all()
         with contextlib.suppress(Exception):
             print(f"🗄️  DB URL: {db.engine.url}")
 
