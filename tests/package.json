@@ -2,8 +2,9 @@
   "name": "e2e-tests",
   "private": true,
   "devDependencies": {
-    "@playwright/test": "^1.54.2",
-    "typescript": "^5.6.3"
+    "@playwright/test": "^1.55.1",
+    "@types/node": "^24.6.0",
+    "typescript": "^5.9.2"
   },
   "scripts": {
     "test": "playwright test",
@@ -12,5 +13,3 @@
     "browsers:install": "playwright install"
   }
 }
-
-
