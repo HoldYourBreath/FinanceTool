@@ -1,4 +1,386 @@
 [
-  { "month_id": 1, "source": "Salary", "amount": 45000 },
-  { "month_id": 2, "source": "Salary", "amount": 45000 }
+  {
+    "month_date": "2025-01-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 30434.94,
+    "created_at": "2025-10-02T13:39:10.833569+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-01-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 24915.69,
+    "created_at": "2025-10-02T13:39:10.833597+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-01-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3433.98,
+    "created_at": "2025-10-02T13:39:10.833605+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-01-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1244.51,
+    "created_at": "2025-10-02T13:39:10.833611+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-02-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 30027.58,
+    "created_at": "2025-10-02T13:39:10.833628+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-02-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 25425.61,
+    "created_at": "2025-10-02T13:39:10.833635+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-02-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3432.14,
+    "created_at": "2025-10-02T13:39:10.833644+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-02-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1249.63,
+    "created_at": "2025-10-02T13:39:10.833654+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-03-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 29667.27,
+    "created_at": "2025-10-02T13:39:10.833671+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-03-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 25338.26,
+    "created_at": "2025-10-02T13:39:10.833678+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-03-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3469.08,
+    "created_at": "2025-10-02T13:39:10.833683+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-03-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1256.64,
+    "created_at": "2025-10-02T13:39:10.833690+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-04-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 29872.95,
+    "created_at": "2025-10-02T13:39:10.833704+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-04-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 25456.69,
+    "created_at": "2025-10-02T13:39:10.833710+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-04-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3444.56,
+    "created_at": "2025-10-02T13:39:10.833716+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-04-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1236.65,
+    "created_at": "2025-10-02T13:39:10.833722+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-05-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 29827.22,
+    "created_at": "2025-10-02T13:39:10.833746+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-05-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 24661.03,
+    "created_at": "2025-10-02T13:39:10.833756+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-05-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3538.24,
+    "created_at": "2025-10-02T13:39:10.833766+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-05-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1250.66,
+    "created_at": "2025-10-02T13:39:10.833775+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-06-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 30417.01,
+    "created_at": "2025-10-02T13:39:10.833795+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-06-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 24864.58,
+    "created_at": "2025-10-02T13:39:10.833803+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-06-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3547.18,
+    "created_at": "2025-10-02T13:39:10.833814+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-06-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1228.42,
+    "created_at": "2025-10-02T13:39:10.833823+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-07-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 30410.23,
+    "created_at": "2025-10-02T13:39:10.833844+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-07-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 24837.01,
+    "created_at": "2025-10-02T13:39:10.833851+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-07-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3543.99,
+    "created_at": "2025-10-02T13:39:10.833856+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-07-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1252.57,
+    "created_at": "2025-10-02T13:39:10.833876+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-08-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 29614.75,
+    "created_at": "2025-10-02T13:39:10.833896+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-08-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 24822.83,
+    "created_at": "2025-10-02T13:39:10.833904+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-08-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3548.06,
+    "created_at": "2025-10-02T13:39:10.833909+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-08-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1240.32,
+    "created_at": "2025-10-02T13:39:10.833915+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-09-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 30209.16,
+    "created_at": "2025-10-02T13:39:10.833930+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-09-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 24992.63,
+    "created_at": "2025-10-02T13:39:10.833936+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-09-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3494.78,
+    "created_at": "2025-10-02T13:39:10.833942+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-09-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1253.19,
+    "created_at": "2025-10-02T13:39:10.833952+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-10-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 30126.27,
+    "created_at": "2025-10-02T13:39:10.833966+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-10-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 25004.27,
+    "created_at": "2025-10-02T13:39:10.833972+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-10-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3542.25,
+    "created_at": "2025-10-02T13:39:10.833977+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-10-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1225.72,
+    "created_at": "2025-10-02T13:39:10.833983+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-11-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 30510.97,
+    "created_at": "2025-10-02T13:39:10.833999+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-11-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 25257.62,
+    "created_at": "2025-10-02T13:39:10.834006+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-11-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3521.18,
+    "created_at": "2025-10-02T13:39:10.834012+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-11-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1268.31,
+    "created_at": "2025-10-02T13:39:10.834018+00:00",
+    "name": "Child Allowance"
+  },
+  {
+    "month_date": "2025-12-01",
+    "source": "Net Salary - Luke",
+    "person": "Luke",
+    "amount": 30204.15,
+    "created_at": "2025-10-02T13:39:10.834033+00:00",
+    "name": "Net Salary - Luke"
+  },
+  {
+    "month_date": "2025-12-01",
+    "source": "Net Salary - Leia",
+    "person": "Leia",
+    "amount": 25162.44,
+    "created_at": "2025-10-02T13:39:10.834042+00:00",
+    "name": "Net Salary - Leia"
+  },
+  {
+    "month_date": "2025-12-01",
+    "source": "Side Gig - Luke",
+    "person": "Luke",
+    "amount": 3533.06,
+    "created_at": "2025-10-02T13:39:10.834052+00:00",
+    "name": "Side Gig - Luke"
+  },
+  {
+    "month_date": "2025-12-01",
+    "source": "Child Allowance",
+    "person": null,
+    "amount": 1260.42,
+    "created_at": "2025-10-02T13:39:10.834062+00:00",
+    "name": "Child Allowance"
+  }
 ]

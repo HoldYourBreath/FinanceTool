@@ -4,15 +4,18 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import datetime, date
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from flask import Flask
 from sqlalchemy import MetaData, Table, text
 from sqlalchemy.exc import SQLAlchemyError
-from flask import Flask
 from sqlalchemy.sql.sqltypes import Integer, Float, Numeric, String, Boolean
 
-NULLISH = {"", "null", "none", "NaN", "N/A", "na", "n/a"}
+# ---- nullish handling ---------------------------------------------------------
+
+NULLISH = {"", "null", "none", "nan", "n/a", "na"}
 
 def _coerce_nullish(v):
     if isinstance(v, str) and v.strip().lower() in NULLISH:
@@ -20,10 +23,11 @@ def _coerce_nullish(v):
     return v
 
 def _default_for(col):
-    # Only used when a value is missing
+    """Provide a safe default only when necessary. Never synthesize FK values."""
     if col.nullable:
         return None
-    # Non-nullable: pick a safe default based on type
+    if col.name.endswith("_id"):
+        return None  # don't invent foreign keys
     t = col.type
     if isinstance(t, (Integer, Float, Numeric)):
         return 0
@@ -31,11 +35,11 @@ def _default_for(col):
         return False
     if isinstance(t, String):
         return ""
-    # Fallback
     return None
 
 
-# --- Path bootstrap so we can import backend.* no matter where we run this
+# --- Path bootstrap so we can import backend.* no matter where we run this ----
+
 THIS_FILE = Path(__file__).resolve()
 REPO_ROOT = THIS_FILE.parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -43,7 +47,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from backend.models.models import db  # noqa: E402
 
-# ---- Optional dotenv loading
+# ---- Optional dotenv loading --------------------------------------------------
+
 try:
     from dotenv import load_dotenv  # type: ignore
 
@@ -122,6 +127,14 @@ def _load_rows(path: Path) -> list[dict]:
     return data
 
 
+def _to_datetime(obj) -> datetime:
+    if isinstance(obj, datetime):
+        return obj
+    if isinstance(obj, date):
+        return datetime(obj.year, obj.month, obj.day)
+    return datetime.fromisoformat(str(obj))
+
+
 def seed_all(
     truncate: bool = True,
     env_name: str | None = None,
@@ -151,51 +164,91 @@ def seed_all(
         md = MetaData()
         md.reflect(bind=db.engine, schema="public")
 
+        # Build a map: (year, month) -> months.id
+        month_id_by_ym: dict[tuple[int, int], int] = {}
+        for mid, mdate in db.session.execute(
+            text('SELECT id, month_date FROM "months" ORDER BY month_date')
+        ).all():
+            dt = _to_datetime(mdate)
+            month_id_by_ym[(dt.year, dt.month)] = mid
+
         target_tables = list(tables or DEFAULT_TABLES)
 
         for name in target_tables:
-            tbl: Table | None = md.tables.get(f"public.{name}")
+            tbl = md.tables.get(f"public.{name}")
             if tbl is None:
-                tbl = md.tables.get(name)  # tolerance for non-qualified keys
-            if tbl is None:
-                print(f"⚠️  Skip '{name}': table not found in DB schema.")
-                continue
+                tbl = md.tables.get(name)
 
             seed_path = _resolve_seed_file(name, roots)
             if not seed_path:
                 print(f"⚠️  Skip '{name}': no seed file found.")
                 continue
 
-            rows = _load_rows(seed_path)
-            if not isinstance(rows, list) or not rows:
+            raw_rows = _load_rows(seed_path)
+            if not isinstance(raw_rows, list) or not raw_rows:
                 print(f"ℹ️  '{name}': 0 rows (seed file empty).")
                 continue
 
-            # keep only known columns + normalize
             cols = {c.name: c for c in tbl.columns}
             pk_names = {c.name for c in tbl.primary_key.columns}  # e.g., {"id"}
+
             normalized_rows = []
-            for raw in rows:
-                r = {}
-                # include only columns that exist; coerce null-ish strings to None
-                for k, v in raw.items():
-                    if k in cols and k not in pk_names:
-                        r[k] = _coerce_nullish(v)
-                # ensure every column has a value so executemany doesn't choke
+            skipped = 0
+
+            for raw in raw_rows:
+                # Start with only columns present in the table, excluding PKs
+                r = {k: _coerce_nullish(v) for k, v in raw.items() if k in cols and k not in pk_names}
+
+                # Coerce "*_id" == 0 -> None so we don't violate FKs
+                for k in list(r.keys()):
+                    if k.endswith("_id") and r[k] in (0, "0"):
+                        r[k] = None
+
+                # Special mapping for incomes/expenses: resolve month_id from year/month or month_date
+                if name in {"incomes", "expenses"}:
+                    if not r.get("month_id"):
+                        y = raw.get("year")
+                        m = raw.get("month")
+                        mdate = raw.get("month_date")
+                        resolved = None
+                        if y and m:
+                            try:
+                                resolved = month_id_by_ym.get((int(y), int(m)))
+                            except Exception:
+                                resolved = None
+                        elif mdate:
+                            try:
+                                dt = _to_datetime(mdate)
+                                resolved = month_id_by_ym.get((dt.year, dt.month))
+                            except Exception:
+                                resolved = None
+
+                        if resolved:
+                            r["month_id"] = resolved
+                        else:
+                            # can't safely map -> skip this row
+                            skipped += 1
+                            continue
+
+                # Fill missing columns with defaults (but never for PKs)
                 for cname, col in cols.items():
-                    if cname in pk_names:              # <-- never synthesize PKs
+                    if cname in pk_names:
                         continue
                     if cname not in r:
                         r[cname] = _default_for(col)
+
                 normalized_rows.append(r)
 
             try:
                 if truncate:
                     db.session.execute(tbl.delete())
-                # executemany with uniform keys
-                db.session.execute(tbl.insert(), normalized_rows)
+                if normalized_rows:
+                    db.session.execute(tbl.insert(), normalized_rows)
                 db.session.commit()
-                print(f"✅ '{name}': inserted {len(normalized_rows)} row(s).")
+                msg = f"✅ '{name}': inserted {len(normalized_rows)} row(s)."
+                if skipped:
+                    msg += f" (skipped {skipped} unmapped row(s))"
+                print(msg)
             except SQLAlchemyError as e:
                 db.session.rollback()
                 print(f"❌ '{name}': insert failed: {e}")
@@ -219,7 +272,10 @@ if __name__ == "__main__":
     ap.add_argument("--env", choices=["demo", "dev", "test", "prod"], help="Seed files environment to prefer")
     ap.add_argument(
         "--tables",
-        help="Comma-separated table list (defaults to acc_info,investments,months,incomes,expenses,financing,planned_purchases)",
+        help=(
+            "Comma-separated table list "
+            "(defaults to acc_info,investments,months,incomes,expenses,financing,planned_purchases,cars)"
+        ),
     )
     args = ap.parse_args()
 
