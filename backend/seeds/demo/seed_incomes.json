@@ -1,0 +1,4 @@
+[
+  { "month_id": 1, "source": "Salary", "amount": 45000 },
+  { "month_id": 2, "source": "Salary", "amount": 45000 }
+]

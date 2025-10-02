@@ -72,6 +72,7 @@ DEFAULT_TABLES: Sequence[str] = (
     "expenses",
     "financing",
     "planned_purchases",
+    "cars",
 )
 
 CAND_FILENAMES = (
