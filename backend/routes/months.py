@@ -10,6 +10,16 @@ from sqlalchemy.orm import selectinload
 
 from backend.models.models import Financing, Month, db
 
+
+def _month_label(m) -> str:
+    d = getattr(m, "month_date", None)
+    try:
+        # d can be a date/datetime; use full month name
+        return d.strftime("%B %Y") if d else f"Month {getattr(m, 'id', '')}".strip()
+    except Exception:
+        return f"Month {getattr(m, 'id', '')}".strip()
+
+
 # Final paths:
 #   GET /api/months        -> months from the current month (inclusive) onward
 #   GET /api/months/all    -> all months
@@ -155,7 +165,7 @@ def build_months_data(
         result.append(
             {
                 "id": month.id,
-                "name": month.name,
+                "name": _month_label(month),
                 "month_date": _iso(getattr(month, "month_date", None)),
                 "startingFunds": _f(starting_funds),
                 "endingFunds": _f(ending_funds),
@@ -165,8 +175,22 @@ def build_months_data(
                 "incomes": incomes_list,
                 "incomesByPerson": incomes_by_person,
                 "expenses": [
-                    {"description": e.description, "amount": _f(e.amount)}
-                    for e in getattr(month, "expenses", []) or []
+                    {
+                        "id": e.id,
+                        "name": (
+                            getattr(e, "name", None)
+                            or getattr(e, "description", "")
+                            or ""
+                        ).strip(),
+                        "description": (
+                            getattr(e, "name", None)
+                            or getattr(e, "description", "")
+                            or ""
+                        ).strip(),  # temporary back-compat
+                        "category": e.category or "Other",
+                        "amount": _f(e.amount),
+                    }
+                    for e in (getattr(month, "expenses", []) or [])
                 ],
                 "loanAdjustments": [
                     {

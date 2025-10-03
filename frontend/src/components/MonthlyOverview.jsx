@@ -75,7 +75,7 @@ const categorizeExpense = (expenses) => {
   };
 
   (expenses || []).forEach((exp) => {
-    const d = String(exp?.description || "");
+    const d = String(exp?.name || "");
 
     if (isChildcare(d)) {
       cats["Childcare and Family"].push(exp);
@@ -303,7 +303,9 @@ export default function MonthlyOverview() {
                                   key={idx}
                                   className="flex justify-between text-sm"
                                 >
-                                  <span>{exp.description}</span>
+                                  <span>
+                                    {exp?.name || exp?.description || "Unnamed"}
+                                  </span>
                                   <span>
                                     - {toNum(exp.amount).toLocaleString()} SEK
                                   </span>

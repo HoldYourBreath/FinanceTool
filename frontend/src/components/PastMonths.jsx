@@ -66,25 +66,25 @@ export default function PastMonths() {
 
     const toLower = (x) => String(x || "").toLowerCase();
     return {
-      Food: items.filter((e) => toLower(e?.description).includes("food")),
+      Food: items.filter((e) => toLower(e?.name).includes("food")),
       Housing: items.filter((e) => {
-        const d = toLower(e?.description);
+        const d = toLower(e?.name);
         return d.includes("rent") || d.includes("loan");
       }),
       Transportation: items.filter((e) => {
-        const d = toLower(e?.description);
+        const d = toLower(e?.name);
         return d.includes("car") || d.includes("transport");
       }),
-      Phones: items.filter((e) => toLower(e?.description).includes("phone")),
+      Phones: items.filter((e) => toLower(e?.name).includes("phone")),
       Subscriptions: items.filter((e) =>
-        toLower(e?.description).includes("subscription"),
+        toLower(e?.name).includes("subscription"),
       ),
       "Union and Insurance": items.filter((e) => {
-        const d = toLower(e?.description);
+        const d = toLower(e?.name);
         return d.includes("union") || d.includes("insurance");
       }),
       Other: items.filter((e) => {
-        const d = toLower(e?.description);
+        const d = toLower(e?.name);
         return ![
           "food",
           "rent",
@@ -264,7 +264,7 @@ function CategorySection({ title, categories, total, categoryColors }) {
             </div>
             {list.map((item, idx) => (
               <div key={idx} className="flex justify-between text-sm">
-                <span>{item?.name || item?.description}</span>
+                <span>{item?.name || item?.description || "Unnamed"}</span>
                 <span>
                   {Number(item?.amount || 0).toLocaleString("sv-SE")} SEK
                 </span>

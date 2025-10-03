@@ -263,7 +263,7 @@ def seed(
                 month.expenses.append(
                     Expense(
                         amount=_to_amount(exp.get("amount", 0)),
-                        description=nm,
+                        name=nm,
                         category=_cat(nm),
                     )
                 )

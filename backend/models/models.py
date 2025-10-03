@@ -4,6 +4,7 @@ from decimal import Decimal
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import Numeric, func
+from sqlalchemy.orm import synonym
 
 db = SQLAlchemy()
 
@@ -74,20 +75,14 @@ class Income(db.Model):
 
 class Expense(db.Model):
     __tablename__ = "expenses"
+
     id = db.Column(db.Integer, primary_key=True)
     category = db.Column(db.String(64), nullable=False)
     month_id = db.Column(db.Integer, db.ForeignKey("months.id"), nullable=False)
-    description = db.Column(db.Text)
+    name = db.Column(db.Text)  # real column
+    description = synonym("name")  # back-compat alias (no DB column)
     amount = db.Column(db.Numeric, nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "category": self.category,
-            "description": self.description,
-            "amount": float(self.amount or 0),
-        }
 
 
 class LoanAdjustment(db.Model):

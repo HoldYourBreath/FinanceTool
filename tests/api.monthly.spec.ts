@@ -42,8 +42,8 @@ test.describe('Monthly tab API', () => {
 
     const exp = m.expenses[0];
     if (exp) {
-      for (const k of ['description', 'amount']) expect(exp).toHaveProperty(k);
-      expect(isString(exp.description)).toBeTruthy();
+      for (const k of ['name', 'amount']) expect(exp).toHaveProperty(k);
+      expect(isString(exp.name)).toBeTruthy();
       expect(isFiniteNumber(Number(exp.amount))).toBeTruthy();
     }
 
@@ -70,7 +70,7 @@ test.describe('Monthly tab API', () => {
     expect(Array.isArray(json)).toBeTruthy();
     if (json.length === 0) return;
     const row = json[0];
-    for (const k of ['id', 'month_id', 'category', 'description', 'amount']) expect(row).toHaveProperty(k);
+    for (const k of ['id', 'month_id', 'category', 'name', 'amount']) expect(row).toHaveProperty(k);
   });
 
   test('GET /api/loan_adjustments rows', async ({ request }) => {
