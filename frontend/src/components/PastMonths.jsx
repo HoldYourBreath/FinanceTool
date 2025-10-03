@@ -12,27 +12,25 @@ export default function PastMonths() {
         const res = await api.get("/months/all");
         const months = Array.isArray(res.data) ? [...res.data] : [];
 
-        // Sort safely by date; fall back to `name` if `month_date` missing
+        // Sort by month_date (fallback to name)
         months.sort((a, b) => {
           const ta = new Date(a?.month_date ?? a?.name ?? 0).getTime() || 0;
           const tb = new Date(b?.month_date ?? b?.name ?? 0).getTime() || 0;
           return ta - tb;
         });
 
-        // Find index of current month (accept true or "true")
+        // Past months = strictly before the current one
         const currentIndex = months.findIndex(
           (m) =>
             m?.is_current === true ||
             String(m?.is_current).toLowerCase() === "true",
         );
+        const past = currentIndex > -1 ? months.slice(0, currentIndex) : months;
 
-        // If a current month exists, take strictly earlier ones; else keep all as "past"
-        const pastMonths =
-          currentIndex > -1 ? months.slice(0, currentIndex) : months;
-        setMonthsData(pastMonths);
+        setMonthsData(past);
       } catch (err) {
         console.error("❌ Failed to fetch past months:", err);
-        setMonthsData([]); // keep rendering stable
+        setMonthsData([]);
       } finally {
         setLoading(false);
       }
@@ -42,72 +40,32 @@ export default function PastMonths() {
   }, []);
 
   // ---------- helpers ----------
+  const formatSEK = (n) =>
+    Number(n || 0).toLocaleString("sv-SE", {
+      style: "currency",
+      currency: "SEK",
+      maximumFractionDigits: 0,
+    });
+
   const sumAmounts = (items = []) =>
     items.reduce((sum, item) => sum + Number(item?.amount || 0), 0);
 
-  const categorize = (items = [], type) => {
-    if (type === "income") {
-      return {
-        "Janne Income": items.filter(
-          (i) =>
-            String(i?.name || "").includes("Janne") &&
-            !String(i?.name || "").includes("Rent"),
-        ),
-        "Kristine Income": items.filter(
-          (i) =>
-            String(i?.name || "").includes("Kristine") &&
-            !String(i?.name || "").includes("Rent"),
-        ),
-        "Rental Income": items.filter((i) =>
-          String(i?.name || "").includes("Rent"),
-        ),
-      };
+  const groupByCategory = (items = []) => {
+    const map = {};
+    for (const e of items) {
+      const key = (e?.category || "Other").trim() || "Other";
+      (map[key] ||= []).push(e);
     }
-
-    const toLower = (x) => String(x || "").toLowerCase();
-    return {
-      Food: items.filter((e) => toLower(e?.name).includes("food")),
-      Housing: items.filter((e) => {
-        const d = toLower(e?.name);
-        return d.includes("rent") || d.includes("loan");
-      }),
-      Transportation: items.filter((e) => {
-        const d = toLower(e?.name);
-        return d.includes("car") || d.includes("transport");
-      }),
-      Phones: items.filter((e) => toLower(e?.name).includes("phone")),
-      Subscriptions: items.filter((e) =>
-        toLower(e?.name).includes("subscription"),
-      ),
-      "Union and Insurance": items.filter((e) => {
-        const d = toLower(e?.name);
-        return d.includes("union") || d.includes("insurance");
-      }),
-      Other: items.filter((e) => {
-        const d = toLower(e?.name);
-        return ![
-          "food",
-          "rent",
-          "loan",
-          "car",
-          "transport",
-          "phone",
-          "subscription",
-          "union",
-          "insurance",
-        ].some((k) => d.includes(k));
-      }),
-    };
+    return map;
   };
 
   // Hardcoded so Tailwind keeps the classes
-  const categoryColors = {
-    "Janne Income": "text-green-700",
-    "Kristine Income": "text-blue-700",
-    "Rental Income": "text-orange-600",
-    Food: "text-red-700",
+  const expenseCategoryColors = {
     Housing: "text-green-700",
     Transportation: "text-orange-500",
+    Food: "text-red-700",
+    "Childcare and Family": "text-emerald-700",
+    "Entertainment and Leisure": "text-indigo-700",
     Phones: "text-blue-700",
     Subscriptions: "text-purple-700",
     "Union and Insurance": "text-pink-700",
@@ -134,15 +92,18 @@ export default function PastMonths() {
                 className="flex flex-wrap gap-4 justify-center"
               >
                 {rowMonths.map((month, idx) => {
-                  const incomes = month?.incomes || [];
-                  const expenses = month?.expenses || [];
+                  const incomes = Array.isArray(month?.incomes)
+                    ? month.incomes
+                    : [];
+                  const expenses = Array.isArray(month?.expenses)
+                    ? month.expenses
+                    : [];
+
                   const totalIncome = sumAmounts(incomes);
                   const totalExpenses = sumAmounts(expenses);
                   const surplus = totalIncome - totalExpenses;
 
-                  const incomeCategories = categorize(incomes, "income");
-                  const expenseCategories = categorize(expenses, "expense");
-
+                  const expenseGroups = groupByCategory(expenses);
                   const cardKey =
                     month?.id ?? `${month?.name || "month"}-${rowIndex}-${idx}`;
 
@@ -156,28 +117,33 @@ export default function PastMonths() {
                       </h2>
 
                       <div
-                        className={`text-center font-bold text-white py-2 rounded ${
+                        className={`text-center font-bold text-white py-2 rounded tabular-nums ${
                           surplus >= 0 ? "bg-green-500" : "bg-red-500"
                         }`}
                       >
                         {surplus >= 0 ? "+" : "-"}{" "}
-                        {Math.abs(surplus).toLocaleString("sv-SE")} SEK
+                        {formatSEK(Math.abs(surplus))}
                       </div>
 
-                      <CategorySection
-                        title="💰 Income"
-                        categories={incomeCategories}
+                      {/* Incomes: list each item + total */}
+                      <IncomeSection
+                        title="💰 Incomes"
+                        items={incomes}
                         total={totalIncome}
-                        categoryColors={categoryColors}
+                        formatSEK={formatSEK}
+                        byPerson={month?.incomesByPerson || {}}
                       />
 
-                      <CategorySection
+                      {/* Expenses grouped by server-provided category */}
+                      <ExpenseSection
                         title="💸 Expenses"
-                        categories={expenseCategories}
+                        groups={expenseGroups}
                         total={totalExpenses}
-                        categoryColors={categoryColors}
+                        colors={expenseCategoryColors}
+                        formatSEK={formatSEK}
                       />
 
+                      {/* Loan adjustments (optional) */}
                       {Array.isArray(month?.loanAdjustments) &&
                         month.loanAdjustments.length > 0 && (
                           <div className="mt-4 space-y-2">
@@ -187,49 +153,24 @@ export default function PastMonths() {
                             {month.loanAdjustments.map((adj, i2) => (
                               <div
                                 key={i2}
-                                className="flex justify-between text-sm"
+                                className="flex justify-between text-sm tabular-nums"
                               >
                                 <span>{adj?.name}</span>
-                                <span>
-                                  {Number(adj?.amount || 0).toLocaleString(
-                                    "sv-SE",
-                                  )}{" "}
-                                  SEK
-                                </span>
+                                <span>{formatSEK(adj?.amount)}</span>
                               </div>
                             ))}
                           </div>
                         )}
 
+                      {/* Funds */}
                       <div className="mt-4 border-t pt-2 text-sm text-gray-700 space-y-1">
                         <h3 className="text-base font-semibold">💰 Funds</h3>
-                        <div className="flex justify-between">
-                          <span>Start:</span>
-                          <span>
-                            {Number(month?.startingFunds || 0).toLocaleString(
-                              "sv-SE",
-                            )}{" "}
-                            SEK
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>End:</span>
-                          <span>
-                            {Number(month?.endingFunds || 0).toLocaleString(
-                              "sv-SE",
-                            )}{" "}
-                            SEK
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Loan Remaining:</span>
-                          <span>
-                            {Number(month?.loanRemaining || 0).toLocaleString(
-                              "sv-SE",
-                            )}{" "}
-                            SEK
-                          </span>
-                        </div>
+                        <RowKV k="Start:" v={formatSEK(month?.startingFunds)} />
+                        <RowKV k="End:" v={formatSEK(month?.endingFunds)} />
+                        <RowKV
+                          k="Loan Remaining:"
+                          v={formatSEK(month?.loanRemaining)}
+                        />
                       </div>
                     </div>
                   );
@@ -244,35 +185,92 @@ export default function PastMonths() {
 }
 
 // ---------- subcomponents ----------
-function CategorySection({ title, categories, total, categoryColors }) {
+function IncomeSection({ title, items, total, byPerson, formatSEK }) {
+  const list = Array.isArray(items) ? items : [];
+  const people = Object.entries(byPerson || {}).filter(
+    ([p]) => (p || "").toLowerCase() !== "unknown",
+  );
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2">
-        {title} (Total {Number(total || 0).toLocaleString("sv-SE")} SEK)
+        {title} (Total {formatSEK(total)})
       </h3>
-      {Object.entries(categories || {}).map(([category, items]) => {
-        const list = items || [];
-        if (!list.length) return null;
 
+      <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+        {list.map((i, idx) => (
+          <li key={idx} className="flex justify-between tabular-nums">
+            <span>
+              • {i?.name || i?.source || "Unnamed"}
+              {i?.person ? (
+                <span className="ml-1 text-xs opacity-70">({i.person})</span>
+              ) : null}
+            </span>
+            <span>+ {formatSEK(i?.amount)}</span>
+          </li>
+        ))}
+        {list.length === 0 && (
+          <li className="opacity-70">— No incomes recorded —</li>
+        )}
+      </ul>
+
+      {people.length > 0 && (
+        <div className="mt-1 text-xs text-muted-foreground">
+          {people.map(([person, amt]) => (
+            <div key={person} className="flex justify-between tabular-nums">
+              <span>↳ {person}</span>
+              <span>{formatSEK(amt)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExpenseSection({ title, groups, total, colors, formatSEK }) {
+  const entries = Object.entries(groups || {});
+  return (
+    <div>
+      <h3 className="text-lg font-semibold mb-2">
+        {title} (Total {formatSEK(total)})
+      </h3>
+
+      {entries.length === 0 && (
+        <div className="text-sm opacity-70">— No expenses recorded —</div>
+      )}
+
+      {entries.map(([category, list]) => {
+        if (!list || list.length === 0) return null;
         const subtotal = list.reduce((s, it) => s + Number(it?.amount || 0), 0);
-        const color = categoryColors?.[category] || "text-gray-700";
+        const color = colors?.[category] || "text-gray-700";
 
         return (
           <div key={category} className="mb-2">
             <div className={`font-bold ${color}`}>
-              {category} — {subtotal.toLocaleString("sv-SE")} SEK
+              {category} — {formatSEK(subtotal)}
             </div>
             {list.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-sm">
+              <div
+                key={idx}
+                className="flex justify-between text-sm tabular-nums"
+              >
                 <span>{item?.name || item?.description || "Unnamed"}</span>
-                <span>
-                  {Number(item?.amount || 0).toLocaleString("sv-SE")} SEK
-                </span>
+                <span>{formatSEK(item?.amount)}</span>
               </div>
             ))}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function RowKV({ k, v }) {
+  return (
+    <div className="flex justify-between">
+      <span>{k}</span>
+      <span className="tabular-nums">{v}</span>
     </div>
   );
 }
