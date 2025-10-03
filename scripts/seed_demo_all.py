@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 from flask import Flask
-from sqlalchemy import MetaData, Table, text
+from sqlalchemy import MetaData, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.sqltypes import Integer, Float, Numeric, String, Boolean
 
@@ -17,10 +17,12 @@ from sqlalchemy.sql.sqltypes import Integer, Float, Numeric, String, Boolean
 
 NULLISH = {"", "null", "none", "nan", "n/a", "na"}
 
+
 def _coerce_nullish(v):
     if isinstance(v, str) and v.strip().lower() in NULLISH:
         return None
     return v
+
 
 def _default_for(col):
     """Provide a safe default only when necessary. Never synthesize FK values."""
@@ -128,11 +130,19 @@ def _load_rows(path: Path) -> list[dict]:
 
 
 def _to_datetime(obj) -> datetime:
+    """Accept datetime/date or strings 'YYYY-MM-DD', 'YYYY/MM/DD', and 'YYYY-MM'/'YYYY/MM' (assume day 01)."""
     if isinstance(obj, datetime):
         return obj
     if isinstance(obj, date):
         return datetime(obj.year, obj.month, obj.day)
-    return datetime.fromisoformat(str(obj))
+    s = str(obj).strip()
+    # Accept YYYY-MM or YYYY/MM
+    if len(s) == 7 and s[4] in "-/":
+        s = s.replace("/", "-") + "-01"
+    # Normalize YYYY/MM/DD -> YYYY-MM-DD
+    if len(s) == 10 and s[4] in "-/" and s[7] in "-/":
+        s = s.replace("/", "-")
+    return datetime.fromisoformat(s)
 
 
 def seed_all(
@@ -164,15 +174,17 @@ def seed_all(
         md = MetaData()
         md.reflect(bind=db.engine, schema="public")
 
-        # Build a map: (year, month) -> months.id
-        month_id_by_ym: dict[tuple[int, int], int] = {}
-        for mid, mdate in db.session.execute(
-            text('SELECT id, month_date FROM "months" ORDER BY month_date')
-        ).all():
-            dt = _to_datetime(mdate)
-            month_id_by_ym[(dt.year, dt.month)] = mid
+        def _build_month_map() -> dict[tuple[int, int], int]:
+            d: dict[tuple[int, int], int] = {}
+            for mid, mdate in db.session.execute(
+                text('SELECT id, month_date FROM "months" ORDER BY month_date')
+            ).all():
+                dt = _to_datetime(mdate)
+                d[(dt.year, dt.month)] = mid
+            return d
 
         target_tables = list(tables or DEFAULT_TABLES)
+        skipped_samples: dict[str, list[dict]] = {}
 
         for name in target_tables:
             tbl = md.tables.get(f"public.{name}")
@@ -183,17 +195,33 @@ def seed_all(
             if not seed_path:
                 print(f"⚠️  Skip '{name}': no seed file found.")
                 continue
+            print(f"→ Using seed file for '{name}': {seed_path}")
 
             raw_rows = _load_rows(seed_path)
             if not isinstance(raw_rows, list) or not raw_rows:
                 print(f"ℹ️  '{name}': 0 rows (seed file empty).")
+                # still respect truncate for deterministic dev runs
+                try:
+                    if tbl is not None and truncate:
+                        db.session.execute(tbl.delete())
+                        db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                continue
+
+            if tbl is None:
+                print(f"❌ '{name}': table not found in metadata; skipping.")
                 continue
 
             cols = {c.name: c for c in tbl.columns}
             pk_names = {c.name for c in tbl.primary_key.columns}  # e.g., {"id"}
 
+            # Rebuild month map right before we need it (after 'months' is possibly inserted)
+            month_id_by_ym = _build_month_map() if name in {"incomes", "expenses"} else None
+
             normalized_rows = []
             skipped = 0
+            skipped_samples[name] = []
 
             for raw in raw_rows:
                 # Start with only columns present in the table, excluding PKs
@@ -213,13 +241,13 @@ def seed_all(
                         resolved = None
                         if y and m:
                             try:
-                                resolved = month_id_by_ym.get((int(y), int(m)))
+                                resolved = month_id_by_ym.get((int(y), int(m))) if month_id_by_ym else None
                             except Exception:
                                 resolved = None
                         elif mdate:
                             try:
                                 dt = _to_datetime(mdate)
-                                resolved = month_id_by_ym.get((dt.year, dt.month))
+                                resolved = month_id_by_ym.get((dt.year, dt.month)) if month_id_by_ym else None
                             except Exception:
                                 resolved = None
 
@@ -228,6 +256,14 @@ def seed_all(
                         else:
                             # can't safely map -> skip this row
                             skipped += 1
+                            if len(skipped_samples[name]) < 10:
+                                skipped_samples[name].append(
+                                    {
+                                        "raw_year": y,
+                                        "raw_month": m,
+                                        "raw_month_date": raw.get("month_date"),
+                                    }
+                                )
                             continue
 
                 # Fill missing columns with defaults (but never for PKs)
@@ -249,6 +285,8 @@ def seed_all(
                 if skipped:
                     msg += f" (skipped {skipped} unmapped row(s))"
                 print(msg)
+                if skipped and skipped_samples.get(name):
+                    print(f"   ↳ examples of unmapped rows (up to 10): {skipped_samples[name]}")
             except SQLAlchemyError as e:
                 db.session.rollback()
                 print(f"❌ '{name}': insert failed: {e}")
