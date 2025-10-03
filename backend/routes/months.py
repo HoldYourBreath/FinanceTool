@@ -2,45 +2,33 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy.orm import selectinload
 
 from backend.models.models import Financing, Month, db
 
+months_bp = Blueprint("months", __name__, url_prefix="/api/months")
 
+
+# ---------- helpers ----------
 def _month_label(m) -> str:
     d = getattr(m, "month_date", None)
     try:
-        # d can be a date/datetime; use full month name
         return d.strftime("%B %Y") if d else f"Month {getattr(m, 'id', '')}".strip()
     except Exception:
         return f"Month {getattr(m, 'id', '')}".strip()
 
 
-# Final paths:
-#   GET /api/months        -> months from the current month (inclusive) onward
-#   GET /api/months/all    -> all months
-months_bp = Blueprint("months", __name__, url_prefix="/api/months")
-
-
 def _f(v: Any, default: float = 0.0) -> float:
-    """
-    Safe float coercion:
-      - Decimal -> float
-      - None / "" -> default
-      - str with comma/space -> normalized float
-      - any other -> float(value) or default on failure
-    """
     if v is None or v == "":
         return float(default)
-    if isinstance(v, float):
-        return v
-    if isinstance(v, Decimal):
+    if isinstance(v, float | int):
         return float(v)
-    if isinstance(v, int):
+    if isinstance(v, Decimal):
         return float(v)
     if isinstance(v, str):
         s = v.strip().replace("\u00a0", "").replace(" ", "").replace(",", ".")
@@ -59,7 +47,6 @@ def _iso(d) -> str | None:
 
 
 def _loan_delta(adj_type: str, amount: float) -> float:
-    # Positive for disbursement, negative for payment; ignore others
     if adj_type == "disbursement":
         return amount
     if adj_type == "payment":
@@ -67,21 +54,29 @@ def _loan_delta(adj_type: str, amount: float) -> float:
     return 0.0
 
 
+def _parse_anchor_ym(s: str | None) -> date | None:
+    if not s:
+        return None
+    try:
+        s = str(s).strip()
+        return date(int(s[0:4]), int(s[5:7]), 1)
+    except Exception:
+        return None
+
+
+def _same_month_ym(d: date | None, anchor: date | None) -> bool:
+    if not d or not anchor:
+        return False
+    return (d.year, d.month) == (anchor.year, anchor.month)
+
+
+# ---------- core ----------
 def build_months_data(
     months: Iterable[Month],
     financing_data: dict[str, float],
     *,
     is_past: bool = False,
 ) -> list[dict[str, Any]]:
-    """
-    Compute derived month fields. If is_past=False, update and persist
-    Month.starting_funds, Month.ending_funds, Month.surplus, Month.loan_remaining
-    when they differ (idempotent writes).
-
-    Also returns richer income data:
-      - incomes:        [{ name, person, amount }]
-      - incomesByPerson: { personNameOrUnknown: totalAmount }
-    """
     result: list[dict[str, Any]] = []
     prev_ending_funds: float | None = None
     prev_loan_remaining: float | None = None
@@ -89,14 +84,13 @@ def build_months_data(
 
     months_list = list(months)
     for idx, month in enumerate(months_list):
-        # ---- incomes & grouping ----
         incomes_list = [
             {
-                "name": inc.source,
+                "name": getattr(inc, "source", None),
                 "person": getattr(inc, "person", None),
                 "amount": _f(inc.amount),
             }
-            for inc in getattr(month, "incomes", []) or []
+            for inc in (getattr(month, "incomes", []) or [])
         ]
         incomes_by_person: dict[str, float] = {}
         for item in incomes_list:
@@ -106,12 +100,13 @@ def build_months_data(
             )
 
         total_income = sum(x["amount"] for x in incomes_list)
-        total_expenses = sum(_f(e.amount) for e in getattr(month, "expenses", []) or [])
+        total_expenses = sum(
+            _f(e.amount) for e in (getattr(month, "expenses", []) or [])
+        )
         surplus = total_income - total_expenses
 
-        # ---- starting funds ----
         if idx == 0:
-            starting_funds = _f(month.starting_funds)  # keep DB value for first row
+            starting_funds = _f(month.starting_funds)
         else:
             starting_funds = (
                 prev_ending_funds
@@ -119,49 +114,37 @@ def build_months_data(
                 else _f(month.starting_funds)
             )
 
-        # ---- loan remaining (+ adjustments) ----
         if idx == 0:
-            # seed from financing ("loans_taken") if present, fallback to month.loan_remaining
             seed_loan = financing_data.get("loans_taken")
             loan_remaining = _f(seed_loan, _f(month.loan_remaining))
         else:
             loan_remaining = _f(prev_loan_remaining, _f(month.loan_remaining))
 
-        # Apply monthly loan adjustments
         loan_adj_sum = 0.0
         for adj in getattr(month, "loan_adjustments", []) or []:
             loan_adj_sum += _loan_delta(getattr(adj, "type", ""), _f(adj.amount))
         loan_remaining = _f(loan_remaining) + loan_adj_sum
 
-        # ---- ending funds ----
         ending_funds = _f(starting_funds) + _f(surplus)
 
-        # ---- persist if changed (only when is_past=False) ----
         if not is_past:
             updated = False
-
-            # For idx == 0 we keep stored starting_funds; propagate for subsequent rows.
             if idx != 0 and _f(month.starting_funds) != _f(starting_funds):
                 month.starting_funds = starting_funds
                 updated = True
-
             if _f(month.ending_funds) != _f(ending_funds):
                 month.ending_funds = ending_funds
                 updated = True
-
             if _f(month.surplus) != _f(surplus):
                 month.surplus = surplus
                 updated = True
-
             if _f(month.loan_remaining) != _f(loan_remaining):
                 month.loan_remaining = loan_remaining
                 updated = True
-
             if updated:
                 db.session.add(month)
                 dirty = True
 
-        # ---- build response row ----
         result.append(
             {
                 "id": month.id,
@@ -171,7 +154,9 @@ def build_months_data(
                 "endingFunds": _f(ending_funds),
                 "surplus": _f(surplus),
                 "loanRemaining": _f(loan_remaining),
-                "is_current": bool(getattr(month, "is_current", False)),
+                "is_current": bool(
+                    getattr(month, "is_current", False)
+                ),  # may be overridden
                 "incomes": incomes_list,
                 "incomesByPerson": incomes_by_person,
                 "expenses": [
@@ -186,7 +171,7 @@ def build_months_data(
                             getattr(e, "name", None)
                             or getattr(e, "description", "")
                             or ""
-                        ).strip(),  # temporary back-compat
+                        ).strip(),
                         "category": e.category or "Other",
                         "amount": _f(e.amount),
                     }
@@ -199,7 +184,7 @@ def build_months_data(
                         "amount": _f(adj.amount),
                         "note": getattr(adj, "note", None),
                     }
-                    for adj in getattr(month, "loan_adjustments", []) or []
+                    for adj in (getattr(month, "loan_adjustments", []) or [])
                 ],
             }
         )
@@ -217,12 +202,15 @@ def build_months_data(
     return result
 
 
+# ---------- routes ----------
 @months_bp.get("")
 @months_bp.get("/")
 def get_months():
     """
-    Returns months from the first 'is_current' month (inclusive) onward.
-    CI-safe: on any error, return [] with 200.
+    Returns months from the chosen 'current' month (inclusive) onward.
+
+    The anchor month comes from query param `anchor` (YYYY-MM or YYYY-MM-DD);
+    if absent, we use today's month.
     """
     try:
         months = (
@@ -238,23 +226,45 @@ def get_months():
         financing_entries = db.session.query(Financing).all()
         financing_data = {f.name: _f(f.value) for f in financing_entries}
 
-        all_months_data = build_months_data(months, financing_data, is_past=False)
-        current_index = next(
-            (i for i, m in enumerate(all_months_data) if m.get("is_current")), 0
+        # Build payload once
+        payload = build_months_data(months, financing_data, is_past=False)
+
+        # Compute anchor and slice index purely from DB dates (no flags/strings)
+        anchor = _parse_anchor_ym(request.args.get("anchor")) or date.today().replace(
+            day=1
         )
-        future_months_data = all_months_data[current_index:]
-        return jsonify(future_months_data), 200
-    except Exception as e:
-        current_app.logger.warning("/api/months failed, returning []: %s", e)
+        anchor_ym = (anchor.year, anchor.month)
+
+        idx = None
+        for i, m in enumerate(months):
+            d = getattr(m, "month_date", None)
+            if d and (d.year, d.month) >= anchor_ym:
+                idx = i
+                break
+
+        if idx is None:
+            # Anchor after last month -> return empty list
+            return jsonify([]), 200
+
+        # Mark is_current on the chosen month in the payload
+        chosen = months[idx]
+        chosen_d = getattr(chosen, "month_date", None)
+        for row in payload:
+            # recompute using parsed date to avoid any string mismatch
+            md = row.get("month_date")
+            row_date = date(int(md[0:4]), int(md[5:7]), int(md[8:10])) if md else None
+            row["is_current"] = _same_month_ym(row_date, chosen_d)
+
+        return jsonify(payload[idx:]), 200
+
+    except Exception as ex:
+        current_app.logger.exception("/api/months failed, returning []: %s", ex)
         return jsonify([]), 200
 
 
 @months_bp.get("/all")
 def get_all_months():
-    """
-    Returns all months without mutating DB (is_past=True).
-    CI-safe: on any error, return [] with 200.
-    """
+    """Return all months (no mutations)."""
     try:
         months = (
             db.session.query(Month)
@@ -268,9 +278,7 @@ def get_all_months():
         )
         financing_entries = db.session.query(Financing).all()
         financing_data = {f.name: _f(f.value) for f in financing_entries}
-
-        all_months_data = build_months_data(months, financing_data, is_past=True)
-        return jsonify(all_months_data), 200
-    except Exception as e:
-        current_app.logger.warning("/api/months/all failed, returning []: %s", e)
+        return jsonify(build_months_data(months, financing_data, is_past=True)), 200
+    except Exception as ex:
+        current_app.logger.exception("/api/months/all failed, returning []: %s", ex)
         return jsonify([]), 200

@@ -14,7 +14,7 @@ const isChildcare = (s) =>
   );
 
 const monthKey = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // YYYY-MM
 
 const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -131,6 +131,27 @@ export default function MonthlyOverview() {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Read and react to the selected month anchor (from Settings)
+  const [anchor, setAnchor] = useState(
+    localStorage.getItem("current_anchor") ||
+      new Date().toISOString().slice(0, 7), // "YYYY-MM"
+  );
+
+  // react to Settings changes and cross-tab updates
+  useEffect(() => {
+    const onCustom = (e) =>
+      setAnchor(e?.detail || localStorage.getItem("current_anchor"));
+    const onStorage = (e) => {
+      if (e.key === "current_anchor" && e.newValue) setAnchor(e.newValue);
+    };
+    window.addEventListener("current-anchor-changed", onCustom);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("current-anchor-changed", onCustom);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
     let canceled = false;
@@ -139,7 +160,11 @@ export default function MonthlyOverview() {
       try {
         setLoading(true);
 
-        const res = await api.get("/months", { signal: controller.signal });
+        // Pass anchor so backend marks is_current and slices correctly
+        const res = await api.get("/months", {
+          params: { anchor }, // "YYYY-MM"
+          signal: controller.signal,
+        });
         const months = Array.isArray(res?.data) ? res.data : [];
 
         const currentIndex = months.findIndex((m) => m.is_current);
@@ -149,11 +174,11 @@ export default function MonthlyOverview() {
         if (import.meta.env.DEV) {
           console.log("Fetched months:", months);
           console.log("Current Index:", currentIndex);
+          console.log("Anchor:", anchor);
         }
 
         if (!canceled) setMonthsData(futureMonths);
 
-        // If you can, pass a signal to your fetchPlannedPurchases implementation
         const purchaseData = await fetchPlannedPurchases().catch(() => []);
         if (!canceled)
           setPurchases(Array.isArray(purchaseData) ? purchaseData : []);
@@ -170,7 +195,7 @@ export default function MonthlyOverview() {
       canceled = true;
       controller.abort();
     };
-  }, []);
+  }, [anchor]);
 
   const chartData = useMemo(() => {
     if (!Array.isArray(monthsData) || monthsData.length === 0) return [];
@@ -179,10 +204,11 @@ export default function MonthlyOverview() {
       const income = sumAmounts(m.incomes);
       const expenses = sumAmounts(m.expenses);
 
+      // Match planned purchases by YYYY-MM against month.month_date
       const plannedForMonth = (purchases || []).filter((p) => {
         if (!p?.date) return false;
         const d = new Date(p.date);
-        return m?.name === monthKey(d);
+        return (m?.month_date || "").slice(0, 7) === monthKey(d);
       });
       const plannedSum = sumAmounts(plannedForMonth);
 

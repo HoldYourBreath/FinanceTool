@@ -59,12 +59,16 @@ export default function Settings() {
     if (currentMonthValue === "") return flash("❌ Select a month first");
     const num = Number(currentMonthValue);
     try {
-      // Be tolerant with payload keys so backend variations still accept the request.
-      await api.post("/settings/current_month", {
-        month: num,
-        month_id: num,
-        id: num,
-      });
+      // Build an ISO date for the selected month. Use dataset year if you have it,
+      // otherwise fall back to the current year.
+      const year = new Date().getFullYear();
+      const chosenIso = `${year}-${String(num + 1).padStart(2, "0")}-01`; // YYYY-MM-01
+      const anchor = chosenIso.slice(0, 7); // YYYY-MM
+
+      localStorage.setItem("current_anchor", anchor);
+      window.dispatchEvent(
+        new CustomEvent("current-anchor-changed", { detail: anchor }),
+      );
       flash("✅ Current month updated");
     } catch (err) {
       console.error("❌ Error updating current month:", err);
