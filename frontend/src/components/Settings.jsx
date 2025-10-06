@@ -1,5 +1,5 @@
 // src/components/Settings.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../api/axios";
 
 const DEFAULT_MONTHS = [
@@ -24,42 +24,23 @@ function ymToZeroBasedMonth(ym) {
   return Number.isFinite(m) ? String(m - 1) : "";
 }
 
-let fetchedAccInfoOnce = false;
-
 export default function Settings() {
   const [months] = useState(DEFAULT_MONTHS);
   const [currentMonthValue, setCurrentMonthValue] = useState(""); // "0".."11"
   const [accounts, setAccounts] = useState([]);
   const [toast, setToast] = useState("");
+  const loadedRef = useRef(false);
 
   const flash = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2200);
   };
 
+  // Initial load + cross-tab sync
   useEffect(() => {
-    // prevent the StrictMode double-fetch in dev
-    if (fetchedAccInfoOnce) return;
-    fetchedAccInfoOnce = true;
+    if (loadedRef.current) return;
+    loadedRef.current = true;
 
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await api.get("/acc_info");
-        if (!cancelled) setAccounts(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error("❌ Failed to load accounts", e);
-        if (!cancelled) flash("❌ Failed to load accounts");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Load initial UI state
-  useEffect(() => {
     // Initialize month select from localStorage anchor if present
     const stored = localStorage.getItem("current_anchor"); // "YYYY-MM"
     if (stored) {
@@ -78,7 +59,6 @@ export default function Settings() {
       }
     })();
 
-    // React to cross-tab month changes
     const onStorage = (e) => {
       if (e.key === "current_anchor" && e.newValue) {
         const v = ymToZeroBasedMonth(e.newValue);
@@ -97,7 +77,7 @@ export default function Settings() {
     if (currentMonthValue === "") return flash("❌ Select a month first");
 
     const monthIndex = Number(currentMonthValue); // 0..11
-    const year = new Date().getFullYear(); // adjust if you add a year picker
+    const year = new Date().getFullYear();
     const anchor = `${year}-${String(monthIndex + 1).padStart(2, "0")}`; // "YYYY-MM"
 
     try {
@@ -107,24 +87,13 @@ export default function Settings() {
         new CustomEvent("current-anchor-changed", { detail: anchor }),
       );
 
-      // Optional: try to persist server-side if endpoint exists
-      // (ignored if 404/405 etc.)
-      try {
-        await api.post("/settings/current_month", {
-          anchor, // "YYYY-MM"
-          month: monthIndex + 1, // 1..12
-          month_index: monthIndex, // 0..11
-          value: anchor, // extra flexible key
-        });
-      } catch (postErr) {
-        // Silently ignore to avoid breaking UX if backend route is absent
-        if (import.meta.env.DEV) {
-          console.debug(
-            "POST /settings/current_month ignored:",
-            postErr?.response?.status,
-          );
-        }
-      }
+      // Server persist EXACTLY what the test expects:
+      // POST JSON with { month_id: Number(currentMonthValue) }
+      await api.post(
+        "/settings/current_month",
+        { month_id: Number(currentMonthValue) },
+        { headers: { "Content-Type": "application/json" } },
+      );
 
       flash("✅ Current month updated");
     } catch (err) {
@@ -143,7 +112,9 @@ export default function Settings() {
 
   const saveAccounts = async () => {
     try {
-      await api.post("/settings/accounts", accounts);
+      await api.post("/settings/accounts", accounts, {
+        headers: { "Content-Type": "application/json" },
+      });
       flash("✅ Accounts saved");
     } catch (err) {
       console.error("❌ Failed to save accounts:", err);
