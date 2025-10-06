@@ -1,5 +1,6 @@
 // src/components/Settings.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../api/axios";
 
 const DEFAULT_MONTHS = [
@@ -18,44 +19,71 @@ const DEFAULT_MONTHS = [
 ];
 
 function ymToZeroBasedMonth(ym) {
-  // ym: "YYYY-MM"
   if (!ym || ym.length < 7) return "";
   const m = Number(ym.slice(5, 7));
   return Number.isFinite(m) ? String(m - 1) : "";
 }
 
+function normalizeAccInfo(payload) {
+  const mapRow = (x, i) => ({
+    id: x.id ?? i,
+    person: x.person ?? "",
+    bank: x.bank ?? "",
+    acc_number: x.acc_number ?? "",
+    country: x.country ?? "",
+    value:
+      x.value !== undefined && x.value !== null
+        ? Number(x.value) || 0
+        : Number(x.balance) || 0,
+  });
+
+  if (Array.isArray(payload)) return payload.map(mapRow);
+  if (payload && typeof payload === "object") {
+    for (const v of Object.values(payload)) {
+      if (Array.isArray(v)) return v.map(mapRow);
+    }
+  }
+  return [];
+}
+
 export default function Settings() {
+  const { pathname } = useLocation();
+
   const [months] = useState(DEFAULT_MONTHS);
   const [currentMonthValue, setCurrentMonthValue] = useState(""); // "0".."11"
   const [accounts, setAccounts] = useState([]);
   const [toast, setToast] = useState("");
-  const loadedRef = useRef(false);
 
   const flash = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2200);
   };
 
-  // Initial load + cross-tab sync
+  // Always (re)fetch when the Settings route is shown
   useEffect(() => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
+    if (pathname !== "/settings") return;
 
-    // Initialize month select from localStorage anchor if present
-    const stored = localStorage.getItem("current_anchor"); // "YYYY-MM"
+    const stored = localStorage.getItem("current_anchor");
     if (stored) {
       const v = ymToZeroBasedMonth(stored);
       if (v !== "") setCurrentMonthValue(v);
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
+
     (async () => {
       try {
-        const { data } = await api.get("/acc_info");
-        if (!cancelled) setAccounts(Array.isArray(data) ? data : []);
+        console.log("[Settings] fetching /api/acc_info …");
+        const res = await api.get("/acc_info", { signal: controller.signal });
+        const rows = normalizeAccInfo(res.data);
+        setAccounts(rows);
+        window.__accDebug = { raw: res.data, rows };
+        console.log("[Settings] /acc_info rows:", rows.length);
       } catch (e) {
-        console.error("❌ Failed to load accounts", e);
-        if (!cancelled) flash("❌ Failed to load accounts");
+        if (!controller.signal.aborted) {
+          console.error("❌ Failed to load accounts", e);
+          flash("❌ Failed to load accounts");
+        }
       }
     })();
 
@@ -67,31 +95,39 @@ export default function Settings() {
     };
     window.addEventListener("storage", onStorage);
 
-    return () => {
-      cancelled = true;
-      window.removeEventListener("storage", onStorage);
+    // Optional: refresh when tab regains focus
+    const onFocus = () => {
+      api
+        .get("/acc_info")
+        .then(({ data }) => setAccounts(normalizeAccInfo(data)))
+        .catch(() => {});
     };
-  }, []);
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      controller.abort();
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [pathname]);
 
   const handleSetCurrentMonth = async () => {
     if (currentMonthValue === "") return flash("❌ Select a month first");
 
     const monthIndex = Number(currentMonthValue); // 0..11
     const year = new Date().getFullYear();
-    const anchor = `${year}-${String(monthIndex + 1).padStart(2, "0")}`; // "YYYY-MM"
+    const anchor = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
 
     try {
-      // Save locally and notify app
       localStorage.setItem("current_anchor", anchor);
       window.dispatchEvent(
         new CustomEvent("current-anchor-changed", { detail: anchor }),
       );
 
-      // Server persist EXACTLY what the test expects:
-      // POST JSON with { month_id: Number(currentMonthValue) }
+      // tests expect { month_id: <0..11> }
       await api.post(
         "/settings/current_month",
-        { month_id: Number(currentMonthValue) },
+        { month_id: monthIndex },
         { headers: { "Content-Type": "application/json" } },
       );
 
@@ -100,6 +136,20 @@ export default function Settings() {
       console.error("❌ Error updating current month:", err);
       flash("❌ Error updating current month");
     }
+  };
+
+  const addRow = () => {
+    setAccounts((prev) => [
+      ...prev,
+      {
+        id: `tmp-${Date.now()}`,
+        person: "",
+        bank: "",
+        acc_number: "",
+        country: "",
+        value: 0,
+      },
+    ]);
   };
 
   const handleAccountChange = (index, field, value) => {
@@ -134,7 +184,7 @@ export default function Settings() {
             Current Month
           </label>
           <select
-            id="current-month" // Playwright depends on this exact id
+            id="current-month"
             value={currentMonthValue}
             onChange={(e) => setCurrentMonthValue(e.target.value)}
             className="border p-1 rounded min-w-56"
@@ -159,87 +209,113 @@ export default function Settings() {
       {/* Accounts */}
       <div>
         <h2 className="text-xl font-semibold">Account Information</h2>
-        <div className="mt-2">
-          {accounts.map((acc, index) => {
-            const pid = `person-${index}`;
-            const bid = `bank-${index}`;
-            const aid = `acc-number-${index}`;
-            const cid = `country-${index}`;
-            return (
-              <div
-                key={acc.id ?? index}
-                className="space-x-2 mb-2 flex flex-wrap items-center gap-2"
-              >
-                <label htmlFor={pid} className="text-sm w-20">
-                  Person
-                </label>
-                <input
-                  id={pid}
-                  type="text"
-                  value={acc.person ?? ""}
-                  onChange={(e) =>
-                    handleAccountChange(index, "person", e.target.value)
-                  }
-                  placeholder="Person"
-                  className="border p-1 rounded"
-                />
 
-                <label htmlFor={bid} className="text-sm w-14">
-                  Bank
-                </label>
-                <input
-                  id={bid}
-                  type="text"
-                  value={acc.bank ?? ""}
-                  onChange={(e) =>
-                    handleAccountChange(index, "bank", e.target.value)
-                  }
-                  placeholder="Bank"
-                  className="border p-1 rounded"
-                />
-
-                <label htmlFor={aid} className="text-sm w-36">
-                  Account #
-                </label>
-                <input
-                  id={aid}
-                  type="text"
-                  value={acc.acc_number ?? ""}
-                  onChange={(e) =>
-                    handleAccountChange(index, "acc_number", e.target.value)
-                  }
-                  placeholder="Account Number"
-                  className="border p-1 rounded"
-                />
-
-                <label htmlFor={cid} className="text-sm w-20">
-                  Country
-                </label>
-                <input
-                  id={cid}
-                  type="text"
-                  value={acc.country ?? ""}
-                  onChange={(e) =>
-                    handleAccountChange(index, "country", e.target.value)
-                  }
-                  placeholder="Country"
-                  className="border p-1 rounded"
-                />
-              </div>
-            );
-          })}
+        <div className="mt-2 overflow-x-auto rounded border">
+          <table className="min-w-[720px] w-full text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="text-left p-2">Person</th>
+                <th className="text-left p-2">Bank</th>
+                <th className="text-left p-2">Account #</th>
+                <th className="text-left p-2">Country</th>
+                <th className="text-right p-2">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accounts.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-3 text-gray-500">
+                    No accounts found (check Network →{" "}
+                    <code>/api/acc_info</code>).
+                  </td>
+                </tr>
+              ) : (
+                accounts.map((acc, index) => (
+                  <tr key={acc.id ?? index} className="border-t">
+                    <td className="p-2">
+                      <input
+                        className="border rounded px-2 py-1 w-full"
+                        value={acc.person ?? ""}
+                        onChange={(e) =>
+                          handleAccountChange(index, "person", e.target.value)
+                        }
+                        placeholder="Person"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        className="border rounded px-2 py-1 w-full"
+                        value={acc.bank ?? ""}
+                        onChange={(e) =>
+                          handleAccountChange(index, "bank", e.target.value)
+                        }
+                        placeholder="Bank"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        className="border rounded px-2 py-1 w-full"
+                        value={acc.acc_number ?? ""}
+                        onChange={(e) =>
+                          handleAccountChange(
+                            index,
+                            "acc_number",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Account Number"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        className="border rounded px-2 py-1 w-full"
+                        value={acc.country ?? ""}
+                        onChange={(e) =>
+                          handleAccountChange(index, "country", e.target.value)
+                        }
+                        placeholder="Country"
+                      />
+                    </td>
+                    <td className="p-2 text-right">
+                      <input
+                        className="border rounded px-2 py-1 w-32 text-right"
+                        value={acc.value ?? 0}
+                        onChange={(e) =>
+                          handleAccountChange(
+                            index,
+                            "value",
+                            Number(e.target.value) || 0,
+                          )
+                        }
+                        inputMode="numeric"
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-        <button
-          type="button"
-          data-testid="btn-save-accounts"
-          onClick={saveAccounts}
-          className="bg-green-500 text-white px-3 py-1 rounded"
-        >
-          Save Accounts
-        </button>
+
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={addRow}
+            className="bg-gray-200 px-3 py-1 rounded"
+          >
+            Add Row
+          </button>
+          <button
+            type="button"
+            data-testid="btn-save-accounts"
+            onClick={saveAccounts}
+            className="bg-green-500 text-white px-3 py-1 rounded"
+          >
+            Save Accounts
+          </button>
+        </div>
       </div>
 
-      {/* Toast */}
       {toast && (
         <div
           role="status"
