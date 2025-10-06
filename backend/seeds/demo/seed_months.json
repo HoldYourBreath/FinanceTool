@@ -177,7 +177,7 @@
           {
             "name": "August 2025",
             "month_date": "2025-08-01",
-            "is_current": true,
+            "is_current": false,
             "incomes": [
               {"name": "Demo person1", "amount": 30000},
               {"name": "Demo person1 Försäkringskassa", "amount": 1325},
@@ -223,7 +223,7 @@
           {
             "name": "October 2025",
             "month_date": "2025-10-01",
-            "is_current": false,
+            "is_current": true,
             "incomes": [
               {"name": "Demo person1", "amount": 30000},
               {"name": "Demo person1 Försäkringskassa", "amount": 1325},
