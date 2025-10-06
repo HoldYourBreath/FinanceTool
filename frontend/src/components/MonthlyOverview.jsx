@@ -19,9 +19,10 @@ const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const sumAmounts = (items) =>
   (items || []).reduce((s, it) => s + toNum(it?.amount), 0);
 
-const personFromIncome = (inc) => {
+const personFromIncome = (inc, personsSet) => {
   const p = String(inc?.person ?? "").trim();
-  if (p) return p;
+  // Prefer explicit person only if it is a known person from acc_info
+  if (p && personsSet?.has(p)) return p;
 
   const name = String(inc?.name || "");
   if (/\brent\b/i.test(name)) return null;
@@ -35,7 +36,7 @@ const personFromIncome = (inc) => {
   return null;
 };
 
-const categorizeIncome = (incomes) => {
+const categorizeIncome = (incomes, personsSet) => {
   const byLabel = { "Rental Income": [] };
   const totals = {};
 
@@ -45,7 +46,7 @@ const categorizeIncome = (incomes) => {
       byLabel["Rental Income"].push(inc);
       return;
     }
-    const person = personFromIncome(inc) || "Other";
+    const person = personFromIncome(inc, personsSet) || "Other";
     const label = `${person} Income`;
     (byLabel[label] ||= []).push(inc);
     totals[label] = (totals[label] || 0) + toNum(inc?.amount);
@@ -133,6 +134,7 @@ export default function MonthlyOverview() {
   const [monthsData, setMonthsData] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [accInfo, setAccInfo] = useState([]); // {person, value, ...}
 
   // Anchor from Settings (YYYY-MM). Fallback to today's month.
   const [anchor, setAnchor] = useState(
@@ -168,6 +170,49 @@ export default function MonthlyOverview() {
         if (active) setPurchases(Array.isArray(data) ? data : []);
       } catch {
         if (active) setPurchases([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // ✅ derive known persons and starting funds from acc_info at top level
+  const personsSet = useMemo(
+    () =>
+      new Set(
+        accInfo
+          .map((r) => String(r.person || "").trim())
+          .filter((s) => s.length > 0),
+      ),
+    [accInfo],
+  );
+  const accStartSum = useMemo(
+    () => accInfo.reduce((s, r) => s + (Number(r.value) || 0), 0),
+    [accInfo],
+  );
+
+  // Load account info (persons + balances) once
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await api.get("/acc_info");
+        // Normalize to a flat array of { person, value }
+        const rows = Array.isArray(data)
+          ? data
+          : Object.values(data).find(Array.isArray) || [];
+        const normalized = rows.map((x, i) => ({
+          id: x.id ?? i,
+          person: String(x.person ?? "").trim(),
+          value:
+            x.value !== undefined && x.value !== null
+              ? Number(x.value) || 0
+              : Number(x.balance) || 0,
+        }));
+        if (active) setAccInfo(normalized);
+      } catch {
+        if (active) setAccInfo([]);
       }
     })();
     return () => {
@@ -265,13 +310,24 @@ export default function MonthlyOverview() {
           const rowMonths = monthsData.slice(rowIndex * 4, rowIndex * 4 + 4);
           return (
             <div key={rowIndex} className="flex flex-wrap gap-4 justify-center">
-              {rowMonths.map((month) => {
-                const incomeCategories = categorizeIncome(month.incomes);
+              {rowMonths.map((month, localIdx) => {
+                const globalIdx = rowIndex * 4 + localIdx;
+                const isFirstMonth = globalIdx === 0;
+                const incomeCategories = categorizeIncome(
+                  month.incomes,
+                  personsSet,
+                );
                 const expenseCategories = categorizeExpense(month.expenses);
 
                 const totalIncome = sumAmounts(month.incomes);
                 const totalExpenses = sumAmounts(month.expenses);
                 const surplus = totalIncome - totalExpenses;
+                // Funds – Start: take acc_info sum for the first (current) month;
+                // otherwise use server-provided startingFunds.
+                const derivedStart =
+                  isFirstMonth && Number.isFinite(accStartSum)
+                    ? accStartSum
+                    : toNum(month.startingFunds);
 
                 return (
                   <div
@@ -392,10 +448,7 @@ export default function MonthlyOverview() {
                       </h3>
                       <div className="flex justify-between">
                         <span>Start:</span>
-                        <span>
-                          {toNum(month.startingFunds).toLocaleString("sv-SE")}{" "}
-                          SEK
-                        </span>
+                        <span>{derivedStart.toLocaleString("sv-SE")} SEK</span>
                       </div>
                       <div className="flex justify-between">
                         <span>End:</span>
