@@ -4,7 +4,7 @@ import api from "../api/axios";
 import { fetchPlannedPurchases } from "../api/plannedPurchases";
 import FinanceChart from "./FinanceChart";
 
-// ---------- helpers (outside component so they don't re-create each render)
+// ---------------- helpers ----------------
 const hasWord = (text, word) =>
   new RegExp(`(?:^|\\W)${word}(?:\\W|$)`, "i").test(String(text || ""));
 
@@ -13,10 +13,11 @@ const isChildcare = (s) =>
     String(s || ""),
   );
 
-const monthKey = (d) =>
+const ym = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // YYYY-MM
-
 const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const sumAmounts = (items) =>
+  (items || []).reduce((s, it) => s + toNum(it?.amount), 0);
 
 const personFromIncome = (inc) => {
   const p = String(inc?.person ?? "").trim();
@@ -44,12 +45,9 @@ const categorizeIncome = (incomes) => {
       byLabel["Rental Income"].push(inc);
       return;
     }
-
     const person = personFromIncome(inc) || "Other";
     const label = `${person} Income`;
-    if (!byLabel[label]) byLabel[label] = [];
-    byLabel[label].push(inc);
-
+    (byLabel[label] ||= []).push(inc);
     totals[label] = (totals[label] || 0) + toNum(inc?.amount);
   });
 
@@ -79,9 +77,13 @@ const categorizeExpense = (expenses) => {
 
     if (isChildcare(d)) {
       cats["Childcare and Family"].push(exp);
-    } else if (hasWord(d, "food")) {
+    } else if (hasWord(d, "food") || hasWord(d, "grocer")) {
       cats.Food.push(exp);
-    } else if (hasWord(d, "rent") || hasWord(d, "loan")) {
+    } else if (
+      hasWord(d, "rent") ||
+      hasWord(d, "loan") ||
+      hasWord(d, "mortgage")
+    ) {
       cats.Housing.push(exp);
     } else if (
       hasWord(d, "car") ||
@@ -93,9 +95,13 @@ const categorizeExpense = (expenses) => {
       hasWord(d, "tyre")
     ) {
       cats.Transportation.push(exp);
-    } else if (hasWord(d, "phone")) {
+    } else if (hasWord(d, "phone") || hasWord(d, "mobile")) {
       cats.Phones.push(exp);
-    } else if (hasWord(d, "subscription")) {
+    } else if (
+      hasWord(d, "subscription") ||
+      hasWord(d, "netflix") ||
+      hasWord(d, "spotify")
+    ) {
       cats.Subscriptions.push(exp);
     } else if (hasWord(d, "union") || hasWord(d, "insurance")) {
       cats["Union and Insurance"].push(exp);
@@ -107,10 +113,7 @@ const categorizeExpense = (expenses) => {
   return cats;
 };
 
-const sumAmounts = (items) =>
-  (items || []).reduce((s, it) => s + toNum(it?.amount), 0);
-
-// Tailwind color map (ensure every category has a class so purge picks them)
+// Tailwind color map (ensure every category has a class so purge keeps them)
 const categoryColors = {
   "Janne Income": "text-green-700",
   "Kristine Income": "text-blue-700",
@@ -125,24 +128,28 @@ const categoryColors = {
   Other: "text-gray-700",
 };
 
-// ---------- component
+// ---------------- component ----------------
 export default function MonthlyOverview() {
   const [monthsData, setMonthsData] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Read and react to the selected month anchor (from Settings)
+  // Anchor from Settings (YYYY-MM). Fallback to today's month.
   const [anchor, setAnchor] = useState(
     localStorage.getItem("current_anchor") ||
-      new Date().toISOString().slice(0, 7), // "YYYY-MM"
+      new Date().toISOString().slice(0, 7),
   );
 
-  // react to Settings changes and cross-tab updates
+  // React to Settings changes and cross-tab updates
   useEffect(() => {
-    const onCustom = (e) =>
-      setAnchor(e?.detail || localStorage.getItem("current_anchor"));
+    const onCustom = (e) => {
+      const val = e?.detail || localStorage.getItem("current_anchor");
+      if (val && val !== anchor) setAnchor(val);
+    };
     const onStorage = (e) => {
-      if (e.key === "current_anchor" && e.newValue) setAnchor(e.newValue);
+      if (e.key === "current_anchor" && e.newValue && e.newValue !== anchor) {
+        setAnchor(e.newValue);
+      }
     };
     window.addEventListener("current-anchor-changed", onCustom);
     window.addEventListener("storage", onStorage);
@@ -150,65 +157,74 @@ export default function MonthlyOverview() {
       window.removeEventListener("current-anchor-changed", onCustom);
       window.removeEventListener("storage", onStorage);
     };
-  }, []);
+  }, [anchor]);
 
+  // Load planned purchases once (doesn't depend on anchor)
   useEffect(() => {
-    const controller = new AbortController();
-    let canceled = false;
-
+    let active = true;
     (async () => {
       try {
-        setLoading(true);
+        const data = await fetchPlannedPurchases().catch(() => []);
+        if (active) setPurchases(Array.isArray(data) ? data : []);
+      } catch {
+        if (active) setPurchases([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
-        // Pass anchor so backend marks is_current and slices correctly
+  // Load months whenever anchor changes
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    (async () => {
+      setLoading(true);
+      try {
         const res = await api.get("/months", {
           params: { anchor }, // "YYYY-MM"
           signal: controller.signal,
         });
-        const months = Array.isArray(res?.data) ? res.data : [];
 
+        const months = Array.isArray(res?.data) ? res.data : [];
         const currentIndex = months.findIndex((m) => m.is_current);
         const futureMonths =
           currentIndex >= 0 ? months.slice(currentIndex) : months;
 
         if (import.meta.env.DEV) {
           console.log("Fetched months:", months);
-          console.log("Current Index:", currentIndex);
-          console.log("Anchor:", anchor);
+          console.log("Current Index:", currentIndex, "Anchor:", anchor);
         }
 
-        if (!canceled) setMonthsData(futureMonths);
-
-        const purchaseData = await fetchPlannedPurchases().catch(() => []);
-        if (!canceled)
-          setPurchases(Array.isArray(purchaseData) ? purchaseData : []);
+        if (active) setMonthsData(futureMonths);
       } catch (err) {
         if (!controller.signal.aborted) {
-          console.error("❌ Failed to fetch data:", err);
+          console.error("❌ Failed to fetch monthly data:", err);
+          if (active) setMonthsData([]);
         }
       } finally {
-        if (!canceled) setLoading(false);
+        if (active) setLoading(false);
       }
     })();
 
     return () => {
-      canceled = true;
-      controller.abort();
+      active = false; // prevent state updates after unmount
+      controller.abort(); // cancel in-flight request
     };
   }, [anchor]);
 
   const chartData = useMemo(() => {
     if (!Array.isArray(monthsData) || monthsData.length === 0) return [];
-
     return monthsData.map((m) => {
       const income = sumAmounts(m.incomes);
       const expenses = sumAmounts(m.expenses);
 
-      // Match planned purchases by YYYY-MM against month.month_date
+      // Match planned purchases by YYYY-MM against m.month_date (YYYY-MM-DD)
       const plannedForMonth = (purchases || []).filter((p) => {
         if (!p?.date) return false;
-        const d = new Date(p.date);
-        return (m?.month_date || "").slice(0, 7) === monthKey(d);
+        return (m?.month_date || "").slice(0, 7) === ym(new Date(p.date));
       });
       const plannedSum = sumAmounts(plannedForMonth);
 
@@ -272,13 +288,14 @@ export default function MonthlyOverview() {
                       }`}
                     >
                       {surplus >= 0 ? "+" : "-"}{" "}
-                      {Math.abs(surplus).toLocaleString()} SEK
+                      {Math.abs(surplus).toLocaleString("sv-SE")} SEK
                     </div>
 
                     {/* Incomes */}
                     <div>
                       <h3 className="text-lg font-semibold mb-2">
-                        💰 Income (Total {totalIncome.toLocaleString()} SEK)
+                        💰 Income (Total {totalIncome.toLocaleString("sv-SE")}{" "}
+                        SEK)
                       </h3>
                       {Object.entries(incomeCategories).map(
                         ([category, items]) => {
@@ -289,7 +306,7 @@ export default function MonthlyOverview() {
                           return (
                             <div key={category} className="mb-2">
                               <div className={`font-bold ${color}`}>
-                                {category} — {total.toLocaleString()} SEK
+                                {category} — {total.toLocaleString("sv-SE")} SEK
                               </div>
                               {items.map((inc, idx) => (
                                 <div
@@ -298,7 +315,8 @@ export default function MonthlyOverview() {
                                 >
                                   <span>{inc.name}</span>
                                   <span>
-                                    {toNum(inc.amount).toLocaleString()} SEK
+                                    {toNum(inc.amount).toLocaleString("sv-SE")}{" "}
+                                    SEK
                                   </span>
                                 </div>
                               ))}
@@ -311,7 +329,8 @@ export default function MonthlyOverview() {
                     {/* Expenses */}
                     <div>
                       <h3 className="text-lg font-semibold mb-2">
-                        💸 Expenses (Total {totalExpenses.toLocaleString()} SEK)
+                        💸 Expenses (Total{" "}
+                        {totalExpenses.toLocaleString("sv-SE")} SEK)
                       </h3>
                       {Object.entries(expenseCategories).map(
                         ([category, items]) => {
@@ -322,7 +341,7 @@ export default function MonthlyOverview() {
                           return (
                             <div key={category} className="mb-2">
                               <div className={`font-bold ${color}`}>
-                                {category} — {total.toLocaleString()} SEK
+                                {category} — {total.toLocaleString("sv-SE")} SEK
                               </div>
                               {items.map((exp, idx) => (
                                 <div
@@ -333,7 +352,9 @@ export default function MonthlyOverview() {
                                     {exp?.name || exp?.description || "Unnamed"}
                                   </span>
                                   <span>
-                                    - {toNum(exp.amount).toLocaleString()} SEK
+                                    -{" "}
+                                    {toNum(exp.amount).toLocaleString("sv-SE")}{" "}
+                                    SEK
                                   </span>
                                 </div>
                               ))}

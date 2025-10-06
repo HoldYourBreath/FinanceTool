@@ -17,10 +17,18 @@ const DEFAULT_MONTHS = [
   { value: "11", label: "December" },
 ];
 
+function ymToZeroBasedMonth(ym) {
+  // ym: "YYYY-MM"
+  if (!ym || ym.length < 7) return "";
+  const m = Number(ym.slice(5, 7));
+  return Number.isFinite(m) ? String(m - 1) : "";
+}
+
+let fetchedAccInfoOnce = false;
+
 export default function Settings() {
-  // Keep the select rendered from the first paint with deterministic values 0..11.
   const [months] = useState(DEFAULT_MONTHS);
-  const [currentMonthValue, setCurrentMonthValue] = useState(""); // Playwright will set this to '1'
+  const [currentMonthValue, setCurrentMonthValue] = useState(""); // "0".."11"
   const [accounts, setAccounts] = useState([]);
   const [toast, setToast] = useState("");
 
@@ -29,46 +37,95 @@ export default function Settings() {
     setTimeout(() => setToast(""), 2200);
   };
 
-  // Progressive enhancement: fetch data, but never hide core controls while loading.
   useEffect(() => {
+    // prevent the StrictMode double-fetch in dev
+    if (fetchedAccInfoOnce) return;
+    fetchedAccInfoOnce = true;
+
     let cancelled = false;
     (async () => {
       try {
-        // Optional: if you want to read server's current month, do it here.
-        // NOTE: Your CI test expects GET /api/settings/current_month to be 405,
-        // so we DON'T call it here. We keep the select visible and let the test
-        // perform the POST after selecting '1'.
-      } catch {
-        /* ignore */
-      }
-
-      try {
-        const { data } = await api.get("/acc_info"); // same-origin via Vite proxy
+        const { data } = await api.get("/acc_info");
         if (!cancelled) setAccounts(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error("❌ Failed to load accounts", e);
         if (!cancelled) flash("❌ Failed to load accounts");
       }
     })();
+
     return () => {
       cancelled = true;
     };
   }, []);
 
+  // Load initial UI state
+  useEffect(() => {
+    // Initialize month select from localStorage anchor if present
+    const stored = localStorage.getItem("current_anchor"); // "YYYY-MM"
+    if (stored) {
+      const v = ymToZeroBasedMonth(stored);
+      if (v !== "") setCurrentMonthValue(v);
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get("/acc_info");
+        if (!cancelled) setAccounts(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("❌ Failed to load accounts", e);
+        if (!cancelled) flash("❌ Failed to load accounts");
+      }
+    })();
+
+    // React to cross-tab month changes
+    const onStorage = (e) => {
+      if (e.key === "current_anchor" && e.newValue) {
+        const v = ymToZeroBasedMonth(e.newValue);
+        if (v !== "") setCurrentMonthValue(v);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
   const handleSetCurrentMonth = async () => {
     if (currentMonthValue === "") return flash("❌ Select a month first");
-    const num = Number(currentMonthValue);
-    try {
-      // Build an ISO date for the selected month. Use dataset year if you have it,
-      // otherwise fall back to the current year.
-      const year = new Date().getFullYear();
-      const chosenIso = `${year}-${String(num + 1).padStart(2, "0")}-01`; // YYYY-MM-01
-      const anchor = chosenIso.slice(0, 7); // YYYY-MM
 
+    const monthIndex = Number(currentMonthValue); // 0..11
+    const year = new Date().getFullYear(); // adjust if you add a year picker
+    const anchor = `${year}-${String(monthIndex + 1).padStart(2, "0")}`; // "YYYY-MM"
+
+    try {
+      // Save locally and notify app
       localStorage.setItem("current_anchor", anchor);
       window.dispatchEvent(
         new CustomEvent("current-anchor-changed", { detail: anchor }),
       );
+
+      // Optional: try to persist server-side if endpoint exists
+      // (ignored if 404/405 etc.)
+      try {
+        await api.post("/settings/current_month", {
+          anchor, // "YYYY-MM"
+          month: monthIndex + 1, // 1..12
+          month_index: monthIndex, // 0..11
+          value: anchor, // extra flexible key
+        });
+      } catch (postErr) {
+        // Silently ignore to avoid breaking UX if backend route is absent
+        if (import.meta.env.DEV) {
+          console.debug(
+            "POST /settings/current_month ignored:",
+            postErr?.response?.status,
+          );
+        }
+      }
+
       flash("✅ Current month updated");
     } catch (err) {
       console.error("❌ Error updating current month:", err);
@@ -106,7 +163,7 @@ export default function Settings() {
             Current Month
           </label>
           <select
-            id="current-month" // ← Playwright depends on this exact id
+            id="current-month" // Playwright depends on this exact id
             value={currentMonthValue}
             onChange={(e) => setCurrentMonthValue(e.target.value)}
             className="border p-1 rounded min-w-56"
@@ -203,7 +260,7 @@ export default function Settings() {
         </div>
         <button
           type="button"
-          data-testid="btn-save-accounts" // ← urls.spec.ts fallback looks for this
+          data-testid="btn-save-accounts"
           onClick={saveAccounts}
           className="bg-green-500 text-white px-3 py-1 rounded"
         >

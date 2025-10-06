@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+// src/components/HouseCostsTab.jsx
+import { useEffect, useRef, useState } from "react";
+import api from "../api/axios";
 
 export default function HouseCostsTab() {
   const [houseCosts, setHouseCosts] = useState([]);
@@ -14,56 +15,106 @@ export default function HouseCostsTab() {
     amount: "",
     status: "todo",
   });
+  const [toast, setToast] = useState("");
+  const didFetch = useRef(false); // ← prevents StrictMode double fetch
 
-  const fetchData = async () => {
-    try {
-      const [houseRes, landRes] = await Promise.all([
-        axios.get("/api/house_costs"),
-        axios.get("/api/land_costs"),
-      ]);
-      setHouseCosts(houseRes.data);
-      setLandCosts(landRes.data);
-    } catch (error) {
-      console.error("Failed to fetch house or land costs:", error);
-    }
+  const flash = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2200);
+  };
+
+  const fetchData = async (signal) => {
+    const [houseRes, landRes] = await Promise.all([
+      api.get("/house_costs", { signal }),
+      api.get("/land_costs", { signal }),
+    ]);
+    setHouseCosts(Array.isArray(houseRes.data) ? houseRes.data : []);
+    setLandCosts(Array.isArray(landRes.data) ? landRes.data : []);
   };
 
   useEffect(() => {
-    fetchData();
+    if (didFetch.current) return;
+    didFetch.current = true;
+
+    const controller = new AbortController();
+    fetchData(controller.signal).catch((e) => {
+      if (!controller.signal.aborted) {
+        console.error("Failed to fetch costs", e);
+        flash("❌ Failed to fetch costs");
+      }
+    });
+    return () => controller.abort();
   }, []);
 
   const formatSEK = (amount) => {
     const num = Number(amount);
-    return !isNaN(num) ? num.toLocaleString("sv-SE") + " SEK" : "";
+    return Number.isFinite(num) ? `${num.toLocaleString("sv-SE")} SEK` : "";
+  };
+
+  const parseAmount = (v) => {
+    const n = typeof v === "string" ? v.replace(",", ".") : v;
+    const f = parseFloat(n);
+    return Number.isFinite(f) ? f : NaN;
   };
 
   const handleAdd = async (type) => {
-    const newItem = type === "house" ? newHouse : newLand;
-    if (!newItem.name || !newItem.amount)
-      return alert("Please fill all fields");
+    const isHouse = type === "house";
+    const src = isHouse ? newHouse : newLand;
+
+    const amt = parseAmount(src.amount);
+    if (!src.name.trim() || !Number.isFinite(amt) || amt <= 0) {
+      return alert("Please enter a name and a positive amount.");
+    }
+
+    const payload = {
+      name: src.name.trim(),
+      amount: amt,
+      status: src.status || "todo",
+    };
+
+    // optimistic insert
+    const tempId = `temp-${Date.now()}`;
+    const optimistic = { id: tempId, ...payload };
+    if (isHouse) setHouseCosts((xs) => [optimistic, ...xs]);
+    else setLandCosts((xs) => [optimistic, ...xs]);
 
     try {
-      await axios.post(`/api/${type}_costs`, {
-        name: newItem.name,
-        amount: Number(newItem.amount),
-        status: newItem.status,
-      });
-      // reset only the one we added
-      type === "house"
-        ? setNewHouse({ name: "", amount: "", status: "todo" })
-        : setNewLand({ name: "", amount: "", status: "todo" });
-      fetchData();
+      const { data } = await api.post(`/${type}_costs`, payload);
+      const real = { id: data?.id ?? tempId, ...payload };
+
+      if (isHouse) {
+        setHouseCosts((xs) => [real, ...xs.filter((x) => x.id !== tempId)]);
+        setNewHouse({ name: "", amount: "", status: "todo" });
+      } else {
+        setLandCosts((xs) => [real, ...xs.filter((x) => x.id !== tempId)]);
+        setNewLand({ name: "", amount: "", status: "todo" });
+      }
+      flash("✅ Added");
     } catch (error) {
+      // rollback
+      if (isHouse) setHouseCosts((xs) => xs.filter((x) => x.id !== tempId));
+      else setLandCosts((xs) => xs.filter((x) => x.id !== tempId));
       console.error(`Failed to add ${type} cost:`, error);
       alert(`Failed to add ${type} cost`);
     }
   };
 
   const handleDelete = async (type, id) => {
+    const isHouse = type === "house";
+    const prevHouse = houseCosts;
+    const prevLand = landCosts;
+
+    // optimistic remove
+    if (isHouse) setHouseCosts((xs) => xs.filter((x) => x.id !== id));
+    else setLandCosts((xs) => xs.filter((x) => x.id !== id));
+
     try {
-      await axios.delete(`/api/${type}_costs/${id}`);
-      fetchData();
+      await api.delete(`/${type}_costs/${id}`);
+      flash("🗑️ Deleted");
     } catch (error) {
+      // rollback
+      setHouseCosts(prevHouse);
+      setLandCosts(prevLand);
       console.error(`Failed to delete ${type} cost:`, error);
       alert(`Failed to delete ${type} cost`);
     }
@@ -97,6 +148,7 @@ export default function HouseCostsTab() {
           onChange={(e) => setState({ ...state, amount: e.target.value })}
           className={`${inputCls} w-36`}
           inputMode="decimal"
+          step="0.01"
         />
         <select
           value={state.status}
@@ -113,26 +165,22 @@ export default function HouseCostsTab() {
     </div>
   );
 
-  // Colored cards for sections (static class strings to avoid Tailwind purge)
   const cardHouse =
     "rounded-2xl bg-emerald-50/70 ring-1 ring-emerald-200 p-4 shadow-sm backdrop-blur-sm";
   const cardLand =
     "rounded-2xl bg-sky-50/70 ring-1 ring-sky-200 p-4 shadow-sm backdrop-blur-sm";
 
   const renderSection = (title, data, form, variant = "house") => {
-    const total = data.reduce((sum, item) => sum + Number(item.amount), 0);
+    const total = data.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const doneItems = data.filter((item) => item.status === "done");
-    const doneTotal = doneItems.reduce(
-      (sum, item) => sum + Number(item.amount),
-      0,
-    );
+    const doneTotal = doneItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     const todoTotal = total - doneTotal;
 
     const isHouse = variant === "house";
     const cardCls = isHouse ? cardHouse : cardLand;
 
     return (
-      <section className={`w-full md:w-1/2 p-2`}>
+      <section className="w-full md:w-1/2 p-2">
         <div className={cardCls}>
           <h2 className="text-lg font-bold mb-2 text-slate-800">{title}</h2>
 
@@ -168,10 +216,7 @@ export default function HouseCostsTab() {
                         </span>
                         <button
                           onClick={() => {
-                            const confirmDelete = window.confirm(
-                              `Are you sure you want to delete "${item.name}"?`,
-                            );
-                            if (confirmDelete) {
+                            if (window.confirm(`Delete "${item.name}"?`)) {
                               handleDelete(isHouse ? "house" : "land", item.id);
                             }
                           }}
@@ -209,12 +254,12 @@ export default function HouseCostsTab() {
   const totalItems = allCosts.length;
   const completedItems = allCosts.filter((i) => i.status === "done").length;
   const totalAmount = allCosts.reduce(
-    (sum, item) => sum + Number(item.amount),
+    (sum, item) => sum + Number(item.amount || 0),
     0,
   );
   const doneAmount = allCosts
     .filter((i) => i.status === "done")
-    .reduce((sum, item) => sum + Number(item.amount), 0);
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const percentage = totalAmount > 0 ? (doneAmount / totalAmount) * 100 : 0;
 
   return (
@@ -245,6 +290,16 @@ export default function HouseCostsTab() {
           {percentage.toFixed(1)}% of total build and land cost is DONE!
         </span>
       </section>
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded shadow"
+        >
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

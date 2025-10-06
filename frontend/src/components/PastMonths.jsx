@@ -1,45 +1,58 @@
 // src/components/PastMonths.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../api/axios";
 
 export default function PastMonths() {
   const [monthsData, setMonthsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const didFetch = useRef(false); // <-- add this
+
+  const ym = (iso) => String(iso || "").slice(0, 7);
+  const getAnchor = () =>
+    localStorage.getItem("current_anchor") ||
+    new Date().toISOString().slice(0, 7);
+
+  async function fetchPastMonths() {
+    setLoading(true);
+    try {
+      const res = await api.get("/months/all");
+      const months = Array.isArray(res.data) ? [...res.data] : [];
+      months.sort((a, b) => ym(a?.month_date).localeCompare(ym(b?.month_date)));
+      const anchor = getAnchor();
+      const past = months.filter((m) => {
+        const k = ym(m?.month_date);
+        return k && k < anchor;
+      });
+      setMonthsData(past);
+    } catch (err) {
+      console.error("❌ Failed to fetch past months:", err);
+      setMonthsData([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchPastMonths() {
-      try {
-        const res = await api.get("/months/all");
-        const months = Array.isArray(res.data) ? [...res.data] : [];
+    // register listeners every pass (StrictMode mounts/unmounts)
+    const onCustom = () => fetchPastMonths();
+    const onStorage = (e) => {
+      if (e.key === "current_anchor") fetchPastMonths();
+    };
+    window.addEventListener("current-anchor-changed", onCustom);
+    window.addEventListener("storage", onStorage);
 
-        // Sort by month_date (fallback to name)
-        months.sort((a, b) => {
-          const ta = new Date(a?.month_date ?? a?.name ?? 0).getTime() || 0;
-          const tb = new Date(b?.month_date ?? b?.name ?? 0).getTime() || 0;
-          return ta - tb;
-        });
-
-        // Past months = strictly before the current one
-        const currentIndex = months.findIndex(
-          (m) =>
-            m?.is_current === true ||
-            String(m?.is_current).toLowerCase() === "true",
-        );
-        const past = currentIndex > -1 ? months.slice(0, currentIndex) : months;
-
-        setMonthsData(past);
-      } catch (err) {
-        console.error("❌ Failed to fetch past months:", err);
-        setMonthsData([]);
-      } finally {
-        setLoading(false);
-      }
+    // but only fire the initial fetch once
+    if (!didFetch.current) {
+      didFetch.current = true;
+      fetchPastMonths();
     }
 
-    fetchPastMonths();
+    return () => {
+      window.removeEventListener("current-anchor-changed", onCustom);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
-
-  // ---------- helpers ----------
+  // ---------- local helpers ----------
   const formatSEK = (n) =>
     Number(n || 0).toLocaleString("sv-SE", {
       style: "currency",
@@ -59,7 +72,7 @@ export default function PastMonths() {
     return map;
   };
 
-  // Hardcoded so Tailwind keeps the classes
+  // Tailwind color safelist
   const expenseCategoryColors = {
     Housing: "text-green-700",
     Transportation: "text-orange-500",
@@ -134,7 +147,7 @@ export default function PastMonths() {
                         byPerson={month?.incomesByPerson || {}}
                       />
 
-                      {/* Expenses grouped by server-provided category */}
+                      {/* Expenses grouped by category */}
                       <ExpenseSection
                         title="💸 Expenses"
                         groups={expenseGroups}
@@ -143,7 +156,7 @@ export default function PastMonths() {
                         formatSEK={formatSEK}
                       />
 
-                      {/* Loan adjustments (optional) */}
+                      {/* Loan adjustments */}
                       {Array.isArray(month?.loanAdjustments) &&
                         month.loanAdjustments.length > 0 && (
                           <div className="mt-4 space-y-2">
