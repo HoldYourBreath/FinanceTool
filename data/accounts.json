@@ -1,15 +1,15 @@
 [
   {
-    "id": 5,
-    "person": "Demo person 1",
+    "id": 7,
+    "person": "Luke",
     "bank": "Nordea",
     "acc_number": "123456",
     "country": "Sweden",
     "value": 50000
   },
   {
-    "id": 6,
-    "person": "Demo person 2",
+    "id": 8,
+    "person": "Leia",
     "bank": "Nordea",
     "acc_number": "987654",
     "country": "Sweden",
