@@ -125,11 +125,11 @@ export default function Settings() {
       );
 
       // tests expect { month_id: <0..11> }
-      await api.post(
-        "/settings/current_month",
-        { month_id: monthIndex },
-        { headers: { "Content-Type": "application/json" } },
-      );
+      await fetch("/api/settings/current_month", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month_id: monthIndex }), // number 0..11
+      });
 
       flash("✅ Current month updated");
     } catch (err) {
