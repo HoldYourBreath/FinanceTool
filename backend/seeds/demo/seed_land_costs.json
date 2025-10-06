@@ -1,0 +1,17 @@
+[
+  { "name": "Tomt buy price", "amount": 1935000, "status": "done" },
+  { "name": "Lagfart", "amount": 30400, "status": "done" },
+  { "name": "Pantbrev", "amount": 88375, "status": "done" },
+  { "name": "Nybygkarta", "amount": 11689, "status": "done" },
+  { "name": "Bygglov", "amount": 28985, "status": "done" },
+  { "name": "Anslutning EL1", "amount": 7500, "status": "done" },
+  { "name": "El20250519", "amount": 1210, "status": "done" },
+  { "name": "Geoteknisk undersökning", "amount": 20000, "status": "done" },
+  { "name": "Kontrollsansvarig enl. PBL", "amount": 20000, "status": "done" },
+  { "name": "Soil costs Total", "amount": 86121, "status": "done" },
+  { "name": "Soil costs JR Entreprenad", "amount": 66600, "status": "done" },
+  { "name": "Anslutning VA", "amount": 193221, "status": "done" },
+  { "name": "Anslutning EL2", "amount": 54125, "status": "done" },
+  { "name": "Grovutsättning enligt PBL, Finutsättning, Lägeskontroll", "amount": 15785, "status": "done" },
+  { "name": "Fiberanslutning", "amount": 25000, "status": "todo" }
+]

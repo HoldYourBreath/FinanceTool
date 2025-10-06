@@ -1,0 +1,11 @@
+[
+  { "name": "House Cost1 20%", "amount": 885885, "status": "done" },
+  { "name": "House Cost2 55%", "amount": 2472304, "status": "done" },
+  { "name": "House Cost3 5%", "amount": 221471, "status": "done" },
+  { "name": "House Cost4 10%", "amount": 442942, "status": "done" },
+  { "name": "House Cost5 10%", "amount": 442942, "status": "todo" },
+  { "name": "Water Drain", "amount": 4000, "status": "todo" },
+  { "name": "Kakel", "amount": 83619, "status": "todo" },
+  { "name": "Spotlights", "amount": 22500, "status": "todo" },
+  { "name": "Outer lighting", "amount": 9750, "status": "todo" }
+]

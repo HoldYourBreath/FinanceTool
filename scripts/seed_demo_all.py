@@ -11,9 +11,8 @@ from typing import Iterable, Sequence
 from flask import Flask
 from sqlalchemy import MetaData, text
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql.sqltypes import Integer, Float, Numeric, String, Boolean
 
-# ---- nullish handling ---------------------------------------------------------
+# --- Nullish handling ----------------------------------------------------------
 
 NULLISH = {"", "null", "none", "nan", "n/a", "na"}
 
@@ -25,22 +24,29 @@ def _coerce_nullish(v):
 
 
 def _default_for(col):
-    """Provide a safe default only when necessary. Never synthesize FK values."""
+    """
+    Provide a safe default only when necessary.
+    Never synthesize FK values or primary keys.
+    """
     if col.nullable:
         return None
+    # Do NOT invent foreign keys
     if col.name.endswith("_id"):
-        return None  # don't invent foreign keys
-    t = col.type
-    if isinstance(t, (Integer, Float, Numeric)):
+        return None
+
+    # Primitive defaults for required non-FK fields
+    t = col.type.__class__.__name__.lower()
+    if any(k in t for k in ("int", "float", "numeric", "double", "real", "dec")):
         return 0
-    if isinstance(t, Boolean):
+    if "bool" in t:
         return False
-    if isinstance(t, String):
+    if any(k in t for k in ("char", "text", "string", "uuid")):
         return ""
+    # Timestamps / dates / json / etc -> leave None, DB default should handle when defined
     return None
 
 
-# --- Path bootstrap so we can import backend.* no matter where we run this ----
+# --- Repo path bootstrap so imports work no matter where we run ----------------
 
 THIS_FILE = Path(__file__).resolve()
 REPO_ROOT = THIS_FILE.parent.parent
@@ -49,28 +55,31 @@ if str(REPO_ROOT) not in sys.path:
 
 from backend.models.models import db  # noqa: E402
 
-# ---- Optional dotenv loading --------------------------------------------------
+# --- Optional dotenv loading ---------------------------------------------------
 
 try:
     from dotenv import load_dotenv  # type: ignore
 
-    def _load(p: Path) -> None:
+    def _load_env_file(p: Path) -> None:
         if p.exists():
             load_dotenv(p, override=True)
 
-    _load(REPO_ROOT / ".env")
-    _load(REPO_ROOT / ".env.local")
-    env = os.getenv("APP_ENV")
-    if env:
-        _load(REPO_ROOT / f".env.{env}")
-        _load(REPO_ROOT / "backend" / f".env.{env}")
-    _load(REPO_ROOT / "backend" / ".env")
-    _load(REPO_ROOT / "backend" / ".env.local")
+    # load root and env-specific
+    _load_env_file(REPO_ROOT / ".env")
+    _load_env_file(REPO_ROOT / ".env.local")
+    env_name_for_dot = os.getenv("APP_ENV") or os.getenv("FLASK_ENV")
+    if env_name_for_dot:
+        _load_env_file(REPO_ROOT / f".env.{env_name_for_dot}")
+        _load_env_file(REPO_ROOT / "backend" / f".env.{env_name_for_dot}")
+    _load_env_file(REPO_ROOT / "backend" / ".env")
+    _load_env_file(REPO_ROOT / "backend" / ".env.local")
 except Exception:
     pass
 
 
-# Default table list (override via --tables if desired)
+# --- Defaults ------------------------------------------------------------------
+
+# Expanded defaults so common tables get seeded without having to pass --tables
 DEFAULT_TABLES: Sequence[str] = (
     "acc_info",
     "investments",
@@ -80,6 +89,11 @@ DEFAULT_TABLES: Sequence[str] = (
     "financing",
     "planned_purchases",
     "cars",
+    "house_costs",
+    "land_costs",
+    "loan_adjustments",
+    "price_settings",
+    "app_settings",
 )
 
 CAND_FILENAMES = (
@@ -91,10 +105,20 @@ CAND_FILENAMES = (
 def _search_roots(env_name: str | None) -> list[Path]:
     roots: list[Path] = []
     if env_name:
-        roots += [REPO_ROOT / "backend" / "seeds" / env_name, REPO_ROOT / "seeds" / env_name]
-    roots += [REPO_ROOT / "backend" / "seeds" / "common", REPO_ROOT / "seeds" / "common"]
+        roots += [
+            REPO_ROOT / "backend" / "seeds" / env_name,
+            REPO_ROOT / "seeds" / env_name,
+        ]
+    # common has lower precedence than env-specific
+    roots += [
+        REPO_ROOT / "backend" / "seeds" / "common",
+        REPO_ROOT / "seeds" / "common",
+    ]
     # optional extras (lowest priority)
-    roots += [REPO_ROOT / "backend" / "seeds", REPO_ROOT / "seeds"]
+    roots += [
+        REPO_ROOT / "backend" / "seeds",
+        REPO_ROOT / "seeds",
+    ]
 
     out: list[Path] = []
     seen = set()
@@ -130,7 +154,10 @@ def _load_rows(path: Path) -> list[dict]:
 
 
 def _to_datetime(obj) -> datetime:
-    """Accept datetime/date or strings 'YYYY-MM-DD', 'YYYY/MM/DD', and 'YYYY-MM'/'YYYY/MM' (assume day 01)."""
+    """
+    Accept datetime/date or strings 'YYYY-MM-DD', 'YYYY/MM/DD',
+    and 'YYYY-MM'/'YYYY/MM' (assume day 01).
+    """
     if isinstance(obj, datetime):
         return obj
     if isinstance(obj, date):
@@ -143,6 +170,10 @@ def _to_datetime(obj) -> datetime:
     if len(s) == 10 and s[4] in "-/" and s[7] in "-/":
         s = s.replace("/", "-")
     return datetime.fromisoformat(s)
+
+
+def _is_postgres_uri(uri: str) -> bool:
+    return uri.startswith("postgres://") or uri.startswith("postgresql://")
 
 
 def seed_all(
@@ -172,13 +203,20 @@ def seed_all(
         db.create_all()
 
         md = MetaData()
-        md.reflect(bind=db.engine, schema="public")
+        if _is_postgres_uri(db_uri):
+            md.reflect(bind=db.engine, schema="public")
+            schema_prefix = "public."
+        else:
+            md.reflect(bind=db.engine)
+            schema_prefix = ""
 
         def _build_month_map() -> dict[tuple[int, int], int]:
             d: dict[tuple[int, int], int] = {}
-            for mid, mdate in db.session.execute(
-                text('SELECT id, month_date FROM "months" ORDER BY month_date')
-            ).all():
+            try:
+                rows = db.session.execute(text('SELECT id, month_date FROM months ORDER BY month_date')).all()
+            except Exception:
+                return {}
+            for mid, mdate in rows:
                 dt = _to_datetime(mdate)
                 d[(dt.year, dt.month)] = mid
             return d
@@ -187,7 +225,8 @@ def seed_all(
         skipped_samples: dict[str, list[dict]] = {}
 
         for name in target_tables:
-            tbl = md.tables.get(f"public.{name}")
+            # Resolve actual Table object
+            tbl = md.tables.get(f"{schema_prefix}{name}")
             if tbl is None:
                 tbl = md.tables.get(name)
 
@@ -214,9 +253,9 @@ def seed_all(
                 continue
 
             cols = {c.name: c for c in tbl.columns}
-            pk_names = {c.name for c in tbl.primary_key.columns}  # e.g., {"id"}
+            pk_names = {c.name for c in tbl.primary_key.columns}  # usually {"id"}
 
-            # Rebuild month map right before we need it (after 'months' is possibly inserted)
+            # Rebuild month map right before we need it (after 'months' possibly inserted)
             month_id_by_ym = _build_month_map() if name in {"incomes", "expenses"} else None
 
             normalized_rows = []
@@ -224,7 +263,7 @@ def seed_all(
             skipped_samples[name] = []
 
             for raw in raw_rows:
-                # Start with only columns present in the table, excluding PKs
+                # Keep only known columns and exclude PKs
                 r = {k: _coerce_nullish(v) for k, v in raw.items() if k in cols and k not in pk_names}
 
                 # Coerce "*_id" == 0 -> None so we don't violate FKs
@@ -266,7 +305,7 @@ def seed_all(
                                 )
                             continue
 
-                # Fill missing columns with defaults (but never for PKs)
+                # Fill missing non-PK columns with safe defaults
                 for cname, col in cols.items():
                     if cname in pk_names:
                         continue
@@ -295,6 +334,7 @@ def seed_all(
         print("\nCounts:")
         for name in target_tables:
             try:
+                # Quote table name safely for PG; SQLite will also accept the quoted name
                 n = db.session.execute(text(f'SELECT COUNT(*) FROM "{name}"')).scalar()
                 print(f" - {name}: {n}")
             except Exception as e:
@@ -312,7 +352,8 @@ if __name__ == "__main__":
         "--tables",
         help=(
             "Comma-separated table list "
-            "(defaults to acc_info,investments,months,incomes,expenses,financing,planned_purchases,cars)"
+            "(defaults to acc_info,investments,months,incomes,expenses,financing,planned_purchases,"
+            "cars,house_costs,land_costs,loan_adjustments,price_settings,app_settings)"
         ),
     )
     args = ap.parse_args()

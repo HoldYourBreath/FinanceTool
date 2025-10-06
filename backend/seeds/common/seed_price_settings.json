@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "el_price_ore_kwh": 250,
+    "diesel_price_sek_litre": 15,
+    "bensin_price_sek_litre": 14.50,
+    "yearly_km": 18000,
+    "daily_commute_km": 30,
+    "downpayment_sek": 100000,
+    "interest_rate_pct": 4.5
+  }
+]

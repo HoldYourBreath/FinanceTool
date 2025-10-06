@@ -1,5 +1,5 @@
 // src/components/HouseCostsTab.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 
 export default function HouseCostsTab() {
@@ -15,55 +15,84 @@ export default function HouseCostsTab() {
     amount: "",
     status: "todo",
   });
+  const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
-  const didFetch = useRef(false); // ← prevents StrictMode double fetch
 
   const flash = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2200);
   };
 
-  const fetchData = async (signal) => {
-    const [houseRes, landRes] = await Promise.all([
-      api.get("/house_costs", { signal }),
-      api.get("/land_costs", { signal }),
-    ]);
-    setHouseCosts(Array.isArray(houseRes.data) ? houseRes.data : []);
-    setLandCosts(Array.isArray(landRes.data) ? landRes.data : []);
-  };
-
-  useEffect(() => {
-    if (didFetch.current) return;
-    didFetch.current = true;
-
-    const controller = new AbortController();
-    fetchData(controller.signal).catch((e) => {
-      if (!controller.signal.aborted) {
-        console.error("Failed to fetch costs", e);
-        flash("❌ Failed to fetch costs");
-      }
-    });
-    return () => controller.abort();
-  }, []);
-
-  const formatSEK = (amount) => {
-    const num = Number(amount);
-    return Number.isFinite(num) ? `${num.toLocaleString("sv-SE")} SEK` : "";
-  };
+  const formatSEK = (amount) =>
+    Number.isFinite(Number(amount))
+      ? new Intl.NumberFormat("sv-SE", {
+          style: "currency",
+          currency: "SEK",
+          maximumFractionDigits: 0,
+        }).format(Number(amount))
+      : "";
 
   const parseAmount = (v) => {
-    const n = typeof v === "string" ? v.replace(",", ".") : v;
-    const f = parseFloat(n);
-    return Number.isFinite(f) ? f : NaN;
+    const s =
+      typeof v === "string" ? v.replace(/\s/g, "").replace(",", ".") : v;
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : NaN;
   };
 
-  const handleAdd = async (type) => {
-    const isHouse = type === "house";
+  // ✅ Plain fetch function (does NOT return cleanup)
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [h, l] = await Promise.all([
+        api.get("/house_costs"),
+        api.get("/land_costs"),
+      ]);
+      setHouseCosts(Array.isArray(h.data) ? h.data : []);
+      setLandCosts(Array.isArray(l.data) ? l.data : []);
+    } catch (e) {
+      console.error("Failed to fetch costs", e);
+      flash("❌ Failed to fetch costs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Effect owns the cleanup (ignore state updates after unmount)
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      try {
+        const [h, l] = await Promise.all([
+          api.get("/house_costs"),
+          api.get("/land_costs"),
+        ]);
+        if (!cancelled) {
+          setHouseCosts(Array.isArray(h.data) ? h.data : []);
+          setLandCosts(Array.isArray(l.data) ? l.data : []);
+        }
+      } catch (e) {
+        console.error("Failed to fetch costs", e);
+        if (!cancelled) flash("❌ Failed to fetch costs");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true; // don’t abort the requests in StrictMode; just ignore results
+    };
+  }, []);
+
+  const handleAdd = async (kind) => {
+    const isHouse = kind === "house";
     const src = isHouse ? newHouse : newLand;
 
     const amt = parseAmount(src.amount);
     if (!src.name.trim() || !Number.isFinite(amt) || amt <= 0) {
-      return alert("Please enter a name and a positive amount.");
+      flash("❌ Please enter a name and a positive amount.");
+      return;
     }
 
     const payload = {
@@ -79,46 +108,64 @@ export default function HouseCostsTab() {
     else setLandCosts((xs) => [optimistic, ...xs]);
 
     try {
-      const { data } = await api.post(`/${type}_costs`, payload);
-      const real = { id: data?.id ?? tempId, ...payload };
-
+      const { data } = await api.post(`/${kind}_costs`, payload, {
+        headers: { "Content-Type": "application/json" },
+      });
+      const realId = data?.id ?? tempId;
+      const swap = (xs) => [
+        { id: realId, ...payload },
+        ...xs.filter((x) => x.id !== tempId),
+      ];
       if (isHouse) {
-        setHouseCosts((xs) => [real, ...xs.filter((x) => x.id !== tempId)]);
+        setHouseCosts(swap);
         setNewHouse({ name: "", amount: "", status: "todo" });
       } else {
-        setLandCosts((xs) => [real, ...xs.filter((x) => x.id !== tempId)]);
+        setLandCosts(swap);
         setNewLand({ name: "", amount: "", status: "todo" });
       }
       flash("✅ Added");
-    } catch (error) {
-      // rollback
+    } catch (e) {
+      console.error(`Failed to add ${kind} cost`, e);
       if (isHouse) setHouseCosts((xs) => xs.filter((x) => x.id !== tempId));
       else setLandCosts((xs) => xs.filter((x) => x.id !== tempId));
-      console.error(`Failed to add ${type} cost:`, error);
-      alert(`Failed to add ${type} cost`);
+      flash(`❌ Failed to add ${isHouse ? "house" : "land"} cost`);
     }
   };
 
-  const handleDelete = async (type, id) => {
-    const isHouse = type === "house";
-    const prevHouse = houseCosts;
-    const prevLand = landCosts;
+  const handleDelete = async (kind, id) => {
+    const isHouse = kind === "house";
+    const prevH = houseCosts;
+    const prevL = landCosts;
 
-    // optimistic remove
     if (isHouse) setHouseCosts((xs) => xs.filter((x) => x.id !== id));
     else setLandCosts((xs) => xs.filter((x) => x.id !== id));
 
     try {
-      await api.delete(`/${type}_costs/${id}`);
+      await api.delete(`/${kind}_costs/${id}`);
       flash("🗑️ Deleted");
-    } catch (error) {
-      // rollback
-      setHouseCosts(prevHouse);
-      setLandCosts(prevLand);
-      console.error(`Failed to delete ${type} cost:`, error);
-      alert(`Failed to delete ${type} cost`);
+    } catch (e) {
+      console.error(`Failed to delete ${kind} cost`, e);
+      setHouseCosts(prevH);
+      setLandCosts(prevL);
+      flash("❌ Delete failed");
     }
   };
+
+  const totals = useMemo(() => {
+    const all = [...houseCosts, ...landCosts];
+    const totalAmount = all.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const doneAmount = all
+      .filter((i) => i.status === "done")
+      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const pct = totalAmount > 0 ? (doneAmount / totalAmount) * 100 : 0;
+    return {
+      totalItems: all.length,
+      completedItems: all.filter((i) => i.status === "done").length,
+      totalAmount,
+      doneAmount,
+      pct,
+    };
+  }, [houseCosts, landCosts]);
 
   const inputCls =
     "rounded-lg border border-emerald-200 bg-white/70 px-3 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-400";
@@ -126,11 +173,15 @@ export default function HouseCostsTab() {
     "rounded-lg border border-emerald-200 bg-white/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400";
   const addBtnCls =
     "rounded-lg bg-emerald-600 text-white px-3 py-2 text-sm shadow hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400";
+  const cardHouse =
+    "rounded-2xl bg-emerald-50/70 ring-1 ring-emerald-200 p-4 shadow-sm backdrop-blur-sm";
+  const cardLand =
+    "rounded-2xl bg-sky-50/70 ring-1 ring-sky-200 p-4 shadow-sm backdrop-blur-sm";
 
-  const renderAddForm = (type, state, setState) => (
-    <div className="mt-4">
+  const AddForm = ({ kind, state, setState }) => (
+    <div className="mt-4" data-testid={`form-add-${kind}`}>
       <h3 className="font-semibold mb-2 text-slate-700">
-        ➕ Add {type === "house" ? "House" : "Land"} Payment
+        ➕ Add {kind === "house" ? "House" : "Land"} Payment
       </h3>
       <div className="flex flex-wrap gap-2">
         <input
@@ -158,31 +209,39 @@ export default function HouseCostsTab() {
           <option value="todo">⏳ Todo</option>
           <option value="done">✅ Done</option>
         </select>
-        <button onClick={() => handleAdd(type)} className={addBtnCls}>
+        <button
+          onClick={() => handleAdd(kind)}
+          className={addBtnCls}
+          disabled={loading}
+        >
           Add
         </button>
       </div>
     </div>
   );
 
-  const cardHouse =
-    "rounded-2xl bg-emerald-50/70 ring-1 ring-emerald-200 p-4 shadow-sm backdrop-blur-sm";
-  const cardLand =
-    "rounded-2xl bg-sky-50/70 ring-1 ring-sky-200 p-4 shadow-sm backdrop-blur-sm";
-
-  const renderSection = (title, data, form, variant = "house") => {
-    const total = data.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const doneItems = data.filter((item) => item.status === "done");
-    const doneTotal = doneItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const todoTotal = total - doneTotal;
-
-    const isHouse = variant === "house";
-    const cardCls = isHouse ? cardHouse : cardLand;
+  const Section = ({ title, rows, kind }) => {
+    const total = rows.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const done = rows
+      .filter((i) => i.status === "done")
+      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const todo = total - done;
+    const cardCls = kind === "house" ? cardHouse : cardLand;
 
     return (
-      <section className="w-full md:w-1/2 p-2">
+      <section className="w-full md:w-1/2 p-2" data-testid={`section-${kind}`}>
         <div className={cardCls}>
-          <h2 className="text-lg font-bold mb-2 text-slate-800">{title}</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-bold text-slate-800">{title}</h2>
+            <button
+              type="button"
+              onClick={fetchData}
+              className="text-xs rounded bg-white/70 ring-1 ring-emerald-300 px-2 py-1 hover:bg-white"
+              disabled={loading}
+            >
+              {loading ? "Loading…" : "Refresh"}
+            </button>
+          </div>
 
           <div className="overflow-auto rounded-lg ring-1 ring-white/50">
             <table className="w-full table-auto text-sm border-separate border-spacing-0">
@@ -200,7 +259,7 @@ export default function HouseCostsTab() {
                 </tr>
               </thead>
               <tbody className="[&>tr:hover]:bg-white/60 [&>tr]:odd:bg-white/40">
-                {data.map((item) => (
+                {rows.map((item) => (
                   <tr
                     key={item.id}
                     className="group border-b border-gray-200 relative"
@@ -217,7 +276,7 @@ export default function HouseCostsTab() {
                         <button
                           onClick={() => {
                             if (window.confirm(`Delete "${item.name}"?`)) {
-                              handleDelete(isHouse ? "house" : "land", item.id);
+                              handleDelete(kind, item.id);
                             }
                           }}
                           className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 text-white px-2 py-1 text-xs rounded hover:bg-red-600 shadow ml-2"
@@ -228,7 +287,25 @@ export default function HouseCostsTab() {
                     </td>
                   </tr>
                 ))}
+                {rows.length === 0 && (
+                  <tr>
+                    <td className="px-3 py-4 text-gray-500 italic" colSpan={3}>
+                      No items.
+                    </td>
+                  </tr>
+                )}
               </tbody>
+              {rows.length > 0 && (
+                <tfoot>
+                  <tr className="bg-gray-50">
+                    <td className="px-3 py-2 text-right font-medium">Total</td>
+                    <td className="px-3 py-2 text-right font-semibold">
+                      {formatSEK(total)}
+                    </td>
+                    <td className="px-3 py-2"></td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
 
@@ -236,58 +313,40 @@ export default function HouseCostsTab() {
             <div>
               <strong>Total:</strong> {formatSEK(total)}
             </div>
-            <div className="text-emerald-700">
-              ✅ Done: {formatSEK(doneTotal)}
-            </div>
-            <div className="text-slate-600">
-              ⏳ Todo: {formatSEK(todoTotal)}
-            </div>
+            <div className="text-emerald-700">✅ Done: {formatSEK(done)}</div>
+            <div className="text-slate-600">⏳ Todo: {formatSEK(todo)}</div>
           </div>
 
-          {form}
+          {kind === "house" ? (
+            <AddForm kind="house" state={newHouse} setState={setNewHouse} />
+          ) : (
+            <AddForm kind="land" state={newLand} setState={setNewLand} />
+          )}
         </div>
       </section>
     );
   };
 
-  const allCosts = [...houseCosts, ...landCosts];
-  const totalItems = allCosts.length;
-  const completedItems = allCosts.filter((i) => i.status === "done").length;
-  const totalAmount = allCosts.reduce(
-    (sum, item) => sum + Number(item.amount || 0),
-    0,
-  );
-  const doneAmount = allCosts
-    .filter((i) => i.status === "done")
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const percentage = totalAmount > 0 ? (doneAmount / totalAmount) * 100 : 0;
-
   return (
     <div data-testid="page-house-costs" className="p-2">
       <div className="flex flex-col md:flex-row">
-        {renderSection(
-          "🏠 House Payments",
-          houseCosts,
-          renderAddForm("house", newHouse, setNewHouse),
-          "house",
-        )}
-        {renderSection(
-          "🌱 Land Payments",
-          landCosts,
-          renderAddForm("land", newLand, setNewLand),
-          "land",
-        )}
+        <Section title="🏠 House Payments" rows={houseCosts} kind="house" />
+        <Section title="🌱 Land Payments" rows={landCosts} kind="land" />
       </div>
 
-      <section className="mt-4 rounded-2xl bg-white/70 ring-1 ring-emerald-200 p-4 shadow-sm backdrop-blur-sm text-sm">
+      <section
+        className="mt-4 rounded-2xl bg-white/70 ring-1 ring-emerald-200 p-4 shadow-sm backdrop-blur-sm text-sm"
+        data-testid="summary-progress"
+      >
         <strong>House Build Progress:</strong>
         <br />
-        Items Completed: {completedItems} / {totalItems}
+        Items Completed: {totals.completedItems} / {totals.totalItems}
         <br />
-        Cost Completed: {formatSEK(doneAmount)} / {formatSEK(totalAmount)}
+        Cost Completed: {formatSEK(totals.doneAmount)} /{" "}
+        {formatSEK(totals.totalAmount)}
         <br />
         <span className="text-emerald-700 font-semibold">
-          {percentage.toFixed(1)}% of total build and land cost is DONE!
+          {totals.pct.toFixed(1)}% of total build and land cost is DONE!
         </span>
       </section>
 
@@ -295,6 +354,7 @@ export default function HouseCostsTab() {
         <div
           role="status"
           aria-live="polite"
+          data-testid="toast"
           className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded shadow"
         >
           {toast}
