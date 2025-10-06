@@ -4,7 +4,17 @@ import api from "../api/axios";
 import { fetchPlannedPurchases } from "../api/plannedPurchases";
 import FinanceChart from "./FinanceChart";
 
-// ---------------- helpers ----------------
+/* ---------------- helpers ---------------- */
+const asList = (v) => {
+  if (Array.isArray(v)) return v;
+  if (v && typeof v === "object") {
+    // find first array inside an object payload
+    const found = Object.values(v).find(Array.isArray);
+    if (found) return found;
+  }
+  return [];
+};
+
 const hasWord = (text, word) =>
   new RegExp(`(?:^|\\W)${word}(?:\\W|$)`, "i").test(String(text || ""));
 
@@ -17,11 +27,10 @@ const ym = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // YYYY-MM
 const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const sumAmounts = (items) =>
-  (items || []).reduce((s, it) => s + toNum(it?.amount), 0);
+  asList(items).reduce((s, it) => s + toNum(it?.amount), 0);
 
 const personFromIncome = (inc, personsSet) => {
   const p = String(inc?.person ?? "").trim();
-  // Prefer explicit person only if it is a known person from acc_info
   if (p && personsSet?.has(p)) return p;
 
   const name = String(inc?.name || "");
@@ -37,10 +46,11 @@ const personFromIncome = (inc, personsSet) => {
 };
 
 const categorizeIncome = (incomes, personsSet) => {
+  const src = asList(incomes);
   const byLabel = { "Rental Income": [] };
   const totals = {};
 
-  (incomes || []).forEach((inc) => {
+  src.forEach((inc) => {
     const name = String(inc?.name || "");
     if (/\brent\b/i.test(name)) {
       byLabel["Rental Income"].push(inc);
@@ -62,6 +72,7 @@ const categorizeIncome = (incomes, personsSet) => {
 };
 
 const categorizeExpense = (expenses) => {
+  const src = asList(expenses);
   const cats = {
     Food: [],
     Housing: [],
@@ -73,20 +84,13 @@ const categorizeExpense = (expenses) => {
     Other: [],
   };
 
-  (expenses || []).forEach((exp) => {
+  src.forEach((exp) => {
     const d = String(exp?.name || "");
-
-    if (isChildcare(d)) {
-      cats["Childcare and Family"].push(exp);
-    } else if (hasWord(d, "food") || hasWord(d, "grocer")) {
-      cats.Food.push(exp);
-    } else if (
-      hasWord(d, "rent") ||
-      hasWord(d, "loan") ||
-      hasWord(d, "mortgage")
-    ) {
+    if (isChildcare(d)) cats["Childcare and Family"].push(exp);
+    else if (hasWord(d, "food") || hasWord(d, "grocer")) cats.Food.push(exp);
+    else if (hasWord(d, "rent") || hasWord(d, "loan") || hasWord(d, "mortgage"))
       cats.Housing.push(exp);
-    } else if (
+    else if (
       hasWord(d, "car") ||
       hasWord(d, "transport") ||
       hasWord(d, "diesel") ||
@@ -94,27 +98,24 @@ const categorizeExpense = (expenses) => {
       hasWord(d, "parking") ||
       hasWord(d, "tire") ||
       hasWord(d, "tyre")
-    ) {
+    )
       cats.Transportation.push(exp);
-    } else if (hasWord(d, "phone") || hasWord(d, "mobile")) {
-      cats.Phones.push(exp);
-    } else if (
+    else if (hasWord(d, "phone") || hasWord(d, "mobile")) cats.Phones.push(exp);
+    else if (
       hasWord(d, "subscription") ||
       hasWord(d, "netflix") ||
       hasWord(d, "spotify")
-    ) {
+    )
       cats.Subscriptions.push(exp);
-    } else if (hasWord(d, "union") || hasWord(d, "insurance")) {
+    else if (hasWord(d, "union") || hasWord(d, "insurance"))
       cats["Union and Insurance"].push(exp);
-    } else {
-      cats.Other.push(exp);
-    }
+    else cats.Other.push(exp);
   });
 
   return cats;
 };
 
-// Tailwind color map (ensure every category has a class so purge keeps them)
+// Tailwind color map
 const categoryColors = {
   "Janne Income": "text-green-700",
   "Kristine Income": "text-blue-700",
@@ -129,20 +130,20 @@ const categoryColors = {
   Other: "text-gray-700",
 };
 
-// ---------------- component ----------------
+/* ---------------- component ---------------- */
 export default function MonthlyOverview() {
   const [monthsData, setMonthsData] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [accInfo, setAccInfo] = useState([]); // {person, value, ...}
 
-  // Anchor from Settings (YYYY-MM). Fallback to today's month.
+  // Anchor from Settings (YYYY-MM). Fallback to today.
   const [anchor, setAnchor] = useState(
     localStorage.getItem("current_anchor") ||
       new Date().toISOString().slice(0, 7),
   );
 
-  // React to Settings changes and cross-tab updates
+  // React to Settings changes + cross-tab updates
   useEffect(() => {
     const onCustom = (e) => {
       const val = e?.detail || localStorage.getItem("current_anchor");
@@ -161,7 +162,7 @@ export default function MonthlyOverview() {
     };
   }, [anchor]);
 
-  // Load planned purchases once (doesn't depend on anchor)
+  // planned purchases (static)
   useEffect(() => {
     let active = true;
     (async () => {
@@ -177,7 +178,7 @@ export default function MonthlyOverview() {
     };
   }, []);
 
-  // ✅ derive known persons and starting funds from acc_info at top level
+  // known persons + starting funds from acc_info
   const personsSet = useMemo(
     () =>
       new Set(
@@ -192,13 +193,12 @@ export default function MonthlyOverview() {
     [accInfo],
   );
 
-  // Load account info (persons + balances) once
+  // Load acc_info once
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         const { data } = await api.get("/acc_info");
-        // Normalize to a flat array of { person, value }
         const rows = Array.isArray(data)
           ? data
           : Object.values(data).find(Array.isArray) || [];
@@ -220,7 +220,7 @@ export default function MonthlyOverview() {
     };
   }, []);
 
-  // Load months whenever anchor changes
+  // Load months when anchor changes
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -255,34 +255,48 @@ export default function MonthlyOverview() {
     })();
 
     return () => {
-      active = false; // prevent state updates after unmount
-      controller.abort(); // cancel in-flight request
+      active = false;
+      controller.abort();
     };
   }, [anchor]);
 
   const chartData = useMemo(() => {
     if (!Array.isArray(monthsData) || monthsData.length === 0) return [];
-    return monthsData.map((m) => {
-      const income = sumAmounts(m.incomes);
-      const expenses = sumAmounts(m.expenses);
 
-      // Match planned purchases by YYYY-MM against m.month_date (YYYY-MM-DD)
+    let runningStart = Number.isFinite(accStartSum)
+      ? accStartSum
+      : toNum(monthsData[0]?.startingFunds) || 0;
+
+    return monthsData.map((m) => {
+      const income = toNum(sumAmounts(m.incomes));
+      const expenses = toNum(sumAmounts(m.expenses));
+
       const plannedForMonth = (purchases || []).filter((p) => {
         if (!p?.date) return false;
         return (m?.month_date || "").slice(0, 7) === ym(new Date(p.date));
       });
-      const plannedSum = sumAmounts(plannedForMonth);
+      const plannedSum = toNum(sumAmounts(plannedForMonth));
+
+      const surplus = toNum(income) - toNum(expenses + plannedSum);
+      const start = toNum(runningStart);
+      const end = toNum(start + surplus);
+      runningStart = end;
 
       return {
+        ...m,
+        _derivedStart: start,
+        _derivedEnd: end,
+        _surplus: surplus,
+        _plannedSum: plannedSum,
         name: m.name,
-        cash: toNum(m.endingFunds) - plannedSum,
+        cash: toNum(end),
         loanRemaining: toNum(m.loanRemaining),
         income,
         expenses: expenses + plannedSum,
-        surplus: income - (expenses + plannedSum),
+        surplus,
       };
     });
-  }, [monthsData, purchases]);
+  }, [monthsData, purchases, accStartSum]);
 
   if (loading) {
     return (
@@ -305,29 +319,24 @@ export default function MonthlyOverview() {
       <FinanceChart data={chartData} />
 
       {Array.from(
-        { length: Math.ceil(monthsData.length / 4) },
+        { length: Math.ceil(chartData.length / 4) },
         (_, rowIndex) => {
-          const rowMonths = monthsData.slice(rowIndex * 4, rowIndex * 4 + 4);
+          const rowMonths = chartData.slice(rowIndex * 4, rowIndex * 4 + 4);
           return (
             <div key={rowIndex} className="flex flex-wrap gap-4 justify-center">
-              {rowMonths.map((month, localIdx) => {
-                const globalIdx = rowIndex * 4 + localIdx;
-                const isFirstMonth = globalIdx === 0;
+              {rowMonths.map((month) => {
                 const incomeCategories = categorizeIncome(
-                  month.incomes,
+                  asList(month.incomes),
                   personsSet,
                 );
-                const expenseCategories = categorizeExpense(month.expenses);
-
+                const expenseCategories = categorizeExpense(
+                  asList(month.expenses),
+                );
                 const totalIncome = sumAmounts(month.incomes);
                 const totalExpenses = sumAmounts(month.expenses);
-                const surplus = totalIncome - totalExpenses;
-                // Funds – Start: take acc_info sum for the first (current) month;
-                // otherwise use server-provided startingFunds.
-                const derivedStart =
-                  isFirstMonth && Number.isFinite(accStartSum)
-                    ? accStartSum
-                    : toNum(month.startingFunds);
+                const surplus = month._surplus;
+                const derivedStart = month._derivedStart;
+                const derivedEnd = month._derivedEnd;
 
                 return (
                   <div
@@ -448,13 +457,13 @@ export default function MonthlyOverview() {
                       </h3>
                       <div className="flex justify-between">
                         <span>Start:</span>
-                        <span>{derivedStart.toLocaleString("sv-SE")} SEK</span>
+                        <span>
+                          {toNum(derivedStart).toLocaleString("sv-SE")} SEK
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>End:</span>
-                        <span>
-                          {toNum(month.endingFunds).toLocaleString("sv-SE")} SEK
-                        </span>
+                        <span>{derivedEnd.toLocaleString("sv-SE")} SEK</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Loan Remaining:</span>

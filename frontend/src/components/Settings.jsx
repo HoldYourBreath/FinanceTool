@@ -1,7 +1,6 @@
 // src/components/Settings.jsx
-import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import api from "../api/axios";
+import { useEffect, useRef, useState } from "react";
+import api from "../api/axios"; // ✅ make sure this import exists
 
 const DEFAULT_MONTHS = [
   { value: "0", label: "January" },
@@ -34,7 +33,7 @@ function normalizeAccInfo(payload) {
     value:
       x.value !== undefined && x.value !== null
         ? Number(x.value) || 0
-        : Number(x.balance) || 0,
+        : Number(x.balance) || 0, // legacy compat
   });
 
   if (Array.isArray(payload)) return payload.map(mapRow);
@@ -47,22 +46,23 @@ function normalizeAccInfo(payload) {
 }
 
 export default function Settings() {
-  const { pathname } = useLocation();
-
   const [months] = useState(DEFAULT_MONTHS);
-  const [currentMonthValue, setCurrentMonthValue] = useState(""); // "0".."11"
+  const [currentMonthValue, setCurrentMonthValue] = useState("");
   const [accounts, setAccounts] = useState([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
   const [toast, setToast] = useState("");
+  const didInit = useRef(false);
 
   const flash = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2200);
   };
 
-  // Always (re)fetch when the Settings route is shown
   useEffect(() => {
-    if (pathname !== "/settings") return;
+    if (didInit.current) return;
+    didInit.current = true;
 
+    // initialize month from localStorage
     const stored = localStorage.getItem("current_anchor");
     if (stored) {
       const v = ymToZeroBasedMonth(stored);
@@ -70,20 +70,23 @@ export default function Settings() {
     }
 
     const controller = new AbortController();
+    setAccountsLoading(true);
 
     (async () => {
       try {
-        console.log("[Settings] fetching /api/acc_info …");
         const res = await api.get("/acc_info", { signal: controller.signal });
         const rows = normalizeAccInfo(res.data);
         setAccounts(rows);
-        window.__accDebug = { raw: res.data, rows };
-        console.log("[Settings] /acc_info rows:", rows.length);
+        window.__accDebug = { raw: res.data, rows }; // 🔎 debug in DevTools
+        console.log("[Settings] /acc_info rows:", rows.length, rows);
       } catch (e) {
         if (!controller.signal.aborted) {
           console.error("❌ Failed to load accounts", e);
           flash("❌ Failed to load accounts");
+          setAccounts([]);
         }
+      } finally {
+        if (!controller.signal.aborted) setAccountsLoading(false);
       }
     })();
 
@@ -95,26 +98,15 @@ export default function Settings() {
     };
     window.addEventListener("storage", onStorage);
 
-    // Optional: refresh when tab regains focus
-    const onFocus = () => {
-      api
-        .get("/acc_info")
-        .then(({ data }) => setAccounts(normalizeAccInfo(data)))
-        .catch(() => {});
-    };
-    window.addEventListener("focus", onFocus);
-
     return () => {
       controller.abort();
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener("focus", onFocus);
     };
-  }, [pathname]);
+  }, []);
 
   const handleSetCurrentMonth = async () => {
     if (currentMonthValue === "") return flash("❌ Select a month first");
-
-    const monthIndex = Number(currentMonthValue); // 0..11
+    const monthIndex = Number(currentMonthValue);
     const year = new Date().getFullYear();
     const anchor = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
 
@@ -124,13 +116,11 @@ export default function Settings() {
         new CustomEvent("current-anchor-changed", { detail: anchor }),
       );
 
-      // tests expect { month_id: <0..11> }
-      await fetch("/api/settings/current_month", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month_id: monthIndex }), // number 0..11
-      });
-
+      await api.post(
+        "/settings/current_month",
+        { month_id: monthIndex },
+        { headers: { "Content-Type": "application/json" } },
+      );
       flash("✅ Current month updated");
     } catch (err) {
       console.error("❌ Error updating current month:", err);
@@ -208,7 +198,14 @@ export default function Settings() {
 
       {/* Accounts */}
       <div>
-        <h2 className="text-xl font-semibold">Account Information</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Account Information</h2>
+          {!accountsLoading && (
+            <span className="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-700">
+              Loaded {accounts.length}
+            </span>
+          )}
+        </div>
 
         <div className="mt-2 overflow-x-auto rounded border">
           <table className="min-w-[720px] w-full text-sm">
@@ -222,7 +219,13 @@ export default function Settings() {
               </tr>
             </thead>
             <tbody>
-              {accounts.length === 0 ? (
+              {accountsLoading ? (
+                <tr>
+                  <td colSpan={5} className="p-3 text-gray-500">
+                    Loading accounts…
+                  </td>
+                </tr>
+              ) : accounts.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-3 text-gray-500">
                     No accounts found (check Network →{" "}
