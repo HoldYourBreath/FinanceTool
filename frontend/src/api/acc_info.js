@@ -2,7 +2,7 @@
 import api from "./axios";
 
 export async function fetchaccinfo() {
-  const res = await api.get("/acc_info");
+  const res = await api.get("/api/acc_info");
   return res.data || [];
 }
 

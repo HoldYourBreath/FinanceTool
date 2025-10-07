@@ -198,7 +198,7 @@ export default function MonthlyOverview() {
     let active = true;
     (async () => {
       try {
-        const { data } = await api.get("/acc_info");
+        const { data } = await api.get("/api/acc_info");
         const rows = Array.isArray(data)
           ? data
           : Object.values(data).find(Array.isArray) || [];
