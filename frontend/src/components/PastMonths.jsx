@@ -2,15 +2,55 @@
 import { useEffect, useRef, useState } from "react";
 import api from "../api/axios";
 
+/* ---------------- helpers ---------------- */
+const ym = (iso) => String(iso || "").slice(0, 7);
+const getAnchor = () =>
+  localStorage.getItem("current_anchor") ||
+  new Date().toISOString().slice(0, 7);
+
+const formatSEK = (n) =>
+  Number(n || 0).toLocaleString("sv-SE", {
+    style: "currency",
+    currency: "SEK",
+    maximumFractionDigits: 0,
+  });
+
+const sumAmounts = (items = []) =>
+  items.reduce((sum, item) => sum + Number(item?.amount || 0), 0);
+
+const groupByCategory = (items = []) => {
+  const map = {};
+  for (const e of items) {
+    const key = (e?.category || "Other").trim() || "Other";
+    (map[key] ||= []).push(e);
+  }
+  return map;
+};
+
+// fixed 3-per-row chunking
+const chunk = (arr, size = 3) =>
+  Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+    arr.slice(i * size, i * size + size),
+  );
+
+// Tailwind color safelist
+const expenseCategoryColors = {
+  Housing: "text-green-700",
+  Transportation: "text-orange-500",
+  Food: "text-red-700",
+  "Childcare and Family": "text-emerald-700",
+  "Entertainment and Leisure": "text-indigo-700",
+  Phones: "text-blue-700",
+  Subscriptions: "text-purple-700",
+  "Union and Insurance": "text-pink-700",
+  Other: "text-gray-700",
+};
+
+/* ---------------- component ---------------- */
 export default function PastMonths() {
   const [monthsData, setMonthsData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const didFetch = useRef(false); // <-- add this
-
-  const ym = (iso) => String(iso || "").slice(0, 7);
-  const getAnchor = () =>
-    localStorage.getItem("current_anchor") ||
-    new Date().toISOString().slice(0, 7);
+  const didFetch = useRef(false);
 
   async function fetchPastMonths() {
     setLoading(true);
@@ -18,11 +58,13 @@ export default function PastMonths() {
       const res = await api.get("/months/all");
       const months = Array.isArray(res.data) ? [...res.data] : [];
       months.sort((a, b) => ym(a?.month_date).localeCompare(ym(b?.month_date)));
+
       const anchor = getAnchor();
       const past = months.filter((m) => {
         const k = ym(m?.month_date);
         return k && k < anchor;
       });
+
       setMonthsData(past);
     } catch (err) {
       console.error("❌ Failed to fetch past months:", err);
@@ -33,7 +75,6 @@ export default function PastMonths() {
   }
 
   useEffect(() => {
-    // register listeners every pass (StrictMode mounts/unmounts)
     const onCustom = () => fetchPastMonths();
     const onStorage = (e) => {
       if (e.key === "current_anchor") fetchPastMonths();
@@ -41,7 +82,6 @@ export default function PastMonths() {
     window.addEventListener("current-anchor-changed", onCustom);
     window.addEventListener("storage", onStorage);
 
-    // but only fire the initial fetch once
     if (!didFetch.current) {
       didFetch.current = true;
       fetchPastMonths();
@@ -52,152 +92,122 @@ export default function PastMonths() {
       window.removeEventListener("storage", onStorage);
     };
   }, []);
-  // ---------- local helpers ----------
-  const formatSEK = (n) =>
-    Number(n || 0).toLocaleString("sv-SE", {
-      style: "currency",
-      currency: "SEK",
-      maximumFractionDigits: 0,
-    });
 
-  const sumAmounts = (items = []) =>
-    items.reduce((sum, item) => sum + Number(item?.amount || 0), 0);
+  /* ---------------- render ---------------- */
+  if (loading) {
+    return (
+      <div data-testid="page-past-months" className="text-center p-4">
+        Loading Past Months...
+      </div>
+    );
+  }
 
-  const groupByCategory = (items = []) => {
-    const map = {};
-    for (const e of items) {
-      const key = (e?.category || "Other").trim() || "Other";
-      (map[key] ||= []).push(e);
-    }
-    return map;
-  };
+  if (!Array.isArray(monthsData) || monthsData.length === 0) {
+    return (
+      <div
+        data-testid="page-past-months"
+        className="text-center p-4 text-red-600"
+      >
+        No Past Months Data Available.
+      </div>
+    );
+  }
 
-  // Tailwind color safelist
-  const expenseCategoryColors = {
-    Housing: "text-green-700",
-    Transportation: "text-orange-500",
-    Food: "text-red-700",
-    "Childcare and Family": "text-emerald-700",
-    "Entertainment and Leisure": "text-indigo-700",
-    Phones: "text-blue-700",
-    Subscriptions: "text-purple-700",
-    "Union and Insurance": "text-pink-700",
-    Other: "text-gray-700",
-  };
-
-  // ---------- render ----------
   return (
-    <div data-testid="page-past-months" className="space-y-8">
-      {loading ? (
-        <div className="text-center p-4">Loading Past Months...</div>
-      ) : !Array.isArray(monthsData) || monthsData.length === 0 ? (
-        <div className="text-center p-4 text-red-600">
-          No Past Months Data Available.
-        </div>
-      ) : (
-        Array.from(
-          { length: Math.ceil(monthsData.length / 4) },
-          (_, rowIndex) => {
-            const rowMonths = monthsData.slice(rowIndex * 4, rowIndex * 4 + 4);
+    <div data-testid="page-past-months" className="space-y-4">
+      {chunk(monthsData, 3).map((rowMonths, rowIndex) => (
+        <div
+          key={rowIndex}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center"
+        >
+          {rowMonths.map((month, idx) => {
+            const incomes = Array.isArray(month?.incomes) ? month.incomes : [];
+            const expenses = Array.isArray(month?.expenses)
+              ? month.expenses
+              : [];
+
+            const totalIncome = sumAmounts(incomes);
+            const totalExpenses = sumAmounts(expenses);
+            const surplus = totalIncome - totalExpenses;
+            const expenseGroups = groupByCategory(expenses);
+
+            const cardKey =
+              month?.id ?? `${month?.name || "month"}-${rowIndex}-${idx}`;
+
             return (
               <div
-                key={rowIndex}
-                className="flex flex-wrap gap-4 justify-center"
+                key={cardKey}
+                className="w-[320px] border p-4 rounded-lg shadow space-y-4 bg-white"
               >
-                {rowMonths.map((month, idx) => {
-                  const incomes = Array.isArray(month?.incomes)
-                    ? month.incomes
-                    : [];
-                  const expenses = Array.isArray(month?.expenses)
-                    ? month.expenses
-                    : [];
+                <h2 className="text-2xl font-bold text-blue-700">
+                  {month?.name || "—"}
+                </h2>
 
-                  const totalIncome = sumAmounts(incomes);
-                  const totalExpenses = sumAmounts(expenses);
-                  const surplus = totalIncome - totalExpenses;
+                <div
+                  className={`text-center font-bold text-white py-2 rounded tabular-nums ${
+                    surplus >= 0 ? "bg-green-500" : "bg-red-500"
+                  }`}
+                >
+                  {surplus >= 0 ? "+" : "-"} {formatSEK(Math.abs(surplus))}
+                </div>
 
-                  const expenseGroups = groupByCategory(expenses);
-                  const cardKey =
-                    month?.id ?? `${month?.name || "month"}-${rowIndex}-${idx}`;
+                {/* Incomes */}
+                <IncomeSection
+                  title="💰 Incomes"
+                  items={incomes}
+                  total={totalIncome}
+                  formatSEK={formatSEK}
+                  byPerson={month?.incomesByPerson || {}}
+                />
 
-                  return (
-                    <div
-                      key={cardKey}
-                      className="w-[320px] border p-4 rounded-lg shadow space-y-4 bg-white"
-                    >
-                      <h2 className="text-2xl font-bold text-blue-700">
-                        {month?.name || "—"}
-                      </h2>
+                {/* Expenses */}
+                <ExpenseSection
+                  title="💸 Expenses"
+                  groups={expenseGroups}
+                  total={totalExpenses}
+                  colors={expenseCategoryColors}
+                  formatSEK={formatSEK}
+                />
 
-                      <div
-                        className={`text-center font-bold text-white py-2 rounded tabular-nums ${
-                          surplus >= 0 ? "bg-green-500" : "bg-red-500"
-                        }`}
-                      >
-                        {surplus >= 0 ? "+" : "-"}{" "}
-                        {formatSEK(Math.abs(surplus))}
-                      </div>
-
-                      {/* Incomes: list each item + total */}
-                      <IncomeSection
-                        title="💰 Incomes"
-                        items={incomes}
-                        total={totalIncome}
-                        formatSEK={formatSEK}
-                        byPerson={month?.incomesByPerson || {}}
-                      />
-
-                      {/* Expenses grouped by category */}
-                      <ExpenseSection
-                        title="💸 Expenses"
-                        groups={expenseGroups}
-                        total={totalExpenses}
-                        colors={expenseCategoryColors}
-                        formatSEK={formatSEK}
-                      />
-
-                      {/* Loan adjustments */}
-                      {Array.isArray(month?.loanAdjustments) &&
-                        month.loanAdjustments.length > 0 && (
-                          <div className="mt-4 space-y-2">
-                            <h3 className="text-lg font-semibold text-green-700">
-                              🧮 Loan Adjustments
-                            </h3>
-                            {month.loanAdjustments.map((adj, i2) => (
-                              <div
-                                key={i2}
-                                className="flex justify-between text-sm tabular-nums"
-                              >
-                                <span>{adj?.name}</span>
-                                <span>{formatSEK(adj?.amount)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                      {/* Funds */}
-                      <div className="mt-4 border-t pt-2 text-sm text-gray-700 space-y-1">
-                        <h3 className="text-base font-semibold">💰 Funds</h3>
-                        <RowKV k="Start:" v={formatSEK(month?.startingFunds)} />
-                        <RowKV k="End:" v={formatSEK(month?.endingFunds)} />
-                        <RowKV
-                          k="Loan Remaining:"
-                          v={formatSEK(month?.loanRemaining)}
-                        />
-                      </div>
+                {/* Loan adjustments */}
+                {Array.isArray(month?.loanAdjustments) &&
+                  month.loanAdjustments.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <h3 className="text-lg font-semibold text-green-700">
+                        🧮 Loan Adjustments
+                      </h3>
+                      {month.loanAdjustments.map((adj, i2) => (
+                        <div
+                          key={i2}
+                          className="flex justify-between text-sm tabular-nums"
+                        >
+                          <span>{adj?.name}</span>
+                          <span>{formatSEK(adj?.amount)}</span>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
+                  )}
+
+                {/* Funds */}
+                <div className="mt-4 border-t pt-2 text-sm text-gray-700 space-y-1">
+                  <h3 className="text-base font-semibold">💰 Funds</h3>
+                  <RowKV k="Start:" v={formatSEK(month?.startingFunds)} />
+                  <RowKV k="End:" v={formatSEK(month?.endingFunds)} />
+                  <RowKV
+                    k="Loan Remaining:"
+                    v={formatSEK(month?.loanRemaining)}
+                  />
+                </div>
               </div>
             );
-          },
-        )
-      )}
+          })}
+        </div>
+      ))}
     </div>
   );
 }
 
-// ---------- subcomponents ----------
+/* ---------------- subcomponents ---------------- */
 function IncomeSection({ title, items, total, byPerson, formatSEK }) {
   const list = Array.isArray(items) ? items : [];
   const people = Object.entries(byPerson || {}).filter(

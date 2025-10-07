@@ -8,7 +8,6 @@ import FinanceChart from "./FinanceChart";
 const asList = (v) => {
   if (Array.isArray(v)) return v;
   if (v && typeof v === "object") {
-    // find first array inside an object payload
     const found = Object.values(v).find(Array.isArray);
     if (found) return found;
   }
@@ -28,6 +27,11 @@ const ym = (d) =>
 const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const sumAmounts = (items) =>
   asList(items).reduce((s, it) => s + toNum(it?.amount), 0);
+
+const chunk = (arr, size = 3) =>
+  Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+    arr.slice(i * size, i * size + size),
+  );
 
 const personFromIncome = (inc, personsSet) => {
   const p = String(inc?.person ?? "").trim();
@@ -115,7 +119,7 @@ const categorizeExpense = (expenses) => {
   return cats;
 };
 
-// Tailwind color map
+// Tailwind color map (keep existing classes so purge keeps them)
 const categoryColors = {
   "Janne Income": "text-green-700",
   "Kristine Income": "text-blue-700",
@@ -198,7 +202,7 @@ export default function MonthlyOverview() {
     let active = true;
     (async () => {
       try {
-        const { data } = await api.get("/api/acc_info");
+        const { data } = await api.get("/acc_info");
         const rows = Array.isArray(data)
           ? data
           : Object.values(data).find(Array.isArray) || [];
@@ -238,15 +242,9 @@ export default function MonthlyOverview() {
         const futureMonths =
           currentIndex >= 0 ? months.slice(currentIndex) : months;
 
-        if (import.meta.env.DEV) {
-          console.log("Fetched months:", months);
-          console.log("Current Index:", currentIndex, "Anchor:", anchor);
-        }
-
         if (active) setMonthsData(futureMonths);
-      } catch (err) {
+      } catch {
         if (!controller.signal.aborted) {
-          console.error("❌ Failed to fetch monthly data:", err);
           if (active) setMonthsData([]);
         }
       } finally {
@@ -260,6 +258,7 @@ export default function MonthlyOverview() {
     };
   }, [anchor]);
 
+  // Build chart rows, preserving original arrays for rendering
   const chartData = useMemo(() => {
     if (!Array.isArray(monthsData) || monthsData.length === 0) return [];
 
@@ -268,8 +267,11 @@ export default function MonthlyOverview() {
       : toNum(monthsData[0]?.startingFunds) || 0;
 
     return monthsData.map((m) => {
-      const income = toNum(sumAmounts(m.incomes));
-      const expenses = toNum(sumAmounts(m.expenses));
+      const incomesList = Array.isArray(m.incomes) ? m.incomes : [];
+      const expensesList = Array.isArray(m.expenses) ? m.expenses : [];
+
+      const income = toNum(sumAmounts(incomesList));
+      const expensesRaw = toNum(sumAmounts(expensesList));
 
       const plannedForMonth = (purchases || []).filter((p) => {
         if (!p?.date) return false;
@@ -277,23 +279,24 @@ export default function MonthlyOverview() {
       });
       const plannedSum = toNum(sumAmounts(plannedForMonth));
 
-      const surplus = toNum(income) - toNum(expenses + plannedSum);
+      const surplus = income - (expensesRaw + plannedSum);
       const start = toNum(runningStart);
       const end = toNum(start + surplus);
       runningStart = end;
 
       return {
         ...m,
+        incomesList, // preserve arrays
+        expensesList,
+        income, // numeric
+        expenses: expensesRaw + plannedSum, // numeric including planned
+        cash: toNum(end), // for FinanceChart
+        loanRemaining: toNum(m.loanRemaining),
+
         _derivedStart: start,
         _derivedEnd: end,
         _surplus: surplus,
         _plannedSum: plannedSum,
-        name: m.name,
-        cash: toNum(end),
-        loanRemaining: toNum(m.loanRemaining),
-        income,
-        expenses: expenses + plannedSum,
-        surplus,
       };
     });
   }, [monthsData, purchases, accStartSum]);
@@ -318,168 +321,166 @@ export default function MonthlyOverview() {
     <div data-testid="page-home" className="space-y-8">
       <FinanceChart data={chartData} />
 
-      {Array.from(
-        { length: Math.ceil(chartData.length / 4) },
-        (_, rowIndex) => {
-          const rowMonths = chartData.slice(rowIndex * 4, rowIndex * 4 + 4);
-          return (
-            <div key={rowIndex} className="flex flex-wrap gap-4 justify-center">
-              {rowMonths.map((month) => {
-                const incomeCategories = categorizeIncome(
-                  asList(month.incomes),
-                  personsSet,
-                );
-                const expenseCategories = categorizeExpense(
-                  asList(month.expenses),
-                );
-                const totalIncome = sumAmounts(month.incomes);
-                const totalExpenses = sumAmounts(month.expenses);
-                const surplus = month._surplus;
-                const derivedStart = month._derivedStart;
-                const derivedEnd = month._derivedEnd;
+      {/* 3 cards per row with similar spacing to previous layout */}
+      <div className="space-y-4">
+        {chunk(chartData, 3).map((rowMonths, rowIndex) => (
+          <div
+            key={rowIndex}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center"
+          >
+            {rowMonths.map((month) => {
+              const incomeCategories = categorizeIncome(
+                asList(month.incomesList),
+                personsSet,
+              );
+              const expenseCategories = categorizeExpense(
+                asList(month.expensesList),
+              );
+              const totalIncome = toNum(month.income);
+              const totalExpenses = toNum(month.expenses);
+              const surplus = month._surplus;
+              const derivedStart = month._derivedStart;
+              const derivedEnd = month._derivedEnd;
 
-                return (
+              return (
+                <div
+                  key={month.id}
+                  className="w-[320px] border p-4 rounded-lg shadow space-y-4 bg-white"
+                >
+                  <h2 className="text-2xl font-bold text-blue-700">
+                    {month.name}
+                  </h2>
+
                   <div
-                    key={month.id}
-                    className="w-[320px] border p-4 rounded-lg shadow space-y-4 bg-white"
+                    className={`text-center font-bold text-white py-2 rounded ${
+                      surplus >= 0 ? "bg-green-500" : "bg-red-500"
+                    }`}
                   >
-                    <h2 className="text-2xl font-bold text-blue-700">
-                      {month.name}
-                    </h2>
+                    {surplus >= 0 ? "+" : "-"}{" "}
+                    {Math.abs(surplus).toLocaleString("sv-SE")} SEK
+                  </div>
 
-                    <div
-                      className={`text-center font-bold text-white py-2 rounded ${
-                        surplus >= 0 ? "bg-green-500" : "bg-red-500"
-                      }`}
-                    >
-                      {surplus >= 0 ? "+" : "-"}{" "}
-                      {Math.abs(surplus).toLocaleString("sv-SE")} SEK
-                    </div>
-
-                    {/* Incomes */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">
-                        💰 Income (Total {totalIncome.toLocaleString("sv-SE")}{" "}
-                        SEK)
-                      </h3>
-                      {Object.entries(incomeCategories).map(
-                        ([category, items]) => {
-                          if (!items.length) return null;
-                          const color =
-                            categoryColors[category] || "text-gray-700";
-                          const total = sumAmounts(items);
-                          return (
-                            <div key={category} className="mb-2">
-                              <div className={`font-bold ${color}`}>
-                                {category} — {total.toLocaleString("sv-SE")} SEK
+                  {/* Incomes */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      💰 Income (Total {totalIncome.toLocaleString("sv-SE")}{" "}
+                      SEK)
+                    </h3>
+                    {Object.entries(incomeCategories).map(
+                      ([category, items]) => {
+                        if (!items.length) return null;
+                        const color =
+                          categoryColors[category] || "text-gray-700";
+                        const total = sumAmounts(items);
+                        return (
+                          <div key={category} className="mb-2">
+                            <div className={`font-bold ${color}`}>
+                              {category} — {total.toLocaleString("sv-SE")} SEK
+                            </div>
+                            {items.map((inc, idx) => (
+                              <div
+                                key={idx}
+                                className="flex justify-between text-sm"
+                              >
+                                <span>{inc.name}</span>
+                                <span>
+                                  {toNum(inc.amount).toLocaleString("sv-SE")}{" "}
+                                  SEK
+                                </span>
                               </div>
-                              {items.map((inc, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex justify-between text-sm"
-                                >
-                                  <span>{inc.name}</span>
-                                  <span>
-                                    {toNum(inc.amount).toLocaleString("sv-SE")}{" "}
-                                    SEK
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        },
-                      )}
-                    </div>
+                            ))}
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
 
-                    {/* Expenses */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">
-                        💸 Expenses (Total{" "}
-                        {totalExpenses.toLocaleString("sv-SE")} SEK)
-                      </h3>
-                      {Object.entries(expenseCategories).map(
-                        ([category, items]) => {
-                          if (!items.length) return null;
-                          const color =
-                            categoryColors[category] || "text-gray-700";
-                          const total = sumAmounts(items);
-                          return (
-                            <div key={category} className="mb-2">
-                              <div className={`font-bold ${color}`}>
-                                {category} — {total.toLocaleString("sv-SE")} SEK
+                  {/* Expenses */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      💸 Expenses (Total {totalExpenses.toLocaleString("sv-SE")}{" "}
+                      SEK)
+                    </h3>
+                    {Object.entries(expenseCategories).map(
+                      ([category, items]) => {
+                        if (!items.length) return null;
+                        const color =
+                          categoryColors[category] || "text-gray-700";
+                        const total = sumAmounts(items);
+                        return (
+                          <div key={category} className="mb-2">
+                            <div className={`font-bold ${color}`}>
+                              {category} — {total.toLocaleString("sv-SE")} SEK
+                            </div>
+                            {items.map((exp, idx) => (
+                              <div
+                                key={idx}
+                                className="flex justify-between text-sm"
+                              >
+                                <span>
+                                  {exp?.name || exp?.description || "Unnamed"}
+                                </span>
+                                <span>
+                                  - {toNum(exp.amount).toLocaleString("sv-SE")}{" "}
+                                  SEK
+                                </span>
                               </div>
-                              {items.map((exp, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex justify-between text-sm"
-                                >
-                                  <span>
-                                    {exp?.name || exp?.description || "Unnamed"}
-                                  </span>
-                                  <span>
-                                    -{" "}
-                                    {toNum(exp.amount).toLocaleString("sv-SE")}{" "}
-                                    SEK
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        },
-                      )}
+                            ))}
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
+
+                  {/* Loan Adjustments */}
+                  {Array.isArray(month.loanAdjustments) &&
+                    month.loanAdjustments.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <h3 className="text-lg font-semibold text-green-700 flex items-center gap-2">
+                          🧮 Loan Adjustments
+                        </h3>
+                        {month.loanAdjustments.map((adj, idx) => (
+                          <div
+                            key={idx}
+                            className="flex justify-between text-sm"
+                          >
+                            <span>{adj.name}</span>
+                            <span className="font-semibold">
+                              {toNum(adj.amount).toLocaleString("sv-SE")} SEK
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                  {/* Funds */}
+                  <div className="mt-4 border-t pt-2 text-sm text-gray-700 space-y-1">
+                    <h3 className="text-base font-semibold flex items-center gap-2">
+                      💰 Funds
+                    </h3>
+                    <div className="flex justify-between">
+                      <span>Start:</span>
+                      <span>
+                        {toNum(derivedStart).toLocaleString("sv-SE")} SEK
+                      </span>
                     </div>
-
-                    {/* Loan Adjustments */}
-                    {Array.isArray(month.loanAdjustments) &&
-                      month.loanAdjustments.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                          <h3 className="text-lg font-semibold text-green-700 flex items-center gap-2">
-                            🧮 Loan Adjustments
-                          </h3>
-                          {month.loanAdjustments.map((adj, idx) => (
-                            <div
-                              key={idx}
-                              className="flex justify-between text-sm"
-                            >
-                              <span>{adj.name}</span>
-                              <span className="font-semibold">
-                                {toNum(adj.amount).toLocaleString("sv-SE")} SEK
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                    {/* Funds */}
-                    <div className="mt-4 border-t pt-2 text-sm text-gray-700 space-y-1">
-                      <h3 className="text-base font-semibold flex items-center gap-2">
-                        💰 Funds
-                      </h3>
-                      <div className="flex justify-between">
-                        <span>Start:</span>
-                        <span>
-                          {toNum(derivedStart).toLocaleString("sv-SE")} SEK
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>End:</span>
-                        <span>{derivedEnd.toLocaleString("sv-SE")} SEK</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Loan Remaining:</span>
-                        <span>
-                          {toNum(month.loanRemaining).toLocaleString("sv-SE")}{" "}
-                          SEK
-                        </span>
-                      </div>
+                    <div className="flex justify-between">
+                      <span>End:</span>
+                      <span>{derivedEnd.toLocaleString("sv-SE")} SEK</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Loan Remaining:</span>
+                      <span>
+                        {toNum(month.loanRemaining).toLocaleString("sv-SE")} SEK
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          );
-        },
-      )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
