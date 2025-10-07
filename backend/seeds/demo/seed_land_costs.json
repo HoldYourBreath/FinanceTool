@@ -13,5 +13,5 @@
   { "name": "Anslutning VA", "amount": 193221, "status": "done" },
   { "name": "Anslutning EL2", "amount": 54125, "status": "done" },
   { "name": "Grovutsättning enligt PBL, Finutsättning, Lägeskontroll", "amount": 15785, "status": "done" },
-  { "name": "Fiberanslutning", "amount": 25000, "status": "todo" }
+  { "name": "Fiberanslutning", "amount": 20000, "status": "todo" }
 ]
